@@ -1,0 +1,32 @@
+server:
+  port: 8080
+
+spring:
+  datasource:
+    url: jdbc:postgresql://localhost:5432/route_sharing
+    username: postgres
+    password: "PASS"
+    driver-class-name: org.postgresql.Driver
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: true    
+    properties:
+      hibernate:
+        '[format_sql]': true # Giữ lại tính năng format SQL cho dễ đọc log
+        dialect: org.hibernate.spatial.dialect.postgis.PostgisPG95Dialect
+
+  data:
+    redis:
+      host: localhost
+      port: 6379
+
+
+goong:
+  api-key: TEST 
+  url: https://rsapi.goong.io/
+  timeout: 5000
+
+jwt:
+  secret: ABC 
+  expiration: 86400000

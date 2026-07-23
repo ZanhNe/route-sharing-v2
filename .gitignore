@@ -1,0 +1,47 @@
+# Backend core
+**/target/
+**/mvnw
+**/mvnw.cmd
+**/.mvn/
+**/HELP.md
+
+
+# Frontend core
+**/node_modules/
+**/.expo/
+**/dist/
+**/web-build/
+**/.metro-health-check*
+
+# Node.js error logs
+**/npm-debug.log*
+**/yarn-error.log*
+**/yarn-debug.log*
+
+# Native build folder
+/ios/
+/android/
+
+# Mobile certificate files
+*.jks
+*.p8
+*.p12
+*.key
+*.mobileprovision
+*.pem
+
+# DB/Redis passwords
+**/application.yaml
+
+# Frontend enviroments
+**/.env*
+!**/.env.example
+!**/application.example.yaml
+!**/application.example.yml
+
+# IDE / Editors
+**/.idea/
+**/.vscode/
+**/*.iml
+**/*.iws
+**/*.ipr
