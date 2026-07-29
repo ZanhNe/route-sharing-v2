@@ -12,7 +12,7 @@ public record GeoDirectionResponseDTO(
 
     @JsonIgnoreProperties(ignoreUnknown = true)
     public record Route(
-            @JsonProperty("legs") Leg[] legs, // Đã mở khóa mảng legs
+            @JsonProperty("legs") Leg[] legs,
             @JsonProperty("bounds") Bounds bounds,
             @JsonAlias("overview_polyline") Polyline polyline) {
 

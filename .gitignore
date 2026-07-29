@@ -4,7 +4,7 @@
 **/mvnw.cmd
 **/.mvn/
 **/HELP.md
-
+**/logs/
 
 # Frontend core
 **/node_modules/

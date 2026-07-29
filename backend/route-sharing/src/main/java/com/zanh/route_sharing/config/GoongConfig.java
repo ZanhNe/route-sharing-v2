@@ -1,13 +1,13 @@
 package com.zanh.route_sharing.config;
 
 import org.springframework.boot.context.properties.ConfigurationProperties;
-import org.springframework.stereotype.Component;
+import org.springframework.context.annotation.Configuration;
 
 import lombok.Getter;
 import lombok.Setter;
 
-@Component
 @ConfigurationProperties(prefix = "goong")
+@Configuration
 @Getter
 @Setter
 public class GoongConfig {
