@@ -1,0 +1,11 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org">
+<head><meta charset="UTF-8"><title>Không có quyền truy cập</title></head>
+<body>
+<h1>Không có quyền truy cập khu vực nội bộ</h1>
+<p>Tài khoản đã đăng nhập nhưng chưa được cấp quyền <code>ACCESS_INTERNAL_PORTAL</code>.</p>
+<form th:action="@{/internal/logout}" method="post">
+    <button type="submit">Đăng xuất</button>
+</form>
+</body>
+</html>

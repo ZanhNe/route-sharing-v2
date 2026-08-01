@@ -1,0 +1,10 @@
+spring:
+  jpa:
+    hibernate:
+      ddl-auto: update
+  thymeleaf:
+    cache: false
+logging:
+  level:
+    org.springframework.security: INFO
+    org.hibernate.SQL: DEBUG

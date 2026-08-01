@@ -8,27 +8,14 @@
 
 # Frontend core
 **/node_modules/
-**/.expo/
 **/dist/
-**/web-build/
-**/.metro-health-check*
 
 # Node.js error logs
 **/npm-debug.log*
 **/yarn-error.log*
 **/yarn-debug.log*
 
-# Native build folder
-/ios/
-/android/
 
-# Mobile certificate files
-*.jks
-*.p8
-*.p12
-*.key
-*.mobileprovision
-*.pem
 
 # DB/Redis passwords
 **/application.yaml
@@ -45,3 +32,22 @@
 **/*.iml
 **/*.iws
 **/*.ipr
+
+
+# Local environment secrets
+dev-env.ps1
+.env
+.env.*
+!.env.example
+
+application-dev.yml
+application-prod.yml
+application.yml
+
+
+target/
+.vscode/
+*.iml
+.env
+*.log
+.DS_Store

@@ -1,0 +1,58 @@
+spring:
+  application:
+    name: route-sharing
+  datasource:
+    url: ${DB_URL:jdbc:postgresql://localhost:5432/route_sharing}
+    username: ${DB_USERNAME:postgres}
+    password: ${DB_PASSWORD:postgres}
+  jpa:
+    open-in-view: false
+    hibernate:
+      ddl-auto: validate
+    properties:
+      hibernate:
+        jdbc:
+          time_zone: UTC
+        format_sql: false
+  http:
+    clients:
+      connect-timeout: 3s
+      read-timeout: 10s
+      redirects: dont-follow
+  servlet:
+    multipart:
+      max-file-size: 20MB
+      max-request-size: 25MB
+  thymeleaf:
+    cache: true
+
+server:
+  forward-headers-strategy: ${FORWARD_HEADERS_STRATEGY:none}
+
+app:
+  async:
+    core-pool-size: 5
+    max-pool-size: 10
+    queue-capacity: 500
+    thread-name-prefix: RouteShare-Async-
+    await-termination: 30s
+  cors:
+    allowed-origins:
+      - ${FRONTEND_ORIGIN:http://localhost:5173}
+  websocket:
+    allowed-origins:
+      - ${FRONTEND_ORIGIN:http://localhost:5173}
+      - ${APPLICATION_ORIGIN:http://localhost:8080}
+  internal-portal:
+    required-authority: ${INTERNAL_PORTAL_AUTHORITY:ACCESS_INTERNAL_PORTAL}
+  jwt:
+    base64-secret: ${JWT_BASE64_SECRET}
+    issuer: route-sharing
+    audience: route-sharing-api
+    access-token-ttl: 20m
+    refresh-token-ttl: 7d
+    clock-skew: 30s
+
+goong:
+  api-key: ${GOONG_API_KEY}
+  base-url: ${GOONG_BASE_URL:https://rsapi.goong.io}

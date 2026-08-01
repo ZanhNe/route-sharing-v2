@@ -1,31 +1,32 @@
 package com.zanh.route_sharing.exception;
 
-import java.util.Map;
-
+import lombok.Getter;
 import org.springframework.http.HttpStatus;
 
-import lombok.Getter;
+import java.util.Map;
 
 @Getter
 public class BusinessException extends RuntimeException {
     private final HttpStatus status;
+    private final String code;
     private final Map<String, String> errors;
 
     public BusinessException(String message) {
-        super(message);
-        this.status = HttpStatus.BAD_REQUEST;
-        this.errors = null;
+        this(HttpStatus.BAD_REQUEST, "BUSINESS_ERROR", message, null);
     }
 
     public BusinessException(HttpStatus status, String message) {
-        super(message);
-        this.status = status;
-        this.errors = null;
+        this(status, "BUSINESS_ERROR", message, null);
     }
 
-    public BusinessException(HttpStatus status, String message, Map<String, String> errors) {
+    public BusinessException(HttpStatus status, String code, String message) {
+        this(status, code, message, null);
+    }
+
+    public BusinessException(HttpStatus status, String code, String message, Map<String, String> errors) {
         super(message);
         this.status = status;
-        this.errors = errors;
+        this.code = code;
+        this.errors = errors == null ? null : Map.copyOf(errors);
     }
 }

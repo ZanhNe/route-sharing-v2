@@ -1,111 +1,164 @@
 package com.zanh.route_sharing.config;
 
+import com.zanh.route_sharing.config.properties.CorsProperties;
+import com.zanh.route_sharing.config.properties.InternalPortalProperties;
+import com.zanh.route_sharing.security.CustomUserDetailsService;
+import com.zanh.route_sharing.security.InternalSessionSecurityFilter;
+import com.zanh.route_sharing.security.JwtAuthenticationFilter;
+import com.zanh.route_sharing.security.RestAccessDeniedHandler;
+import com.zanh.route_sharing.security.RestAuthenticationEntryPoint;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.core.annotation.Order;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.AuthenticationProvider;
+import org.springframework.security.authentication.ProviderManager;
 import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
-import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
-import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.access.intercept.AuthorizationFilter;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
-import com.zanh.route_sharing.security.CustomUserDetailsService;
-import com.zanh.route_sharing.security.JwtAuthenticationFilter;
-
-import java.util.Arrays;
 import java.util.List;
 
-@Configuration
+@Configuration(proxyBeanMethods = false)
 @EnableWebSecurity
 @EnableMethodSecurity
 @RequiredArgsConstructor
 public class SecurityConfig {
+        private final JwtAuthenticationFilter jwtAuthenticationFilter;
+        private final InternalSessionSecurityFilter internalSessionSecurityFilter;
+        private final CustomUserDetailsService userDetailsService;
+        private final RestAuthenticationEntryPoint authenticationEntryPoint;
+        private final RestAccessDeniedHandler accessDeniedHandler;
+        private final CorsProperties corsProperties;
+        private final InternalPortalProperties internalPortalProperties;
 
-    private final JwtAuthenticationFilter jwtAuthFilter;
-    private final CustomUserDetailsService userDetailsService;
+        @Bean
+        PasswordEncoder passwordEncoder() {
+                return new BCryptPasswordEncoder(12);
+        }
 
-    @Bean
-    public PasswordEncoder passwordEncoder() {
-        return new BCryptPasswordEncoder();
-    }
+        @Bean
+        AuthenticationProvider authenticationProvider(PasswordEncoder passwordEncoder) {
+                DaoAuthenticationProvider provider = new DaoAuthenticationProvider(userDetailsService);
+                provider.setPasswordEncoder(passwordEncoder);
+                return provider;
+        }
 
-    @Bean
-    public AuthenticationProvider authenticationProvider() {
-        DaoAuthenticationProvider authProvider = new DaoAuthenticationProvider(userDetailsService);
-        authProvider.setPasswordEncoder(passwordEncoder());
-        return authProvider;
-    }
+        @Bean
+        AuthenticationManager authenticationManager(AuthenticationProvider authenticationProvider) {
+                return new ProviderManager(authenticationProvider);
+        }
 
-    @Bean
-    public AuthenticationManager authenticationManager(AuthenticationConfiguration config) throws Exception {
-        return config.getAuthenticationManager();
-    }
+        @Bean
+        CorsConfigurationSource apiCorsConfigurationSource() {
+                if (corsProperties.getAllowedOrigins().stream().anyMatch("*"::equals)) {
+                        throw new IllegalStateException("app.cors.allowed-origins must not contain '*'");
+                }
+                CorsConfiguration configuration = new CorsConfiguration();
+                configuration.setAllowedOrigins(corsProperties.getAllowedOrigins());
+                configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
+                configuration.setAllowedHeaders(List.of("Authorization", "Content-Type", "Accept", "X-Requested-With"));
+                configuration.setExposedHeaders(List.of("Location", "Content-Disposition"));
 
-    @Bean
-    public CorsConfigurationSource corsConfigurationSource() {
-        CorsConfiguration configuration = new CorsConfiguration();
+                configuration.setAllowCredentials(false);
+                configuration.setMaxAge(3600L);
+                UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
+                source.registerCorsConfiguration("/api/**", configuration);
+                return source;
+        }
 
-        // Môi trường Dev: Cho phép mọi origin (*). Khi lên Production sẽ sửa thành URL
-        // thật của React.
-        configuration.setAllowedOriginPatterns(List.of("*"));
+        @Bean
+        @Order(1)
+        SecurityFilterChain apiSecurityFilterChain(
+                        HttpSecurity http,
+                        AuthenticationProvider authenticationProvider,
+                        @Qualifier("apiCorsConfigurationSource") CorsConfigurationSource corsConfigurationSource)
+                        throws Exception {
+                http
+                                .securityMatcher("/api/**")
+                                .cors(cors -> cors.configurationSource(corsConfigurationSource))
+                                .csrf(csrf -> csrf.disable())
+                                .sessionManagement(session -> session
+                                                .sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+                                .exceptionHandling(exceptions -> exceptions
+                                                .authenticationEntryPoint(authenticationEntryPoint)
+                                                .accessDeniedHandler(accessDeniedHandler))
+                                .authorizeHttpRequests(authorize -> authorize
+                                                .requestMatchers("/api/v1/auth/**").permitAll()
+                                                .anyRequest().authenticated())
+                                .authenticationProvider(authenticationProvider)
+                                .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
+                return http.build();
+        }
 
-        // Cho phép các phương thức HTTP cơ bản
-        configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
+        @Bean
+        @Order(2)
+        SecurityFilterChain webSocketHandshakeSecurityFilterChain(HttpSecurity http) throws Exception {
+                http
+                                .securityMatcher("/ws-ridesharing", "/ws-ridesharing/**")
 
-        // Cho phép Frontend gửi lên bất kỳ Header nào
-        configuration.setAllowedHeaders(List.of("*"));
+                                .csrf(csrf -> csrf.disable())
+                                .sessionManagement(session -> session
+                                                .sessionCreationPolicy(SessionCreationPolicy.IF_REQUIRED))
+                                .authorizeHttpRequests(authorize -> authorize.anyRequest().permitAll())
+                                .headers(headers -> headers.frameOptions(frame -> frame.sameOrigin()));
+                return http.build();
+        }
 
-        // Bắt buộc = true nếu Frontend có sử dụng Credentials (token/cookie gắn ngầm)
-        configuration.setAllowCredentials(true);
+        @Bean
+        @Order(3)
+        SecurityFilterChain internalSecurityFilterChain(HttpSecurity http,
+                        AuthenticationProvider authenticationProvider) throws Exception {
+                String requiredAuthority = internalPortalProperties.getRequiredAuthority().trim();
+                http
+                                .securityMatcher("/internal/**", "/assets/**", "/css/**", "/js/**", "/images/**")
+                                .authorizeHttpRequests(authorize -> authorize
+                                                .requestMatchers(
+                                                                "/internal/login",
+                                                                "/internal/access-denied",
+                                                                "/assets/**", "/css/**", "/js/**", "/images/**")
+                                                .permitAll()
+                                                .anyRequest().hasAuthority(requiredAuthority))
+                                .formLogin(form -> form
+                                                .loginPage("/internal/login")
+                                                .loginProcessingUrl("/internal/login")
+                                                .defaultSuccessUrl("/internal", true)
+                                                .failureUrl("/internal/login?error")
+                                                .permitAll())
+                                .logout(logout -> logout
+                                                .logoutUrl("/internal/logout")
+                                                .logoutSuccessUrl("/internal/login?logout")
+                                                .invalidateHttpSession(true)
+                                                .clearAuthentication(true)
+                                                .deleteCookies("JSESSIONID"))
+                                .exceptionHandling(exceptions -> exceptions.accessDeniedPage("/internal/access-denied"))
+                                .sessionManagement(session -> session
+                                                .sessionCreationPolicy(SessionCreationPolicy.IF_REQUIRED)
+                                                .sessionFixation(fixation -> fixation.migrateSession()))
 
-        UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
-        // Áp dụng luật CORS này cho toàn bộ endpoint (/api/**)
-        source.registerCorsConfiguration("/**", configuration);
+                                .authenticationProvider(authenticationProvider)
+                                .addFilterBefore(internalSessionSecurityFilter, AuthorizationFilter.class);
+                return http.build();
+        }
 
-        return source;
-    }
-
-    /**
-     * BỘ LỌC BẢO MẬT CHÍNH CỦA HỆ THỐNG
-     */
-    @Bean
-    public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
-        http
-                // 1. Áp dụng CORS
-                .cors(cors -> cors.configurationSource(corsConfigurationSource()))
-
-                // 2. Tắt CSRF (Vì API dùng JWT Stateless nên không sợ lỗi bảo mật CSRF)
-                .csrf(AbstractHttpConfigurer::disable)
-
-                // 3. Thiết lập Stateless (Không lưu Session trên Server)
-                .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-
-                // 4. Phân luồng các API (Routing Rules)
-                .authorizeHttpRequests(auth -> auth
-                        // - Mở tự do API Đăng nhập, Đăng ký, Quên mật khẩu
-                        .requestMatchers("/api/v1/auth/**").permitAll()
-                        // - Mở tự do cổng WebSocket để Client handshake bắt tay
-                        .requestMatchers("/ws-ridesharing/**").permitAll()
-                        // - Toàn bộ các API nghiệp vụ khác ĐỀU PHẢI CÓ TOKEN HỢP LỆ
-                        .anyRequest().authenticated())
-
-                // 5. Khai báo Provider
-                .authenticationProvider(authenticationProvider())
-
-                // 6. Chèn JWT Filter chặn trước lớp Filter mặc định của Spring
-                .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);
-
-        return http.build();
-    }
+        @Bean
+        @Order(4)
+        SecurityFilterChain fallbackSecurityFilterChain(HttpSecurity http) throws Exception {
+                http.authorizeHttpRequests(authorize -> authorize
+                                .requestMatchers("/error").permitAll()
+                                .anyRequest().denyAll());
+                return http.build();
+        }
 }

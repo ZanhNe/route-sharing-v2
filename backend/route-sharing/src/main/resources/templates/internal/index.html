@@ -1,0 +1,10 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org"
+      xmlns:sec="https://www.thymeleaf.org/thymeleaf-extras-springsecurity6">
+<head><meta charset="UTF-8"><title>Trang nội bộ</title></head>
+<body>
+<h1>Route Sharing – khu vực nhân sự</h1>
+<p>Đăng nhập với: <strong sec:authentication="name"></strong></p>
+<form th:action="@{/internal/logout}" method="post"><button type="submit">Đăng xuất</button></form>
+</body>
+</html>

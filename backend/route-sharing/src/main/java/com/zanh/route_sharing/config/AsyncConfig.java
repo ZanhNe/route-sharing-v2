@@ -1,23 +1,48 @@
 package com.zanh.route_sharing.config;
 
-import java.util.concurrent.Executor;
-
+import com.zanh.route_sharing.config.properties.AsyncProperties;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.aop.interceptor.AsyncUncaughtExceptionHandler;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.scheduling.annotation.AsyncConfigurer;
 import org.springframework.scheduling.annotation.EnableAsync;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 
+import java.lang.reflect.Method;
+import java.util.concurrent.Executor;
+import java.util.concurrent.ThreadPoolExecutor;
+
+@Slf4j
 @Configuration
 @EnableAsync
-public class AsyncConfig {
-    @Bean
-    public Executor taskExecutor() {
+@RequiredArgsConstructor
+public class AsyncConfig implements AsyncConfigurer {
+    private final AsyncProperties properties;
+
+    @Bean(name = { "applicationTaskExecutor", "taskExecutor" })
+    @Override
+    public Executor getAsyncExecutor() {
+        if (properties.getMaxPoolSize() < properties.getCorePoolSize()) {
+            throw new IllegalStateException(
+                    "Cấu hình Async không hợp lệ: max-pool-size phải lớn hơn hoặc bằng core-pool-size");
+        }
         ThreadPoolTaskExecutor executor = new ThreadPoolTaskExecutor();
-        executor.setCorePoolSize(5);
-        executor.setMaxPoolSize(10);
-        executor.setQueueCapacity(500);
-        executor.setThreadNamePrefix("Ride-Event-");
-        executor.initialize();
+        executor.setCorePoolSize(properties.getCorePoolSize());
+        executor.setMaxPoolSize(properties.getMaxPoolSize());
+        executor.setQueueCapacity(properties.getQueueCapacity());
+        executor.setThreadNamePrefix(properties.getThreadNamePrefix());
+        executor.setWaitForTasksToCompleteOnShutdown(true);
+        executor.setAwaitTerminationSeconds(Math.toIntExact(properties.getAwaitTermination().toSeconds()));
+        executor.setRejectedExecutionHandler(new ThreadPoolExecutor.CallerRunsPolicy());
         return executor;
+    }
+
+    @Override
+    public AsyncUncaughtExceptionHandler getAsyncUncaughtExceptionHandler() {
+        return (Throwable error, Method method, Object... params) -> log.error("Không xử lý được lỗi trong: {}.{}",
+                method.getDeclaringClass().getSimpleName(),
+                method.getName(), error);
     }
 }
