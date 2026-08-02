@@ -10,6 +10,8 @@ import org.locationtech.jts.geom.Point;
 import java.math.BigDecimal;
 import java.time.Instant;
 
+import java.util.Objects;
+
 @Entity
 @Table(name = "lo_trinh_chia_se", indexes = {
         @Index(name = "idx_lo_trinh_tai_xe", columnList = "tai_xe_id"),
@@ -61,4 +63,181 @@ public class LoTrinhChiaSe extends Base {
     private PhuongTien phuongTien;
     @OneToOne(mappedBy = "loTrinhChiaSe", fetch = FetchType.LAZY)
     private ChuyenDi chuyenDi;
+
+    public static LoTrinhChiaSe open(
+            NguoiDung driver,
+            PhuongTien vehicle,
+            Point origin,
+            String originAddress,
+            Point destination,
+            String destinationAddress,
+            LineString route,
+            BigDecimal distanceMeters,
+            long durationSeconds,
+            Instant expectedDepartureTime,
+            int offeredSeats,
+            BigDecimal suggestedSupportPerKm) {
+        LoTrinhChiaSe entity = new LoTrinhChiaSe();
+
+        entity.taiXe = Objects.requireNonNull(
+                driver,
+                "driver must not be null");
+
+        entity.phuongTien = Objects.requireNonNull(
+                vehicle,
+                "vehicle must not be null");
+
+        entity.diemXuatPhat = requirePoint(
+                origin,
+                "Điểm xuất phát");
+
+        entity.diaChiXuatPhat = requireAddress(
+                originAddress,
+                "Địa chỉ xuất phát");
+
+        entity.diemDichTaiXe = requirePoint(
+                destination,
+                "Điểm đích");
+
+        entity.diaChiDichTaiXe = requireAddress(
+                destinationAddress,
+                "Địa chỉ đích");
+
+        entity.tuyenDuongGoc = requireLineString(route);
+
+        entity.khoangCachDuKienMet = requirePositive(
+                distanceMeters,
+                "Khoảng cách dự kiến");
+
+        entity.thoiLuongDuKienGiay = requirePositive(
+                durationSeconds,
+                "Thời lượng dự kiến");
+
+        entity.thoiGianKhoiHanhDuKien = Objects.requireNonNull(
+                expectedDepartureTime,
+                "expectedDepartureTime must not be null");
+
+        entity.soGheCungCap = requireSeatCount(
+                vehicle,
+                offeredSeats);
+
+        entity.soGheConLai = offeredSeats;
+
+        entity.mucHoTroGoiYMoiKm = requireNonNegativeOrNull(
+                suggestedSupportPerKm);
+
+        entity.trangThaiLoTrinh = TrangThaiLoTrinh.OPEN;
+
+        return entity;
+    }
+
+    private static Point requirePoint(
+            Point point,
+            String fieldName) {
+        if (point == null
+                || point.isEmpty()
+                || point.getSRID() != 4326) {
+            throw new IllegalArgumentException(
+                    fieldName
+                            + " phải là Point WGS84 SRID 4326 hợp lệ.");
+        }
+
+        return point;
+    }
+
+    private static LineString requireLineString(
+            LineString lineString) {
+        if (lineString == null
+                || lineString.isEmpty()
+                || lineString.getNumPoints() < 2
+                || lineString.getLength() == 0.0
+                || lineString.getSRID() != 4326) {
+            throw new IllegalArgumentException(
+                    "Tuyến đường phải là LineString "
+                            + "WGS84 SRID 4326 hợp lệ.");
+        }
+
+        return lineString;
+    }
+
+    private static int requireSeatCount(
+            PhuongTien vehicle,
+            int offeredSeats) {
+        requirePositive(
+                offeredSeats,
+                "Số ghế cung cấp");
+
+        Integer approvedCapacity = vehicle.getSoChoHanhKhachDuocDuyet();
+
+        if (approvedCapacity == null
+                || offeredSeats > approvedCapacity) {
+            throw new IllegalArgumentException(
+                    "Số ghế cung cấp vượt quá "
+                            + "sức chứa đã được duyệt.");
+        }
+
+        return offeredSeats;
+    }
+
+    private static String requireAddress(
+            String value,
+            String fieldName) {
+        if (value == null || value.isBlank()) {
+            throw new IllegalArgumentException(
+                    fieldName + " không được để trống.");
+        }
+
+        String normalized = value.trim();
+
+        if (normalized.length() > 500) {
+            throw new IllegalArgumentException(
+                    fieldName
+                            + " không được vượt quá 500 ký tự.");
+        }
+
+        return normalized;
+    }
+
+    private static BigDecimal requirePositive(
+            BigDecimal value,
+            String fieldName) {
+        if (value == null || value.signum() <= 0) {
+            throw new IllegalArgumentException(
+                    fieldName + " phải lớn hơn 0.");
+        }
+
+        return value;
+    }
+
+    private static long requirePositive(
+            long value,
+            String fieldName) {
+        if (value <= 0) {
+            throw new IllegalArgumentException(
+                    fieldName + " phải lớn hơn 0.");
+        }
+
+        return value;
+    }
+
+    private static int requirePositive(
+            int value,
+            String fieldName) {
+        if (value <= 0) {
+            throw new IllegalArgumentException(
+                    fieldName + " phải lớn hơn 0.");
+        }
+
+        return value;
+    }
+
+    private static BigDecimal requireNonNegativeOrNull(
+            BigDecimal value) {
+        if (value != null && value.signum() < 0) {
+            throw new IllegalArgumentException(
+                    "Mức hỗ trợ gợi ý không được âm.");
+        }
+
+        return value;
+    }
 }

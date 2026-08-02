@@ -13,7 +13,7 @@ import org.springframework.web.client.RestClientResponseException;
 
 @Slf4j
 @Component
-public class GoongApiClient {
+public class GoongApiClient implements GoongApiGateway {
     private final RestClient restClient;
     private final GoongProperties properties;
 
@@ -23,6 +23,7 @@ public class GoongApiClient {
         this.properties = properties;
     }
 
+    @Override
     public <T> T get(String relativePath, MultiValueMap<String, String> queryParameters, Class<T> responseType) {
         validateRelativePath(relativePath);
         if (queryParameters != null && queryParameters.keySet().stream()
