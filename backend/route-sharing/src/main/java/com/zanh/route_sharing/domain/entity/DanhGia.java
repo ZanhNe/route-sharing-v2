@@ -12,6 +12,9 @@ import java.time.Instant;
                                 "nguoi_danh_gia_id" })
 }, indexes = {
                 @Index(name = "idx_danh_gia_nguoi_duoc_danh_gia", columnList = "nguoi_duoc_danh_gia_id,danh_gia_luc")
+}, check = {
+                @CheckConstraint(name = "ck_danh_gia_so_sao", constraint = "so_sao BETWEEN 1 AND 5"),
+                @CheckConstraint(name = "ck_danh_gia_hai_nguoi", constraint = "nguoi_danh_gia_id <> nguoi_duoc_danh_gia_id")
 })
 @Getter
 @Setter

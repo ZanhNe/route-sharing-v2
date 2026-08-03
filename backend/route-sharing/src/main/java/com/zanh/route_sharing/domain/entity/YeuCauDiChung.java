@@ -15,6 +15,21 @@ import java.time.Instant;
         @Index(name = "idx_yeu_cau_lo_trinh_trang_thai", columnList = "lo_trinh_chia_se_id,trang_thai_yeu_cau"),
         @Index(name = "idx_yeu_cau_chuyen_di", columnList = "chuyen_di_id"),
         @Index(name = "idx_yeu_cau_hanh_khach", columnList = "hanh_khach_id")
+}, check = {
+        @CheckConstraint(name = "ck_yeu_cau_ty_le", constraint = "ty_le_tien_duong BETWEEN 0 AND 100"),
+        @CheckConstraint(name = "ck_yeu_cau_khoang_cach", constraint = "khoang_cach_lech_de_don_met >= 0 "
+                + "AND thoi_gian_lech_de_don_giay >= 0 "
+                + "AND tong_khoang_cach_mong_muon_met > 0 "
+                + "AND khoang_cach_duoc_phuc_vu_met >= 0 "
+                + "AND khoang_cach_con_lai_met >= 0"),
+        @CheckConstraint(name = "ck_yeu_cau_matching", constraint = "(loai_ghep_tuyen = 'CUNG_DIEM_DEN' "
+                + "AND loai_diem_tha = 'DIEM_DICH_CUOI_CUNG' "
+                + "AND khoang_cach_con_lai_met = 0) "
+                + "OR (loai_ghep_tuyen = 'TRUNG_DOAN_TUYEN' "
+                + "AND loai_diem_tha = 'DIEM_THA_TRUNG_GIAN' "
+                + "AND khoang_cach_con_lai_met > 0)"),
+        @CheckConstraint(name = "ck_yeu_cau_muc_ho_tro", constraint = "muc_ho_tro_de_xuat >= 0 "
+                + "AND (muc_ho_tro_da_thoa_thuan IS NULL OR muc_ho_tro_da_thoa_thuan >= 0)")
 })
 @Getter
 @Setter

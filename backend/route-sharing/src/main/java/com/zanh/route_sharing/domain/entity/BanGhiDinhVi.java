@@ -15,6 +15,11 @@ import java.time.Instant;
                                 "thu_tu_ban_ghi" })
 }, indexes = {
                 @Index(name = "idx_ban_ghi_dinh_vi_chuyen_thoi_gian", columnList = "chuyen_di_id,thoi_gian_server_nhan")
+}, check = {
+                @CheckConstraint(name = "ck_ban_ghi_thu_tu", constraint = "thu_tu_ban_ghi >= 0"),
+                @CheckConstraint(name = "ck_ban_ghi_do_chinh_xac", constraint = "do_chinh_xac_met IS NULL OR do_chinh_xac_met >= 0"),
+                @CheckConstraint(name = "ck_ban_ghi_toc_do", constraint = "toc_do_met_moi_giay IS NULL OR toc_do_met_moi_giay >= 0"),
+                @CheckConstraint(name = "ck_ban_ghi_huong", constraint = "huong_di_chuyen IS NULL OR huong_di_chuyen BETWEEN 0 AND 360")
 })
 @Getter
 @Setter

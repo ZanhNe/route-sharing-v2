@@ -11,7 +11,12 @@ import java.time.Instant;
 @Table(name = "nhat_ky_phan_quyen", indexes = {
         @Index(name = "idx_nhat_ky_phan_quyen_thuc_hien", columnList = "nguoi_thuc_hien_id,thuc_hien_luc"),
         @Index(name = "idx_nhat_ky_phan_quyen_bi_tac_dong", columnList = "nguoi_bi_tac_dong_id,thuc_hien_luc")
-})
+}, check = @CheckConstraint(name = "ck_nhat_ky_phan_quyen_du_lieu", constraint = "(loai_thao_tac IN ('GAN_NHOM','GO_NHOM') "
+        + "AND nguoi_bi_tac_dong_id IS NOT NULL AND nhom_quyen_id IS NOT NULL) "
+        + "OR (loai_thao_tac IN ('GAN_QUYEN_TRUC_TIEP','GO_QUYEN_TRUC_TIEP') "
+        + "AND nguoi_bi_tac_dong_id IS NOT NULL AND quyen_han_id IS NOT NULL) "
+        + "OR (loai_thao_tac IN ('THEM_QUYEN_VAO_NHOM','GO_QUYEN_KHOI_NHOM') "
+        + "AND nhom_quyen_id IS NOT NULL AND quyen_han_id IS NOT NULL)"))
 @Getter
 @Setter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)

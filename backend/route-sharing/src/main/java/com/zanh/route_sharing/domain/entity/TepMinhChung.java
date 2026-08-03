@@ -11,7 +11,8 @@ import java.time.Instant;
 @Table(name = "tep_minh_chung", indexes = {
         @Index(name = "idx_tep_minh_chung_khieu_nai", columnList = "khieu_nai_id"),
         @Index(name = "idx_tep_minh_chung_su_co", columnList = "su_co_chuyen_di_id")
-})
+}, check = @CheckConstraint(name = "ck_tep_minh_chung_xor", constraint = "(khieu_nai_id IS NOT NULL AND su_co_chuyen_di_id IS NULL) "
+        + "OR (khieu_nai_id IS NULL AND su_co_chuyen_di_id IS NOT NULL)"))
 @Getter
 @Setter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)

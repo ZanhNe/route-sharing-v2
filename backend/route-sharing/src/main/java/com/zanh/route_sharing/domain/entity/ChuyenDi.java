@@ -16,7 +16,9 @@ import java.util.List;
                 @UniqueConstraint(name = "uk_chuyen_di_lo_trinh", columnNames = "lo_trinh_chia_se_id")
 }, indexes = {
                 @Index(name = "idx_chuyen_di_trang_thai", columnList = "trang_thai_van_hanh,trang_thai_giam_sat")
-})
+}, check = @CheckConstraint(name = "ck_chuyen_di_so_khach", constraint = "so_khach_ke_hoach >= 0 "
+                + "AND so_khach_thuc_te >= 0 "
+                + "AND so_khach_thuc_te <= so_khach_ke_hoach"))
 @Getter
 @Setter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)

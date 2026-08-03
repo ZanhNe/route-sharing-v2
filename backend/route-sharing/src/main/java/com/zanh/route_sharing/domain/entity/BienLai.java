@@ -12,7 +12,7 @@ import java.time.Instant;
 @Table(name = "bien_lai", uniqueConstraints = {
         @UniqueConstraint(name = "uk_bien_lai_ma", columnNames = "ma_bien_lai"),
         @UniqueConstraint(name = "uk_bien_lai_yeu_cau", columnNames = "yeu_cau_di_chung_id")
-})
+}, check = @CheckConstraint(name = "ck_bien_lai_gia_tri", constraint = "so_tien_thoa_thuan >= 0 AND khoang_cach_duoc_phuc_vu_met >= 0"))
 @Getter
 @Setter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)

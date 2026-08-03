@@ -11,6 +11,11 @@ import java.time.Instant;
 @Table(name = "phien_xac_thuc_tai_khoan", indexes = {
         @Index(name = "idx_phien_xac_thuc_nguoi_dung", columnList = "nguoi_dung_id"),
         @Index(name = "idx_phien_xac_thuc_trang_thai_het_han", columnList = "trang_thai,het_han_luc")
+}, check = {
+        @CheckConstraint(name = "ck_phien_xac_thuc_lan_thu", constraint = "so_lan_thu >= 0 "
+                + "AND so_lan_thu_toi_da > 0 "
+                + "AND so_lan_thu <= so_lan_thu_toi_da"),
+        @CheckConstraint(name = "ck_phien_xac_thuc_han", constraint = "het_han_luc > created_at")
 })
 @Getter
 @Setter

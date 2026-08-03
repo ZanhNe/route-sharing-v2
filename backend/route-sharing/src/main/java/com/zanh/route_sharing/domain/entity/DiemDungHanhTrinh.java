@@ -16,6 +16,13 @@ import java.time.Instant;
                                 "loai_diem_dung" })
 }, indexes = {
                 @Index(name = "idx_diem_dung_chuyen_trang_thai", columnList = "chuyen_di_id,trang_thai_diem_dung")
+}, check = {
+                @CheckConstraint(name = "ck_diem_dung_thu_tu", constraint = "thu_tu >= 0"),
+                @CheckConstraint(name = "ck_diem_dung_ban_kinh", constraint = "ban_kinh_xac_dinh_da_den_met > 0"),
+                @CheckConstraint(name = "ck_diem_dung_booking", constraint = "(loai_diem_dung IN ('DRIVER_START','DRIVER_END') "
+                                + "AND yeu_cau_di_chung_id IS NULL) "
+                                + "OR (loai_diem_dung IN ('PICKUP','DROPOFF') "
+                                + "AND yeu_cau_di_chung_id IS NOT NULL)")
 })
 @Getter
 @Setter

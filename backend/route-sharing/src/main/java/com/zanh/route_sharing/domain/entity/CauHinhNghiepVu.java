@@ -9,6 +9,15 @@ import java.math.BigDecimal;
 @Entity
 @Table(name = "cau_hinh_nghiep_vu", uniqueConstraints = {
         @UniqueConstraint(name = "uk_cau_hinh_nghiep_vu_truong", columnNames = "nha_truong_id")
+}, check = {
+        @CheckConstraint(name = "ck_cau_hinh_ty_le_tien_duong", constraint = "ty_le_tien_duong_toi_thieu BETWEEN 0 AND 100"),
+        @CheckConstraint(name = "ck_cau_hinh_gia_tri_duong", constraint = "ban_kinh_cung_diem_den_met > 0 "
+                + "AND ban_kinh_diem_den_gan_tuyen_met > 0 "
+                + "AND khoang_cach_lech_don_toi_da_met >= 0 "
+                + "AND thoi_gian_lech_don_toi_da_giay >= 0 "
+                + "AND ban_kinh_xac_dinh_da_den_met > 0 "
+                + "AND thoi_gian_cho_khach_giay >= 0 "
+                + "AND thoi_gian_mat_tin_hieu_giay > 0")
 })
 @Getter
 @Setter
@@ -17,6 +26,8 @@ import java.math.BigDecimal;
 public class CauHinhNghiepVu extends Base {
     @Column(name = "ban_kinh_cung_diem_den_met", nullable = false, precision = 12, scale = 2)
     private BigDecimal banKinhCungDiemDenMet;
+    @Column(name = "ban_kinh_diem_den_gan_tuyen_met", nullable = false, precision = 12, scale = 2)
+    private BigDecimal banKinhDiemDenGanTuyenMet;
     @Column(name = "ty_le_tien_duong_toi_thieu", nullable = false, precision = 5, scale = 2)
     private BigDecimal tyLeTienDuongToiThieu;
     @Column(name = "khoang_cach_lech_don_toi_da_met", nullable = false, precision = 12, scale = 2)

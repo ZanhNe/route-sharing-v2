@@ -13,6 +13,10 @@ import java.time.Instant;
 }, indexes = {
                 @Index(name = "idx_phuong_tien_nguoi_dang_ky", columnList = "nguoi_dang_ky_su_dung_id"),
                 @Index(name = "idx_phuong_tien_trang_thai", columnList = "trang_thai_phuong_tien")
+}, check = {
+                @CheckConstraint(name = "ck_phuong_tien_so_cho", constraint = "so_cho_hanh_khach_duoc_duyet > 0"),
+                @CheckConstraint(name = "ck_phuong_tien_co_so_su_dung", constraint = "co_so_su_dung <> 'DUOC_CHU_XE_CHO_PHEP' "
+                                + "OR (da_cam_ket_duoc_chu_xe_cho_phep = TRUE AND cam_ket_luc IS NOT NULL)")
 })
 @Getter
 @Setter

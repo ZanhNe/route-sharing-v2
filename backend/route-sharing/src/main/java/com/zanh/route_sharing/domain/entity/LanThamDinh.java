@@ -13,7 +13,7 @@ import java.util.Set;
 @Table(name = "lan_tham_dinh", indexes = {
                 @Index(name = "idx_lan_tham_dinh_trang_thai", columnList = "trang_thai"),
                 @Index(name = "idx_lan_tham_dinh_nguoi_duyet", columnList = "nguoi_duyet_id")
-})
+}, check = @CheckConstraint(name = "ck_lan_tham_dinh_lan_nop", constraint = "lan_nop > 0"))
 @Inheritance(strategy = InheritanceType.JOINED)
 @DiscriminatorColumn(name = "loai_tham_dinh", discriminatorType = DiscriminatorType.STRING, length = 40)
 @Getter
