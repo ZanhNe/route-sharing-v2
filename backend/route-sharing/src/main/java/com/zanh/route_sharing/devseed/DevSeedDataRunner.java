@@ -12,14 +12,29 @@ import org.springframework.stereotype.Component;
 @Profile("seed & !prod")
 @RequiredArgsConstructor
 public class DevSeedDataRunner implements ApplicationRunner {
+
     private final DevSeedDataService seedDataService;
 
     @Override
     public void run(ApplicationArguments args) {
-        DevSeedDataService.SeedSummary summary = seedDataService.seedSharedRouteScenario();
-        log.info("E1 seed ready: driverEmail={}, vehiclePlate={}, vehicleId={}",
+        DevSeedDataService.SeedSummary summary =
+                seedDataService.seedSharedRouteScenario();
+
+        log.info(
+                "E1 seed ready: schoolId={}, passengerEmail={}, passengerId={}, "
+                        + "driverEmail={}, driverId={}, vehiclePlate={}, vehicleId={}, "
+                        + "sameDestinationRouteId={}, sameDeparture={}, "
+                        + "segmentRouteId={}, segmentDeparture={}",
+                summary.schoolId(),
+                DevSeedDataService.PASSENGER_EMAIL,
+                summary.passengerUserId(),
                 DevSeedDataService.DRIVER_EMAIL,
+                summary.driverUserId(),
                 DevSeedDataService.VEHICLE_PLATE,
-                summary.vehicleId());
+                summary.vehicleId(),
+                summary.sameDestinationRouteId(),
+                summary.sameDestinationDepartureTime(),
+                summary.segmentRouteId(),
+                summary.segmentDepartureTime());
     }
 }

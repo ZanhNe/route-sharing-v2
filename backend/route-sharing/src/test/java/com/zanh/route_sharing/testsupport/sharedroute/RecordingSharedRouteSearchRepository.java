@@ -11,18 +11,19 @@ import java.util.Optional;
 
 public final class RecordingSharedRouteSearchRepository implements SharedRouteSearchRepository {
 
-    private Optional<SharedRouteSearchContext> context = Optional
-            .of(SharedRouteSearchContextMother.standardConfiguration());
+    private Optional<SharedRouteSearchContext> context =
+            Optional.of(SharedRouteSearchContextMother.standardConfiguration());
     private SharedRouteSearchPage page = new SharedRouteSearchPage(List.of(), 0L);
 
     private int contextQueryCount;
     private int searchQueryCount;
     private Long lastActorUserId;
     private Long lastSchoolId;
-    private LocalDate lastMembershipDate;
+    private LocalDate lastRequestedTravelDate;
     private SharedRouteSearchCriteria lastCriteria;
 
-    public RecordingSharedRouteSearchRepository withContext(SharedRouteSearchContext context) {
+    public RecordingSharedRouteSearchRepository withContext(
+            SharedRouteSearchContext context) {
         this.context = Optional.ofNullable(context);
         return this;
     }
@@ -32,7 +33,8 @@ public final class RecordingSharedRouteSearchRepository implements SharedRouteSe
         return this;
     }
 
-    public RecordingSharedRouteSearchRepository withPage(SharedRouteSearchPage page) {
+    public RecordingSharedRouteSearchRepository withPage(
+            SharedRouteSearchPage page) {
         this.page = page;
         return this;
     }
@@ -41,11 +43,11 @@ public final class RecordingSharedRouteSearchRepository implements SharedRouteSe
     public Optional<SharedRouteSearchContext> findSearchContext(
             Long actorUserId,
             Long schoolId,
-            LocalDate membershipDate) {
+            LocalDate requestedTravelDate) {
         contextQueryCount++;
         lastActorUserId = actorUserId;
         lastSchoolId = schoolId;
-        lastMembershipDate = membershipDate;
+        lastRequestedTravelDate = requestedTravelDate;
         return context;
     }
 
@@ -72,8 +74,15 @@ public final class RecordingSharedRouteSearchRepository implements SharedRouteSe
         return lastSchoolId;
     }
 
+    public LocalDate lastRequestedTravelDate() {
+        return lastRequestedTravelDate;
+    }
+
+    /**
+     * Alias tạm để những test cũ chưa đổi tên không bị gãy ngay.
+     */
     public LocalDate lastMembershipDate() {
-        return lastMembershipDate;
+        return lastRequestedTravelDate;
     }
 
     public SharedRouteSearchCriteria lastCriteria() {

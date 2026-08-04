@@ -26,7 +26,7 @@ class SharedRouteSearchControllerTest {
         SharedRouteSearchController sut = new SharedRouteSearchController(searchService);
         CustomUserDetails principal = activeUser(
                 9L,
-                SharedRouteSearchController.SEARCH_PERMISSION);
+                "SEARCH_SHARED_ROUTE");
         SearchSharedRoutesRequest request = aSearchRequest().build();
         SharedRouteSearchResult result = new SharedRouteSearchResult(
                 List.of(),

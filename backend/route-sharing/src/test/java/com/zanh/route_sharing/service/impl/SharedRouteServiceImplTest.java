@@ -17,6 +17,7 @@ import com.zanh.route_sharing.repository.LoTrinhChiaSeRepository;
 import com.zanh.route_sharing.repository.NguoiDungRepository;
 import com.zanh.route_sharing.repository.PhuongTienRepository;
 import com.zanh.route_sharing.service.GoongRouteService;
+import com.zanh.route_sharing.service.impl.SharedRouteServiceImpl;
 import com.zanh.route_sharing.testfixture.CreateSharedRouteRequestTestBuilder;
 import com.zanh.route_sharing.testfixture.SharedRouteMother;
 import jakarta.persistence.EntityManager;

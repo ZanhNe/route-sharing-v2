@@ -72,51 +72,51 @@ public class WebSocketJwtAuthenticationInterceptor implements ChannelInterceptor
             accessor.setUser(UsernamePasswordAuthenticationToken.authenticated(principal, null, authorities));
         } catch (JwtException | org.springframework.security.core.AuthenticationException
                 | ResourceNotFoundException exception) {
-            throw new BadCredentialsException("Invalid WebSocket access token", exception);
+            throw new BadCredentialsException("Không thể kết nối WebSocket do token không hợp lệ", exception);
         }
     }
 
     private void validateEstablishedPrincipal(StompHeaderAccessor accessor) {
         if (!(accessor.getUser() instanceof Authentication authentication) || !authentication.isAuthenticated()) {
-            throw new BadCredentialsException("WebSocket session is not authenticated");
+            throw new BadCredentialsException("WebSocket session chưa được xác thực");
         }
         validatePrincipal(authentication);
     }
 
     private void validatePrincipal(Authentication authentication) {
         if (!(authentication.getPrincipal() instanceof CustomUserDetails principal)) {
-            throw new BadCredentialsException("Unsupported WebSocket principal");
+            throw new BadCredentialsException("WebSocket principal không hợp lệ");
         }
         try {
             SecurityState current = securityStateService.requireCurrent(principal.getId());
             if (current.status() != TrangThaiTaiKhoan.ACTIVE
                     || current.securityVersion() != principal.getSecurityVersion()) {
-                throw new BadCredentialsException("WebSocket security state is stale");
+                throw new BadCredentialsException("WebSocket security state không hợp lệ");
             }
         } catch (ResourceNotFoundException exception) {
-            throw new BadCredentialsException("WebSocket account no longer exists", exception);
+            throw new BadCredentialsException("Tài khoản WebSocket không còn tồn tại", exception);
         }
     }
 
     private static String bearerToken(StompHeaderAccessor accessor) {
         List<String> headers = accessor.getNativeHeader("Authorization");
         if (headers == null || headers.size() != 1) {
-            throw new BadCredentialsException("Missing or ambiguous Bearer token in STOMP CONNECT");
+            throw new BadCredentialsException("Thiếu hoặc không rõ ràng Bearer token trong STOMP CONNECT");
         }
         String header = headers.get(0);
         if (header == null || !header.regionMatches(true, 0, BEARER_PREFIX, 0, BEARER_PREFIX.length())) {
-            throw new BadCredentialsException("Missing Bearer token in STOMP CONNECT");
+            throw new BadCredentialsException("Thiếu Bearer token trong STOMP CONNECT");
         }
         String token = header.substring(BEARER_PREFIX.length()).trim();
         if (token.isEmpty()) {
-            throw new BadCredentialsException("Empty Bearer token in STOMP CONNECT");
+            throw new BadCredentialsException("Không có Bearer token trong STOMP CONNECT");
         }
         return token;
     }
 
     private static void requireDestination(String destination, String prefix) {
         if (destination == null || !destination.startsWith(prefix)) {
-            throw new BadCredentialsException("WebSocket destination is not allowed");
+            throw new BadCredentialsException("Không thể subscribe");
         }
     }
 }

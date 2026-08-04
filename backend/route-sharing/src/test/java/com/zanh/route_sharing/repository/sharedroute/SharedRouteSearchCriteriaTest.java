@@ -1,10 +1,10 @@
 package com.zanh.route_sharing.repository.sharedroute;
 
+import com.zanh.route_sharing.repository.SharedRouteSearchCriteria;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
-import com.zanh.route_sharing.repository.*;
 
 import java.math.BigDecimal;
 import java.time.Instant;
@@ -18,6 +18,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 class SharedRouteSearchCriteriaTest {
 
     private static final Instant NOW = Instant.parse("2026-08-03T03:00:00Z");
+    private static final LocalDate TRAVEL_DATE = LocalDate.of(2026, 8, 3);
 
     @Test
     void givenPageAndSize_whenCalculatingOffset_thenLongOffsetIsReturned() {
@@ -29,6 +30,16 @@ class SharedRouteSearchCriteriaTest {
 
         // Assert
         assertThat(offset).isEqualTo(75L);
+    }
+
+    @Test
+    void givenRequestedTravelDate_whenCreated_thenDateIsPreserved() {
+        // Act
+        SharedRouteSearchCriteria criteria = validCriteria(0, 10);
+
+        // Assert
+        assertThat(criteria.requestedTravelDate()).isEqualTo(TRAVEL_DATE);
+        assertThat(criteria.membershipDate()).isEqualTo(TRAVEL_DATE);
     }
 
     @ParameterizedTest(name = "actor={0}, school={1}")
@@ -45,7 +56,27 @@ class SharedRouteSearchCriteriaTest {
                 new BigDecimal("10.80"),
                 new BigDecimal("106.72"),
                 NOW,
-                LocalDate.of(2026, 8, 3),
+                TRAVEL_DATE,
+                NOW,
+                NOW.plusSeconds(3600),
+                standardConfiguration(),
+                0,
+                10))
+                .isInstanceOf(IllegalArgumentException.class);
+    }
+
+    @Test
+    void givenMissingRequestedTravelDate_whenCreated_thenIllegalArgumentIsThrown() {
+        // Act & Assert
+        assertThatThrownBy(() -> new SharedRouteSearchCriteria(
+                7L,
+                3L,
+                new BigDecimal("10.77"),
+                new BigDecimal("106.69"),
+                new BigDecimal("10.80"),
+                new BigDecimal("106.72"),
+                NOW,
+                null,
                 NOW,
                 NOW.plusSeconds(3600),
                 standardConfiguration(),
@@ -65,7 +96,7 @@ class SharedRouteSearchCriteriaTest {
                 new BigDecimal("10.80"),
                 new BigDecimal("106.72"),
                 NOW,
-                LocalDate.of(2026, 8, 3),
+                TRAVEL_DATE,
                 NOW.plusSeconds(60),
                 NOW,
                 standardConfiguration(),
@@ -76,7 +107,9 @@ class SharedRouteSearchCriteriaTest {
 
     @ParameterizedTest(name = "page={0}, size={1}")
     @MethodSource("invalidPaging")
-    void givenInvalidPaging_whenCreated_thenIllegalArgumentIsThrown(int page, int size) {
+    void givenInvalidPaging_whenCreated_thenIllegalArgumentIsThrown(
+            int page,
+            int size) {
         // Act & Assert
         assertThatThrownBy(() -> validCriteria(page, size))
                 .isInstanceOf(IllegalArgumentException.class);
@@ -91,7 +124,7 @@ class SharedRouteSearchCriteriaTest {
                 new BigDecimal("10.80"),
                 new BigDecimal("106.72"),
                 NOW,
-                LocalDate.of(2026, 8, 3),
+                TRAVEL_DATE,
                 NOW,
                 NOW.plusSeconds(3600),
                 standardConfiguration(),

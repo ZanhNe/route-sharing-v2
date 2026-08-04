@@ -62,7 +62,7 @@ class SharedRouteSearchControllerSecurityTest {
         // Arrange
         CustomUserDetails principal = activeUser(
                 ACTOR_ID,
-                SharedRouteSearchController.SEARCH_PERMISSION);
+                "SEARCH_SHARED_ROUTE");
         authenticate(principal);
 
         // Act & Assert
@@ -86,11 +86,10 @@ class SharedRouteSearchControllerSecurityTest {
     }
 
     private static void authenticate(CustomUserDetails principal) {
-        UsernamePasswordAuthenticationToken authentication =
-                UsernamePasswordAuthenticationToken.authenticated(
-                        principal,
-                        null,
-                        principal.getAuthorities());
+        UsernamePasswordAuthenticationToken authentication = UsernamePasswordAuthenticationToken.authenticated(
+                principal,
+                null,
+                principal.getAuthorities());
         SecurityContextHolder.getContext().setAuthentication(authentication);
     }
 

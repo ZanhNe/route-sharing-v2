@@ -2,7 +2,8 @@ package com.zanh.route_sharing.integration.goong;
 
 import com.zanh.route_sharing.config.properties.GoongProperties;
 import com.zanh.route_sharing.exception.BusinessException;
-import lombok.extern.slf4j.Slf4j;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Component;
@@ -11,9 +12,10 @@ import org.springframework.web.client.ResourceAccessException;
 import org.springframework.web.client.RestClient;
 import org.springframework.web.client.RestClientResponseException;
 
-@Slf4j
 @Component
 public class GoongApiClient implements GoongApiGateway {
+
+    private static final Logger log = LoggerFactory.getLogger(GoongApiClient.class);
     private final RestClient restClient;
     private final GoongProperties properties;
 
@@ -43,7 +45,7 @@ public class GoongApiClient implements GoongApiGateway {
                     .retrieve()
                     .body(responseType);
             if (body == null) {
-                throw new BusinessException(HttpStatus.BAD_GATEWAY, "GOONG_EMPTY_RESPONSE",
+                throw new BusinessException(HttpStatus.BAD_GATEWAY, "MAP_PROVIDER_INVALID_RESPONSE",
                         "Dịch vụ bản đồ trả về phản hồi rỗng.");
             }
             return body;
@@ -54,13 +56,29 @@ public class GoongApiClient implements GoongApiGateway {
                 throw new BusinessException(HttpStatus.SERVICE_UNAVAILABLE, "GOONG_RATE_LIMITED",
                         "Dịch vụ bản đồ đang giới hạn số lượng yêu cầu. Vui lòng thử lại sau.");
             }
-            throw new BusinessException(HttpStatus.BAD_GATEWAY, "GOONG_API_ERROR",
+            throw new BusinessException(HttpStatus.BAD_GATEWAY, "MAP_PROVIDER_UNAVAILABLE",
                     "Dịch vụ bản đồ không xử lý được yêu cầu.");
         } catch (ResourceAccessException exception) {
-            log.warn("Không thể kết nối dịch vụ bản đồ", relativePath, exception);
-            throw new BusinessException(HttpStatus.SERVICE_UNAVAILABLE, "GOONG_UNAVAILABLE",
+            log.warn("Không thể kết nối dịch vụ bản đồ tại {}", relativePath, exception);
+            if (isTimeout(exception)) {
+                throw new BusinessException(HttpStatus.GATEWAY_TIMEOUT, "MAP_PROVIDER_TIMEOUT",
+                        "Dịch vụ bản đồ phản hồi quá thời gian cho phép.");
+            }
+            throw new BusinessException(HttpStatus.BAD_GATEWAY, "MAP_PROVIDER_UNAVAILABLE",
                     "Không thể kết nối dịch vụ bản đồ.");
         }
+    }
+
+    private static boolean isTimeout(Throwable throwable) {
+        Throwable current = throwable;
+        while (current != null) {
+            if (current instanceof java.net.SocketTimeoutException
+                    || current instanceof java.net.http.HttpTimeoutException) {
+                return true;
+            }
+            current = current.getCause();
+        }
+        return false;
     }
 
     private static void validateRelativePath(String relativePath) {

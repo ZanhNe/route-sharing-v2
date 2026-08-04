@@ -6,8 +6,8 @@ import com.zanh.route_sharing.dto.sharedroute.search.SearchPointRequest;
 import com.zanh.route_sharing.dto.sharedroute.search.SearchSharedRoutesRequest;
 import com.zanh.route_sharing.dto.sharedroute.search.SharedRouteSearchResult;
 import com.zanh.route_sharing.exception.BusinessException;
-import com.zanh.route_sharing.repository.SharedRouteSearchCriteria;
-import com.zanh.route_sharing.repository.SharedRouteSearchPage;
+import com.zanh.route_sharing.repository.sharedroute.search.model.SharedRouteSearchCriteria;
+import com.zanh.route_sharing.repository.sharedroute.search.model.SharedRouteSearchPage;
 import com.zanh.route_sharing.testsupport.sharedroute.RecordingSharedRouteSearchRepository;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -34,7 +34,7 @@ class SharedRouteSearchServiceImplTest {
         private static final Long ACTOR_ID = 7L;
 
         @Test
-        void givenEligibleActorAndSegmentMatch_whenSearching_thenCriteriaAndResponseAreProduced() {
+        void givenEligibleActorAndSegmentMatch_whenSearching_thenCompleteCriteriaAndResponseAreProduced() {
                 // Arrange
                 RecordingSharedRouteSearchRepository repository = new RecordingSharedRouteSearchRepository()
                                 .withPage(new SharedRouteSearchPage(
@@ -50,14 +50,30 @@ class SharedRouteSearchServiceImplTest {
                 SharedRouteSearchCriteria criteria = repository.lastCriteria();
                 assertThat(repository.contextQueryCount()).isEqualTo(1);
                 assertThat(repository.searchQueryCount()).isEqualTo(1);
+                assertThat(repository.lastActorUserId()).isEqualTo(ACTOR_ID);
+                assertThat(repository.lastSchoolId()).isEqualTo(request.schoolId());
+                assertThat(repository.lastRequestedTravelDate())
+                                .isEqualTo(LocalDate.of(2026, 8, 3));
+
+                assertThat(criteria.actorUserId()).isEqualTo(ACTOR_ID);
+                assertThat(criteria.schoolId()).isEqualTo(request.schoolId());
+                assertThat(criteria.pickupLatitude())
+                                .isEqualByComparingTo(request.pickup().latitude());
+                assertThat(criteria.pickupLongitude())
+                                .isEqualByComparingTo(request.pickup().longitude());
+                assertThat(criteria.destinationLatitude())
+                                .isEqualByComparingTo(request.destination().latitude());
+                assertThat(criteria.destinationLongitude())
+                                .isEqualByComparingTo(request.destination().longitude());
+                assertThat(criteria.now()).isEqualTo(NOW);
+                assertThat(criteria.requestedTravelDate())
+                                .isEqualTo(LocalDate.of(2026, 8, 3));
                 assertThat(criteria.departureFrom())
                                 .isEqualTo(Instant.parse("2026-08-03T03:30:00Z"));
                 assertThat(criteria.departureTo())
                                 .isEqualTo(Instant.parse("2026-08-03T04:30:00Z"));
-                assertThat(criteria.membershipDate())
-                                .isEqualTo(LocalDate.of(2026, 8, 3));
-                assertThat(criteria.pickupLongitude())
-                                .isEqualByComparingTo("106.690000");
+                assertThat(criteria.page()).isZero();
+                assertThat(criteria.size()).isEqualTo(10);
 
                 assertThat(result.items()).hasSize(1);
                 assertThatSearchItem(result.items().get(0))
@@ -113,21 +129,24 @@ class SharedRouteSearchServiceImplTest {
         }
 
         @Test
-        void givenUtcTimeOnPreviousDate_whenSearching_thenMembershipDateUsesVietnamZone() {
+        void givenDesiredDepartureOnNextVietnamDate_whenSearching_thenTravelDateUsesDesiredDeparture() {
                 // Arrange
-                Instant utcPreviousDate = Instant.parse("2026-08-02T18:30:00Z");
+                Instant currentTime = Instant.parse("2026-08-03T15:30:00Z");
+                Instant desiredDeparture = Instant.parse("2026-08-03T18:30:00Z");
                 RecordingSharedRouteSearchRepository repository = new RecordingSharedRouteSearchRepository();
-                SharedRouteSearchServiceImpl sut = service(repository, utcPreviousDate);
+                SharedRouteSearchServiceImpl sut = service(repository, currentTime);
                 SearchSharedRoutesRequest request = aSearchRequest()
-                                .withDesiredDepartureTime(Instant.parse("2026-08-02T20:00:00Z"))
+                                .withDesiredDepartureTime(desiredDeparture)
                                 .build();
 
                 // Act
                 sut.search(ACTOR_ID, request, 0, 10);
 
                 // Assert
-                assertThat(repository.lastMembershipDate())
-                                .isEqualTo(LocalDate.of(2026, 8, 3));
+                assertThat(repository.lastRequestedTravelDate())
+                                .isEqualTo(LocalDate.of(2026, 8, 4));
+                assertThat(repository.lastCriteria().requestedTravelDate())
+                                .isEqualTo(LocalDate.of(2026, 8, 4));
         }
 
         @Test
@@ -152,7 +171,9 @@ class SharedRouteSearchServiceImplTest {
                 // Arrange
                 RecordingSharedRouteSearchRepository repository = new RecordingSharedRouteSearchRepository();
                 SharedRouteSearchServiceImpl sut = service(repository, NOW);
-                SearchPointRequest samePoint = aSearchPoint().withAddress("Cùng điểm").build();
+                SearchPointRequest samePoint = aSearchPoint()
+                                .withAddress("Cùng điểm")
+                                .build();
                 SearchSharedRoutesRequest request = aSearchRequest()
                                 .withPickup(samePoint)
                                 .withDestination(samePoint)
@@ -181,9 +202,31 @@ class SharedRouteSearchServiceImplTest {
                 assertThat(repository.searchQueryCount()).isZero();
         }
 
+        @Test
+        void givenEmptyRepositoryPage_whenSearching_thenEmptyItemsAndCorrectMetaAreReturned() {
+                // Arrange
+                RecordingSharedRouteSearchRepository repository = new RecordingSharedRouteSearchRepository()
+                                .withPage(new SharedRouteSearchPage(List.of(), 0L));
+                SharedRouteSearchServiceImpl sut = service(repository, NOW);
+
+                // Act
+                SharedRouteSearchResult result = sut.search(
+                                ACTOR_ID,
+                                aSearchRequest().build(),
+                                2,
+                                10);
+
+                // Assert
+                assertThat(result.items()).isEmpty();
+                assertThat(result.meta().page()).isEqualTo(2);
+                assertThat(result.meta().size()).isEqualTo(10);
+                assertThat(result.meta().totalElements()).isZero();
+        }
+
         @ParameterizedTest(name = "actorUserId={0}")
         @MethodSource("invalidActorIds")
-        void givenInvalidActorId_whenSearching_thenAuthenticatedUserErrorIsReturned(Long actorUserId) {
+        void givenInvalidActorId_whenSearching_thenAuthenticatedUserErrorIsReturned(
+                        Long actorUserId) {
                 // Arrange
                 RecordingSharedRouteSearchRepository repository = new RecordingSharedRouteSearchRepository();
                 SharedRouteSearchServiceImpl sut = service(repository, NOW);
@@ -193,6 +236,25 @@ class SharedRouteSearchServiceImplTest {
                                 () -> sut.search(actorUserId, aSearchRequest().build(), 0, 10),
                                 "AUTHENTICATED_USER_REQUIRED");
                 assertThat(repository.contextQueryCount()).isZero();
+        }
+
+        @ParameterizedTest(name = "schoolId={0}")
+        @MethodSource("invalidSchoolIds")
+        void givenNonPositiveSchoolId_whenSearching_thenInvalidCriteriaIsReturnedWithoutRepositoryCall(
+                        Long schoolId) {
+                // Arrange
+                RecordingSharedRouteSearchRepository repository = new RecordingSharedRouteSearchRepository();
+                SharedRouteSearchServiceImpl sut = service(repository, NOW);
+                SearchSharedRoutesRequest request = aSearchRequest()
+                                .withSchoolId(schoolId)
+                                .build();
+
+                // Act & Assert
+                assertBusinessCode(
+                                () -> sut.search(ACTOR_ID, request, 0, 10),
+                                "INVALID_SEARCH_CRITERIA");
+                assertThat(repository.contextQueryCount()).isZero();
+                assertThat(repository.searchQueryCount()).isZero();
         }
 
         @ParameterizedTest(name = "page={0}, size={1}, code={2}")
@@ -235,7 +297,9 @@ class SharedRouteSearchServiceImplTest {
                                 Clock.fixed(now, ZoneOffset.UTC));
         }
 
-        private static void assertBusinessCode(Runnable operation, String expectedCode) {
+        private static void assertBusinessCode(
+                        Runnable operation,
+                        String expectedCode) {
                 assertThatThrownBy(operation::run)
                                 .isInstanceOf(BusinessException.class)
                                 .satisfies(exception -> assertThat(
@@ -245,6 +309,10 @@ class SharedRouteSearchServiceImplTest {
 
         private static Stream<Long> invalidActorIds() {
                 return Stream.of(null, 0L, -1L);
+        }
+
+        private static Stream<Long> invalidSchoolIds() {
+                return Stream.of(0L, -1L);
         }
 
         private static Stream<Arguments> invalidPagingCases() {

@@ -1,0 +1,38 @@
+{
+  "geocoded_waypoints": [
+    {"geocoder_status": "OK", "place_id": "origin"},
+    {"geocoder_status": "OK", "place_id": "pickup"},
+    {"geocoder_status": "OK", "place_id": "dropoff"},
+    {"geocoder_status": "OK", "place_id": "driver-destination"}
+  ],
+  "routes": [
+    {
+      "bounds": {
+        "northeast": {"lat": 10.7801, "lng": 106.7300},
+        "southwest": {"lat": 10.7700, "lng": 106.6800}
+      },
+      "legs": [
+        {
+          "distance": {"text": "1.2 km", "value": 1200},
+          "duration": {"text": "4 phút", "value": 240},
+          "steps": []
+        },
+        {
+          "distance": {"text": "1.7 km", "value": 1700},
+          "duration": {"text": "5 phút", "value": 300},
+          "steps": []
+        },
+        {
+          "distance": {"text": "2.8 km", "value": 2800},
+          "duration": {"text": "7 phút", "value": 420},
+          "steps": []
+        }
+      ],
+      "overview_polyline": {
+        "points": "_p~iF~ps|U_ulLnnqC_mqNvxq`@"
+      },
+      "warnings": [],
+      "waypoint_order": [0, 1]
+    }
+  ]
+}

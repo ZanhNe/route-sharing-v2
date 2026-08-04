@@ -10,8 +10,7 @@ import java.util.List;
 
 public final class PolylineUtils {
     private static final int DEFAULT_PRECISION = 5;
-    private static final GeometryFactory GEOMETRY_FACTORY =
-            new GeometryFactory(new PrecisionModel(), 4326);
+    private static final GeometryFactory GEOMETRY_FACTORY = new GeometryFactory(new PrecisionModel(), 4326);
 
     private PolylineUtils() {
     }
@@ -30,7 +29,7 @@ public final class PolylineUtils {
 
         double factor = Math.pow(10, precision);
         List<Coordinate> coordinates = new ArrayList<>();
-        int[] cursor = {0};
+        int[] cursor = { 0 };
         long latitude = 0;
         long longitude = 0;
 
