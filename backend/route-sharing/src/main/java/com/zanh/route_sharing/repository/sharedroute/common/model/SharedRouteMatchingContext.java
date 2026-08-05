@@ -1,13 +1,13 @@
-package com.zanh.route_sharing.repository.sharedroute.search.model;
+package com.zanh.route_sharing.repository.sharedroute.common.model;
 
 import java.math.BigDecimal;
 
-public record SharedRouteSearchContext(
+public record SharedRouteMatchingContext(
         BigDecimal sameDestinationRadiusMeters,
         BigDecimal destinationNearRouteRadiusMeters,
         BigDecimal maxPickupDeviationMeters,
         int departureToleranceMinutes) {
-    public SharedRouteSearchContext {
+    public SharedRouteMatchingContext {
         requirePositive(sameDestinationRadiusMeters, "sameDestinationRadiusMeters");
         requirePositive(destinationNearRouteRadiusMeters, "destinationNearRouteRadiusMeters");
 

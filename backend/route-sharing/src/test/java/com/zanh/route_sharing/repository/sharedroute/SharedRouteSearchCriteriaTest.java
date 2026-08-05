@@ -1,6 +1,6 @@
 package com.zanh.route_sharing.repository.sharedroute;
 
-import com.zanh.route_sharing.repository.SharedRouteSearchCriteria;
+import com.zanh.route_sharing.repository.sharedroute.search.model.SharedRouteSearchCriteria;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
@@ -11,7 +11,7 @@ import java.time.Instant;
 import java.time.LocalDate;
 import java.util.stream.Stream;
 
-import static com.zanh.route_sharing.testsupport.sharedroute.SharedRouteSearchContextMother.standardConfiguration;
+import static com.zanh.route_sharing.testsupport.sharedroute.SharedRouteMatchingContextMother.standardConfiguration;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
@@ -39,7 +39,6 @@ class SharedRouteSearchCriteriaTest {
 
         // Assert
         assertThat(criteria.requestedTravelDate()).isEqualTo(TRAVEL_DATE);
-        assertThat(criteria.membershipDate()).isEqualTo(TRAVEL_DATE);
     }
 
     @ParameterizedTest(name = "actor={0}, school={1}")

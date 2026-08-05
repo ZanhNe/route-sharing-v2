@@ -1,0 +1,85 @@
+package com.zanh.route_sharing.domain.entity;
+
+import com.zanh.route_sharing.domain.enums.TrangThaiYeuCau;
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.EntityListeners;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
+import jakarta.persistence.FetchType;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
+import jakarta.persistence.Table;
+import jakarta.persistence.UniqueConstraint;
+import lombok.AccessLevel;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import org.springframework.data.annotation.CreatedDate;
+import org.springframework.data.jpa.domain.support.AuditingEntityListener;
+
+import java.time.Instant;
+import java.util.Objects;
+
+@Entity
+@Table(name = "nhat_ky_trang_thai_yeu_cau", uniqueConstraints = {
+        @UniqueConstraint(name = "uk_nhat_ky_yeu_cau_sequence", columnNames = { "yeu_cau_di_chung_id", "sequence" })
+})
+@EntityListeners(AuditingEntityListener.class)
+@Getter
+@NoArgsConstructor(access = AccessLevel.PROTECTED)
+public class NhatKyTrangThaiYeuCau {
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
+
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(name = "yeu_cau_di_chung_id", nullable = false)
+    private YeuCauDiChung yeuCauDiChung;
+
+    @Column(name = "sequence", nullable = false)
+    private Long sequence;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "trang_thai_truoc", length = 40)
+    private TrangThaiYeuCau trangThaiTruoc;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "trang_thai_sau", nullable = false, length = 40)
+    private TrangThaiYeuCau trangThaiSau;
+
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(name = "actor_user_id", nullable = false)
+    private NguoiDung actor;
+
+    @Column(name = "occurred_at", nullable = false)
+    private Instant occurredAt;
+
+    @Column(name = "reason_code", length = 100)
+    private String reasonCode;
+
+    @CreatedDate
+    @Column(name = "created_at", nullable = false, updatable = false)
+    private Instant createdAt;
+
+    public static NhatKyTrangThaiYeuCau created(
+            YeuCauDiChung rideRequest,
+            NguoiDung actor,
+            Instant occurredAt) {
+        if (rideRequest == null || rideRequest.getId() == null) {
+            throw new IllegalArgumentException("Yêu cầu đi chung phải được lưu trước khi tạo nhật ký.");
+        }
+        NhatKyTrangThaiYeuCau event = new NhatKyTrangThaiYeuCau();
+        event.yeuCauDiChung = rideRequest;
+        event.sequence = 1L;
+        event.trangThaiTruoc = null;
+        event.trangThaiSau = TrangThaiYeuCau.PENDING;
+        event.actor = Objects.requireNonNull(actor, "actor không được trống");
+        event.occurredAt = Objects.requireNonNull(occurredAt, "occurredAt không được trống");
+        event.reasonCode = "CREATED";
+        return event;
+    }
+}

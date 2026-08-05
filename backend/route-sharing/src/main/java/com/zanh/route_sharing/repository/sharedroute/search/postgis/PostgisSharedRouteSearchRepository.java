@@ -3,7 +3,9 @@ package com.zanh.route_sharing.repository.sharedroute.search.postgis;
 import com.zanh.route_sharing.domain.enums.LoaiDiemTha;
 import com.zanh.route_sharing.domain.enums.LoaiGhepTuyen;
 import com.zanh.route_sharing.repository.sharedroute.search.SharedRouteSearchRepository;
-import com.zanh.route_sharing.repository.sharedroute.search.model.SharedRouteSearchContext;
+import com.zanh.route_sharing.repository.sharedroute.common.postgis.PostgresJdbcValues;
+import com.zanh.route_sharing.repository.sharedroute.common.postgis.SharedRouteMatchingContextRowMapper;
+import com.zanh.route_sharing.repository.sharedroute.common.model.SharedRouteMatchingContext;
 import com.zanh.route_sharing.repository.sharedroute.search.model.SharedRouteSearchCriteria;
 import com.zanh.route_sharing.repository.sharedroute.search.model.SharedRouteSearchPage;
 import com.zanh.route_sharing.repository.sharedroute.search.model.SharedRouteSearchRow;
@@ -21,10 +23,7 @@ import static com.zanh.route_sharing.repository.sharedroute.search.postgis.Postg
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Types;
-import java.time.Instant;
 import java.time.LocalDate;
-import java.time.OffsetDateTime;
-import java.time.ZoneOffset;
 import java.util.List;
 import java.util.Optional;
 
@@ -37,7 +36,7 @@ public class PostgisSharedRouteSearchRepository implements SharedRouteSearchRepo
         private final NamedParameterJdbcTemplate jdbc;
 
         @Override
-        public Optional<SharedRouteSearchContext> findSearchContext(
+        public Optional<SharedRouteMatchingContext> findSearchContext(
                         Long actorUserId,
                         Long schoolId,
                         LocalDate requestedTravelDate) {
@@ -47,14 +46,10 @@ public class PostgisSharedRouteSearchRepository implements SharedRouteSearchRepo
                                 .addValue("schoolId", schoolId, Types.BIGINT)
                                 .addValue("requestedTravelDate", requestedTravelDate, Types.DATE);
 
-                List<SharedRouteSearchContext> contexts = jdbc.query(
+                List<SharedRouteMatchingContext> contexts = jdbc.query(
                                 SEARCH_CONTEXT,
                                 params,
-                                (rs, rowNum) -> new SharedRouteSearchContext(
-                                                rs.getBigDecimal("ban_kinh_cung_diem_den_met"),
-                                                rs.getBigDecimal("ban_kinh_diem_den_gan_tuyen_met"),
-                                                rs.getBigDecimal("khoang_cach_lech_don_toi_da_met"),
-                                                rs.getInt("do_lech_thoi_gian_khoi_hanh_phut")));
+                                SharedRouteMatchingContextRowMapper.INSTANCE);
 
                 return contexts.stream().findFirst();
         }
@@ -76,7 +71,7 @@ public class PostgisSharedRouteSearchRepository implements SharedRouteSearchRepo
 
         private static MapSqlParameterSource parameters(
                         SharedRouteSearchCriteria criteria) {
-                SharedRouteSearchContext context = criteria.context();
+                SharedRouteMatchingContext context = criteria.context();
 
                 return new MapSqlParameterSource()
                                 .addValue(
@@ -105,15 +100,15 @@ public class PostgisSharedRouteSearchRepository implements SharedRouteSearchRepo
                                                 Types.NUMERIC)
                                 .addValue(
                                                 "now",
-                                                toUtcOffsetDateTime(criteria.now()),
+                                                PostgresJdbcValues.utc(criteria.now()),
                                                 Types.TIMESTAMP_WITH_TIMEZONE)
                                 .addValue(
                                                 "departureFrom",
-                                                toUtcOffsetDateTime(criteria.departureFrom()),
+                                                PostgresJdbcValues.utc(criteria.departureFrom()),
                                                 Types.TIMESTAMP_WITH_TIMEZONE)
                                 .addValue(
                                                 "departureTo",
-                                                toUtcOffsetDateTime(criteria.departureTo()),
+                                                PostgresJdbcValues.utc(criteria.departureTo()),
                                                 Types.TIMESTAMP_WITH_TIMEZONE)
                                 .addValue(
                                                 "sameDestinationRadiusMeters",
@@ -135,10 +130,6 @@ public class PostgisSharedRouteSearchRepository implements SharedRouteSearchRepo
                                                 "offset",
                                                 criteria.offset(),
                                                 Types.BIGINT);
-        }
-
-        private static OffsetDateTime toUtcOffsetDateTime(Instant value) {
-                return OffsetDateTime.ofInstant(value, ZoneOffset.UTC);
         }
 
         private static SharedRouteSearchRow mapRow(
@@ -174,7 +165,7 @@ public class PostgisSharedRouteSearchRepository implements SharedRouteSearchRepo
                                 rs.getBigDecimal("proposed_dropoff_longitude"),
 
                                 rs.getString("route_geo_json"),
-                                instant(rs, "thoi_gian_khoi_hanh_du_kien"),
+                                PostgresJdbcValues.instant(rs, "thoi_gian_khoi_hanh_du_kien"),
                                 rs.getInt("so_ghe_con_lai"),
 
                                 rs.getBigDecimal("muc_ho_tro_goi_y_moi_km"),
@@ -183,10 +174,4 @@ public class PostgisSharedRouteSearchRepository implements SharedRouteSearchRepo
                                 rs.getBigDecimal("shared_segment_m"));
         }
 
-        private static Instant instant(
-                        ResultSet rs,
-                        String column) throws SQLException {
-                OffsetDateTime value = rs.getObject(column, OffsetDateTime.class);
-                return value == null ? null : value.toInstant();
-        }
 }

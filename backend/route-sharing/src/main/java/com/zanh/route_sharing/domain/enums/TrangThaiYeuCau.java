@@ -12,5 +12,16 @@ public enum TrangThaiYeuCau {
     ON_BOARD,
     COMPLETED,
     ABORTED,
-    DISPUTED
+    DISPUTED;
+
+    public boolean blocksNewRequest() {
+        return this == PENDING
+                || this == ACCEPTED
+                || this == ON_BOARD
+                || this == DISPUTED;
+    }
+
+    public boolean isTerminal() {
+        return !blocksNewRequest();
+    }
 }

@@ -1,0 +1,21 @@
+# Build outputs
+/target/
+/logs/
+
+# Local environment and secrets
+.env
+.env.*
+!.env.example
+dev-env.ps1
+
+# IDE / OS
+.idea/
+*.iml
+.vscode/
+.DS_Store
+Thumbs.db
+
+# Local runtime artifacts
+*.log
+*.pid
+/backups/

@@ -32,6 +32,11 @@ public record PreviewConsistencyToken(
         BigDecimal sameDestinationRadiusMeters,
         BigDecimal destinationNearRouteRadiusMeters,
         BigDecimal maxPickupDeviationMeters,
+        Long maxPickupDeviationSeconds,
+        BigDecimal minimumConvenienceRatioPercent,
+        Long requestTtlSeconds,
+        Long bookingCutoffSeconds,
+        Long rejectionCooldownSeconds,
         Instant expectedDepartureTime,
         Integer remainingSeats) {
 
@@ -63,6 +68,12 @@ public record PreviewConsistencyToken(
         Objects.requireNonNull(sameDestinationRadiusMeters, "sameDestinationRadiusMeters không được trống");
         Objects.requireNonNull(destinationNearRouteRadiusMeters, "destinationNearRouteRadiusMeters không được trống");
         Objects.requireNonNull(maxPickupDeviationMeters, "maxPickupDeviationMeters không được trống");
+        Objects.requireNonNull(maxPickupDeviationSeconds, "maxPickupDeviationSeconds không được trống");
+        Objects.requireNonNull(minimumConvenienceRatioPercent,
+                "minimumConvenienceRatioPercent không được trống");
+        Objects.requireNonNull(requestTtlSeconds, "requestTtlSeconds không được trống");
+        Objects.requireNonNull(bookingCutoffSeconds, "bookingCutoffSeconds không được trống");
+        Objects.requireNonNull(rejectionCooldownSeconds, "rejectionCooldownSeconds không được trống");
         Objects.requireNonNull(expectedDepartureTime, "expectedDepartureTime không được trống");
         Objects.requireNonNull(remainingSeats, "remainingSeats không được trống");
     }

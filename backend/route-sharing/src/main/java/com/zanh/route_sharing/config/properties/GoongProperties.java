@@ -23,6 +23,10 @@ public class GoongProperties {
     @Pattern(regexp = "/[A-Za-z0-9_-]+(?:/[A-Za-z0-9_-]+)*", message = "goong.directions-path phải là relative path hợp lệ")
     private String directionsPath = "/v2/direction";
 
+    @NotBlank(message = "goong.geocoding-path không được để trống")
+    @Pattern(regexp = "/[A-Za-z0-9_-]+(?:/[A-Za-z0-9_-]+)*", message = "goong.geocoding-path phải là relative path hợp lệ")
+    private String geocodingPath = "/Geocode";
+
     @NotNull(message = "goong.waypoint-snap-tolerance-meters không được để trống")
     @DecimalMin(value = "0.01", message = "goong.waypoint-snap-tolerance-meters phải lớn hơn 0")
     private BigDecimal waypointSnapToleranceMeters = new BigDecimal("100.00");
@@ -53,6 +57,14 @@ public class GoongProperties {
 
     public void setDirectionsPath(String directionsPath) {
         this.directionsPath = directionsPath;
+    }
+
+    public String getGeocodingPath() {
+        return geocodingPath;
+    }
+
+    public void setGeocodingPath(String geocodingPath) {
+        this.geocodingPath = geocodingPath;
     }
 
     public BigDecimal getWaypointSnapToleranceMeters() {

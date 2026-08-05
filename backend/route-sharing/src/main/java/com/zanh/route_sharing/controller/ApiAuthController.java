@@ -6,6 +6,7 @@ import com.zanh.route_sharing.dto.auth.TokenResponse;
 import com.zanh.route_sharing.security.AuthTokenService;
 import com.zanh.route_sharing.security.ClientRequestInfo;
 import com.zanh.route_sharing.security.CustomUserDetails;
+import com.zanh.route_sharing.security.TokenPair;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -48,7 +49,7 @@ public class ApiAuthController {
         return ResponseEntity.noContent().build();
     }
 
-    private static ResponseEntity<TokenResponse> tokenResponse(com.zanh.route_sharing.security.TokenPair pair) {
+    private static ResponseEntity<TokenResponse> tokenResponse(TokenPair pair) {
         return ResponseEntity.ok()
                 .cacheControl(CacheControl.noStore())
                 .header(HttpHeaders.PRAGMA, "no-cache")

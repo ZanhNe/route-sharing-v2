@@ -20,6 +20,6 @@ public class CorsProperties {
 
     @AssertTrue(message = "app.cors.allowed-origins phải chứa ít nhất 1 origin hợp lệ")
     public boolean isAllowedOriginsValid() {
-        return WebSocketProperties.areValidOrigins(allowedOrigins);
+        return OriginListValidator.isValid(allowedOrigins);
     }
 }

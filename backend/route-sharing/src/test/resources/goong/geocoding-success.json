@@ -1,0 +1,9 @@
+{
+  "status": "OK",
+  "results": [
+    {
+      "formatted_address": "123 Đường Nguyễn Huệ, Quận 1, Thành phố Hồ Chí Minh",
+      "place_id": "test-place-id"
+    }
+  ]
+}

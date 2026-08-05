@@ -24,10 +24,6 @@ public class AsyncConfig implements AsyncConfigurer {
     @Bean(name = { "applicationTaskExecutor", "taskExecutor" })
     @Override
     public Executor getAsyncExecutor() {
-        if (properties.getMaxPoolSize() < properties.getCorePoolSize()) {
-            throw new IllegalStateException(
-                    "Cấu hình Async không hợp lệ: max-pool-size phải lớn hơn hoặc bằng core-pool-size");
-        }
         ThreadPoolTaskExecutor executor = new ThreadPoolTaskExecutor();
         executor.setCorePoolSize(properties.getCorePoolSize());
         executor.setMaxPoolSize(properties.getMaxPoolSize());

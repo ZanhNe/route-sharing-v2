@@ -14,7 +14,7 @@ import com.zanh.route_sharing.dto.sharedroute.preview.PreviewRouteResponse;
 import com.zanh.route_sharing.dto.sharedroute.preview.PreviewVehicleResponse;
 import com.zanh.route_sharing.dto.sharedroute.preview.RouteBoundsResponse;
 import com.zanh.route_sharing.dto.sharedroute.preview.SharedRoutePreviewResponse;
-import com.zanh.route_sharing.service.routing.RouteWaypointRole;
+import com.zanh.route_sharing.service.routing.model.RouteWaypointRole;
 
 import java.math.BigDecimal;
 import java.time.Instant;

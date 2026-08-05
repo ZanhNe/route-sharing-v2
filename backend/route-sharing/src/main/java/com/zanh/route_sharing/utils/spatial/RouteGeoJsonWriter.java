@@ -61,8 +61,7 @@ public class RouteGeoJsonWriter {
 
     private static List<BigDecimal> coordinate(Coordinate coordinate) {
         if (coordinate == null
-                || !Double.isFinite(coordinate.x)
-                || !Double.isFinite(coordinate.y)) {
+                || !Wgs84Coordinates.isValidLongitudeLatitude(coordinate.x, coordinate.y)) {
             throw new IllegalArgumentException("Tọa độ phải là số hữu hạn");
         }
 
@@ -84,10 +83,7 @@ public class RouteGeoJsonWriter {
                     || pair.size() != 2
                     || pair.get(0) == null
                     || pair.get(1) == null
-                    || pair.get(0).compareTo(BigDecimal.valueOf(-180)) < 0
-                    || pair.get(0).compareTo(BigDecimal.valueOf(180)) > 0
-                    || pair.get(1).compareTo(BigDecimal.valueOf(-90)) < 0
-                    || pair.get(1).compareTo(BigDecimal.valueOf(90)) > 0) {
+                    || !Wgs84Coordinates.isValid(pair.get(1), pair.get(0))) {
                 throw new IllegalArgumentException("Invalid GeoJSON coordinate");
             }
         }

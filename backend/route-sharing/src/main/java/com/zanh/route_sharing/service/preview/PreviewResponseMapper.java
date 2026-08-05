@@ -3,7 +3,6 @@ package com.zanh.route_sharing.service.preview;
 import com.zanh.route_sharing.domain.enums.LoaiDiemTha;
 import com.zanh.route_sharing.dto.sharedroute.preview.OriginalRouteResponse;
 import com.zanh.route_sharing.dto.sharedroute.preview.PreviewDriverResponse;
-import com.zanh.route_sharing.dto.sharedroute.preview.PreviewPointRequest;
 import com.zanh.route_sharing.dto.sharedroute.preview.PreviewPointResponse;
 import com.zanh.route_sharing.dto.sharedroute.preview.PreviewPointsResponse;
 import com.zanh.route_sharing.dto.sharedroute.preview.PreviewRouteLegResponse;
@@ -12,15 +11,16 @@ import com.zanh.route_sharing.dto.sharedroute.preview.PreviewSharedRouteRequest;
 import com.zanh.route_sharing.dto.sharedroute.preview.PreviewVehicleResponse;
 import com.zanh.route_sharing.dto.sharedroute.preview.RouteBoundsResponse;
 import com.zanh.route_sharing.dto.sharedroute.preview.SharedRoutePreviewResponse;
-import com.zanh.route_sharing.repository.PreviewGeoPoint;
-import com.zanh.route_sharing.repository.PreviewMatch;
-import com.zanh.route_sharing.repository.SharedRoutePreviewPreparation;
-import com.zanh.route_sharing.service.routing.RouteBounds;
-import com.zanh.route_sharing.service.routing.RoutePlan;
+import com.zanh.route_sharing.repository.sharedroute.preview.model.PreviewMatch;
+import com.zanh.route_sharing.repository.sharedroute.preview.model.SharedRoutePreviewPreparation;
+import com.zanh.route_sharing.service.routing.model.RouteBounds;
+import com.zanh.route_sharing.service.routing.model.RoutePlan;
 import org.springframework.stereotype.Component;
 
+import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.List;
+import com.zanh.route_sharing.utils.spatial.RouteGeoJsonWriter;
 
 @Component
 public class PreviewResponseMapper {
@@ -66,11 +66,26 @@ public class PreviewResponseMapper {
                                 match.destinationDeviationMeters(),
                                 match.sharedSegmentMeters(),
                                 new PreviewPointsResponse(
-                                                point(preparation.route().origin()),
-                                                point(request.pickup()),
-                                                point(request.passengerDestination()),
-                                                point(match.proposedDropoff(), proposedDropoffAddress),
-                                                point(preparation.route().driverDestination())),
+                                                point(
+                                                                preparation.route().origin().latitude(),
+                                                                preparation.route().origin().longitude(),
+                                                                preparation.route().origin().address()),
+                                                point(
+                                                                request.pickup().latitude(),
+                                                                request.pickup().longitude(),
+                                                                request.pickup().address()),
+                                                point(
+                                                                request.passengerDestination().latitude(),
+                                                                request.passengerDestination().longitude(),
+                                                                request.passengerDestination().address()),
+                                                point(
+                                                                match.proposedDropoff().latitude(),
+                                                                match.proposedDropoff().longitude(),
+                                                                proposedDropoffAddress),
+                                                point(
+                                                                preparation.route().driverDestination().latitude(),
+                                                                preparation.route().driverDestination().longitude(),
+                                                                preparation.route().driverDestination().address())),
                                 new OriginalRouteResponse(
                                                 geoJsonWriter.readStoredLineString(
                                                                 preparation.route().originalRouteGeoJson()),
@@ -99,17 +114,11 @@ public class PreviewResponseMapper {
                                 List.of(bounds.northEastLongitude(), bounds.northEastLatitude()));
         }
 
-        private static PreviewPointResponse point(PreviewGeoPoint point) {
-                return new PreviewPointResponse(point.latitude(), point.longitude(), point.address());
-        }
-
         private static PreviewPointResponse point(
-                        PreviewGeoPoint point,
+                        BigDecimal latitude,
+                        BigDecimal longitude,
                         String address) {
-                return new PreviewPointResponse(point.latitude(), point.longitude(), address);
+                return new PreviewPointResponse(latitude, longitude, address);
         }
 
-        private static PreviewPointResponse point(PreviewPointRequest point) {
-                return new PreviewPointResponse(point.latitude(), point.longitude(), point.address());
-        }
 }

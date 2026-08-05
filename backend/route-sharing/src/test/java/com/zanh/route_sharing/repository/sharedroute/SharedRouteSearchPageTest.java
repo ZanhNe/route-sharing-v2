@@ -4,7 +4,8 @@ import org.junit.jupiter.api.Test;
 
 import java.util.ArrayList;
 import java.util.List;
-import com.zanh.route_sharing.repository.*;
+import com.zanh.route_sharing.repository.sharedroute.search.model.SharedRouteSearchPage;
+import com.zanh.route_sharing.repository.sharedroute.search.model.SharedRouteSearchRow;
 
 import static com.zanh.route_sharing.testsupport.sharedroute.SharedRouteSearchRowBuilder.aSearchRow;
 import static org.assertj.core.api.Assertions.assertThat;

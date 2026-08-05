@@ -1,7 +1,6 @@
-package com.zanh.route_sharing.service.preview;
+package com.zanh.route_sharing.utils.spatial;
 
 import com.zanh.route_sharing.exception.BusinessException;
-import com.zanh.route_sharing.utils.spatial.RouteGeoJsonWriter;
 
 import org.junit.jupiter.api.Test;
 import org.locationtech.jts.geom.Coordinate;

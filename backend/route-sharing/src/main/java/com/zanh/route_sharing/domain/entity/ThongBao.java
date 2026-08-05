@@ -39,7 +39,32 @@ public class ThongBao extends Base {
     private String loaiDoiTuongLienQuan;
     @Column(name = "doi_tuong_lien_quan_id")
     private Long doiTuongLienQuanId;
+    @Column(name = "deduplication_key", length = 180)
+    private String deduplicationKey;
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "nguoi_nhan_id", nullable = false)
     private NguoiDung nguoiNhan;
+
+    public static ThongBao bookingRequest(
+            YeuCauDiChung rideRequest,
+            NguoiDung driver) {
+        if (rideRequest == null || rideRequest.getId() == null) {
+            throw new IllegalArgumentException("Yêu cầu đi chung phải được lưu trước khi tạo thông báo.");
+        }
+        if (driver == null) {
+            throw new IllegalArgumentException("Tài xế nhận thông báo không được trống.");
+        }
+
+        return ThongBao.builder()
+                .loaiThongBao(LoaiThongBao.BOOKING_REQUEST)
+                .tieuDe("Có yêu cầu đi chung mới")
+                .noiDung("Một hành khách đã gửi yêu cầu tham gia lộ trình của bạn.")
+                .kenhGui(KenhThongBao.IN_APP)
+                .trangThaiThongBao(TrangThaiThongBao.PENDING)
+                .loaiDoiTuongLienQuan("YEU_CAU_DI_CHUNG")
+                .doiTuongLienQuanId(rideRequest.getId())
+                .deduplicationKey("BOOKING_REQUEST:" + rideRequest.getId() + ":CREATED")
+                .nguoiNhan(driver)
+                .build();
+    }
 }

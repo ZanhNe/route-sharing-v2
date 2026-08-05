@@ -2,7 +2,7 @@ package com.zanh.route_sharing.testsupport.sharedroute;
 
 import com.zanh.route_sharing.domain.enums.LoaiDiemTha;
 import com.zanh.route_sharing.domain.enums.LoaiGhepTuyen;
-import com.zanh.route_sharing.repository.SharedRouteSearchRow;
+import com.zanh.route_sharing.repository.sharedroute.search.model.SharedRouteSearchRow;
 
 import java.math.BigDecimal;
 import java.time.Instant;

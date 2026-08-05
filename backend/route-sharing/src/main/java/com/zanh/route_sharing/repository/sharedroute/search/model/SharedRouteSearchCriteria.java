@@ -1,5 +1,7 @@
 package com.zanh.route_sharing.repository.sharedroute.search.model;
 
+import com.zanh.route_sharing.repository.sharedroute.common.model.SharedRouteMatchingContext;
+
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.LocalDate;
@@ -18,7 +20,7 @@ public record SharedRouteSearchCriteria(
         Instant departureFrom,
         Instant departureTo,
 
-        SharedRouteSearchContext context,
+        SharedRouteMatchingContext context,
         int page,
         int size) {
 
@@ -48,14 +50,6 @@ public record SharedRouteSearchCriteria(
         if (page < 0 || size < 1 || size > 50) {
             throw new IllegalArgumentException("Số trang hoặc số lượng bản ghi không hợp lệ");
         }
-    }
-
-    /**
-     * Alias chuyển tiếp cho code/test cũ. Semantics mới là ngày dự kiến đi.
-     */
-    @Deprecated(forRemoval = false)
-    public LocalDate membershipDate() {
-        return requestedTravelDate;
     }
 
     public long offset() {

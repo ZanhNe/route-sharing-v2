@@ -10,18 +10,19 @@ import com.zanh.route_sharing.dto.sharedroute.search.SharedRouteSearchItemRespon
 import com.zanh.route_sharing.dto.sharedroute.search.SharedRouteSearchResult;
 import com.zanh.route_sharing.dto.sharedroute.search.SharedRouteVehicleResponse;
 import com.zanh.route_sharing.exception.BusinessException;
+import com.zanh.route_sharing.security.AuthenticatedPrincipalValidator;
 import com.zanh.route_sharing.repository.sharedroute.search.SharedRouteSearchRepository;
-import com.zanh.route_sharing.repository.sharedroute.search.model.SharedRouteSearchContext;
+import com.zanh.route_sharing.repository.sharedroute.common.model.SharedRouteMatchingContext;
 import com.zanh.route_sharing.repository.sharedroute.search.model.SharedRouteSearchCriteria;
 import com.zanh.route_sharing.repository.sharedroute.search.model.SharedRouteSearchPage;
 import com.zanh.route_sharing.repository.sharedroute.search.model.SharedRouteSearchRow;
 import com.zanh.route_sharing.service.SharedRouteSearchService;
+import com.zanh.route_sharing.utils.spatial.Wgs84Coordinates;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.math.BigDecimal;
 import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
@@ -36,11 +37,6 @@ public class SharedRouteSearchServiceImpl implements SharedRouteSearchService {
 
         private static final ZoneId BUSINESS_ZONE = ZoneId.of("Asia/Ho_Chi_Minh");
 
-        private static final BigDecimal MIN_LATITUDE = new BigDecimal("-90");
-        private static final BigDecimal MAX_LATITUDE = new BigDecimal("90");
-        private static final BigDecimal MIN_LONGITUDE = new BigDecimal("-180");
-        private static final BigDecimal MAX_LONGITUDE = new BigDecimal("180");
-
         private final SharedRouteSearchRepository repository;
         private final Clock clock;
 
@@ -52,7 +48,7 @@ public class SharedRouteSearchServiceImpl implements SharedRouteSearchService {
                         int size) {
 
                 requirePaging(page, size);
-                requireActor(actorUserId);
+                AuthenticatedPrincipalValidator.requireUserId(actorUserId);
                 requireRequest(request);
                 requireDistinctEndpoints(request.pickup(), request.destination());
 
@@ -65,17 +61,11 @@ public class SharedRouteSearchServiceImpl implements SharedRouteSearchService {
                                         "Thời gian khởi hành mong muốn phải nằm trong tương lai.");
                 }
 
-                /*
-                 * Membership được kiểm tra theo ngày hành khách dự kiến đi, không phải
-                 * ngày bấm nút tìm kiếm. Repository tiếp tục tái kiểm tra actor và tài xế
-                 * theo ngày khởi hành thực tế của từng route candidate để xử lý đúng cửa
-                 * sổ thời gian có thể đi qua nửa đêm.
-                 */
                 LocalDate requestedTravelDate = LocalDate.ofInstant(
                                 desiredDepartureTime,
                                 BUSINESS_ZONE);
 
-                SharedRouteSearchContext context = repository.findSearchContext(
+                SharedRouteMatchingContext context = repository.findSearchContext(
                                 actorUserId,
                                 request.schoolId(),
                                 requestedTravelDate)
@@ -123,12 +113,6 @@ public class SharedRouteSearchServiceImpl implements SharedRouteSearchService {
                         SharedRouteSearchRow row,
                         SearchSharedRoutesRequest request) {
 
-                /*
-                 * Điểm thả trung gian là projection do PostGIS tính nên chưa có địa chỉ
-                 * đáng tin cậy. Không được lấy địa chỉ destination của hành khách gắn vào
-                 * một tọa độ khác. Với CUNG_DIEM_DEN, proposedDropoff chính là destination
-                 * hành khách nên giữ được địa chỉ từ request.
-                 */
                 String proposedDropoffAddress = row.dropoffType() == LoaiDiemTha.DIEM_DICH_CUOI_CUNG
                                 ? request.destination().address()
                                 : null;
@@ -180,15 +164,6 @@ public class SharedRouteSearchServiceImpl implements SharedRouteSearchService {
                                 row.sharedSegmentMeters());
         }
 
-        private static void requireActor(Long actorUserId) {
-                if (actorUserId == null || actorUserId <= 0) {
-                        throw error(
-                                        HttpStatus.UNAUTHORIZED,
-                                        "AUTHENTICATED_USER_REQUIRED",
-                                        "Không xác định được người dùng đang đăng nhập.");
-                }
-        }
-
         private static void requireRequest(SearchSharedRoutesRequest request) {
                 if (request == null
                                 || request.schoolId() == null
@@ -213,34 +188,23 @@ public class SharedRouteSearchServiceImpl implements SharedRouteSearchService {
                         return false;
                 }
 
-                return isBetween(point.latitude(), MIN_LATITUDE, MAX_LATITUDE)
-                                && isBetween(point.longitude(), MIN_LONGITUDE, MAX_LONGITUDE);
-        }
-
-        private static boolean isBetween(
-                        BigDecimal value,
-                        BigDecimal minimum,
-                        BigDecimal maximum) {
-                return value.compareTo(minimum) >= 0 && value.compareTo(maximum) <= 0;
+                return Wgs84Coordinates.isValid(point.latitude(), point.longitude());
         }
 
         private static void requireDistinctEndpoints(
                         SearchPointRequest pickup,
                         SearchPointRequest destination) {
 
-                boolean sameLatitude = equalDecimal(pickup.latitude(), destination.latitude());
-                boolean sameLongitude = equalDecimal(pickup.longitude(), destination.longitude());
-
-                if (sameLatitude && sameLongitude) {
+                if (Wgs84Coordinates.same(
+                                pickup.latitude(),
+                                pickup.longitude(),
+                                destination.latitude(),
+                                destination.longitude())) {
                         throw error(
                                         HttpStatus.BAD_REQUEST,
                                         "INVALID_SEARCH_ENDPOINTS",
                                         "Điểm đón và điểm đến phải khác nhau.");
                 }
-        }
-
-        private static boolean equalDecimal(BigDecimal left, BigDecimal right) {
-                return left != null && right != null && left.compareTo(right) == 0;
         }
 
         private static void requirePaging(int page, int size) {

@@ -53,6 +53,7 @@ public class DevSeedDataService {
 
         private static final String CREATE_ROUTE_PERMISSION = "CREATE_SHARED_ROUTE";
         private static final String SEARCH_ROUTE_PERMISSION = "SEARCH_SHARED_ROUTE";
+        private static final String CREATE_RIDE_REQUEST_PERMISSION = "CREATE_RIDE_REQUEST";
         private static final String DRIVER_GROUP = "DRIVER";
         private static final ZoneId BUSINESS_ZONE = ZoneId.of("Asia/Ho_Chi_Minh");
         private static final GeometryFactory GEOMETRY_FACTORY = new GeometryFactory(new PrecisionModel(), 4326);
@@ -74,15 +75,6 @@ public class DevSeedDataService {
         private final PasswordEncoder passwordEncoder;
         private final Clock clock;
 
-        /**
-         * Seed idempotent cho E1-01 và E1-02.
-         *
-         * <p>
-         * E1-02 dùng direct permission trên passenger seed để không tự sáng tạo
-         * thêm một nhóm RBAC production chưa được nghiệp vụ khóa. Driver group vẫn
-         * chỉ nhận CREATE_SHARED_ROUTE như baseline E1-01.
-         * </p>
-         */
         @Transactional
         public SeedSummary seedSharedRouteScenario() {
                 Instant now = clock.instant();
@@ -96,6 +88,10 @@ public class DevSeedDataService {
                                 SEARCH_ROUTE_PERMISSION,
                                 "Tìm lộ trình chia sẻ",
                                 "Cho phép thành viên tìm các lộ trình chia sẻ phù hợp.");
+                QuyenHan createRideRequestPermission = ensurePermission(
+                                CREATE_RIDE_REQUEST_PERMISSION,
+                                "Gửi yêu cầu đi chung",
+                                "Cho phép hành khách gửi yêu cầu tham gia một lộ trình chia sẻ.");
 
                 NhomQuyen driverGroup = ensureDriverGroup(createPermission);
                 NguoiDung driver = ensureDriverUser(driverGroup, now);
@@ -105,7 +101,10 @@ public class DevSeedDataService {
 
                 NhaTruong school = ensureSchool();
                 CauHinhNghiepVu configuration = ensureBusinessConfiguration(school);
-                NguoiDung passenger = ensurePassengerUser(searchPermission, now);
+                NguoiDung passenger = ensurePassengerUser(
+                                searchPermission,
+                                createRideRequestPermission,
+                                now);
 
                 HoSoSinhVien passengerMembership = ensureMembership(
                                 passenger,
@@ -215,6 +214,7 @@ public class DevSeedDataService {
 
         private NguoiDung ensurePassengerUser(
                         QuyenHan searchPermission,
+                        QuyenHan createRideRequestPermission,
                         Instant now) {
                 NguoiDung user = userRepository.findByEmailTruongIgnoreCase(PASSENGER_EMAIL)
                                 .orElseGet(() -> NguoiDung.builder()
@@ -227,6 +227,11 @@ public class DevSeedDataService {
                                 .noneMatch(item -> item.getMaQuyen()
                                                 .equalsIgnoreCase(searchPermission.getMaQuyen()))) {
                         user.getDanhSachQuyenTrucTiep().add(searchPermission);
+                }
+                if (user.getDanhSachQuyenTrucTiep().stream()
+                                .noneMatch(item -> item.getMaQuyen()
+                                                .equalsIgnoreCase(createRideRequestPermission.getMaQuyen()))) {
+                        user.getDanhSachQuyenTrucTiep().add(createRideRequestPermission);
                 }
                 return userRepository.save(user);
         }
@@ -346,6 +351,9 @@ public class DevSeedDataService {
                 configuration.setDoLechThoiGianKhoiHanhPhut(30);
                 configuration.setSoNgayLuuViTri(30);
                 configuration.setSoNgayLuuNhatKy(90);
+                configuration.setRequestTtlSeconds(900L);
+                configuration.setBookingCutoffSeconds(900L);
+                configuration.setRejectionCooldownSeconds(3600L);
                 configuration.setBatBuocTepXacNhanChuXeKhiKhongChinhChu(false);
                 return configurationRepository.save(configuration);
         }

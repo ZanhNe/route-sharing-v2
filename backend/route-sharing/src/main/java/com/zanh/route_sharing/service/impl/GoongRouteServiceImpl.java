@@ -23,7 +23,6 @@ import org.locationtech.jts.geom.Envelope;
 import org.locationtech.jts.geom.LineString;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.util.LinkedMultiValueMap;
@@ -45,7 +44,6 @@ public class GoongRouteServiceImpl implements GoongRouteService, RoutePlanner {
     private final GoongProperties properties;
     private final RoutePlanValidator routePlanValidator;
 
-    @Autowired
     public GoongRouteServiceImpl(
             GoongApiGateway goongApiGateway,
             GoongProperties properties,
@@ -53,12 +51,6 @@ public class GoongRouteServiceImpl implements GoongRouteService, RoutePlanner {
         this.goongApiGateway = Objects.requireNonNull(goongApiGateway);
         this.properties = Objects.requireNonNull(properties);
         this.routePlanValidator = Objects.requireNonNull(routePlanValidator);
-    }
-
-    public GoongRouteServiceImpl(GoongApiGateway goongApiGateway) {
-        this.goongApiGateway = Objects.requireNonNull(goongApiGateway);
-        this.properties = new GoongProperties();
-        this.routePlanValidator = new RoutePlanValidator(this.properties);
     }
 
     @Override

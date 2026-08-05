@@ -1,10 +1,12 @@
 package com.zanh.route_sharing.service.impl;
 
+import com.zanh.route_sharing.config.properties.GoongProperties;
 import com.zanh.route_sharing.domain.enums.LoaiPhuongTien;
 import com.zanh.route_sharing.exception.BusinessException;
 import com.zanh.route_sharing.integration.goong.GoongApiGateway;
 import com.zanh.route_sharing.integration.goong.GoongDirectionsResponse;
 import com.zanh.route_sharing.integration.goong.RouteCoordinate;
+import com.zanh.route_sharing.service.routing.RoutePlanValidator;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -37,7 +39,11 @@ class GoongRouteServiceImplTest {
 
         @BeforeEach
         void setUp() {
-                sut = new GoongRouteServiceImpl(goongApiGateway);
+                GoongProperties properties = new GoongProperties();
+                sut = new GoongRouteServiceImpl(
+                                goongApiGateway,
+                                properties,
+                                new RoutePlanValidator(properties));
         }
 
         @SuppressWarnings("unchecked")

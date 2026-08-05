@@ -57,5 +57,6 @@ goong:
   api-key: ${GOONG_API_KEY}
   base-url: ${GOONG_BASE_URL:https://rsapi.goong.io}
   directions-path: ${GOONG_DIRECTIONS_PATH:/v2/direction}
+  geocoding-path: ${GOONG_GEOCODING_PATH:/Geocode}
   waypoint-snap-tolerance-meters: ${GOONG_WAYPOINT_SNAP_TOLERANCE_METERS:100}
   duplicate-waypoint-tolerance-meters: ${GOONG_DUPLICATE_WAYPOINT_TOLERANCE_METERS:2}

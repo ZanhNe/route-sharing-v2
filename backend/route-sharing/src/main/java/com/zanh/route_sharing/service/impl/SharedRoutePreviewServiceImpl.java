@@ -4,21 +4,22 @@ import com.zanh.route_sharing.dto.sharedroute.preview.PreviewPointRequest;
 import com.zanh.route_sharing.dto.sharedroute.preview.PreviewSharedRouteRequest;
 import com.zanh.route_sharing.dto.sharedroute.preview.SharedRoutePreviewResponse;
 import com.zanh.route_sharing.exception.BusinessException;
-import com.zanh.route_sharing.repository.PreviewEvaluation;
-import com.zanh.route_sharing.repository.PreviewEvaluationStatus;
-import com.zanh.route_sharing.repository.PreviewGeoPoint;
-import com.zanh.route_sharing.repository.SharedRoutePreviewCriteria;
-import com.zanh.route_sharing.repository.SharedRoutePreviewPreparation;
-import com.zanh.route_sharing.repository.SharedRoutePreviewRepository;
+import com.zanh.route_sharing.security.AuthenticatedPrincipalValidator;
+import com.zanh.route_sharing.repository.sharedroute.preview.model.PreviewEvaluation;
+import com.zanh.route_sharing.repository.sharedroute.preview.model.PreviewEvaluationStatus;
+import com.zanh.route_sharing.repository.sharedroute.preview.model.PreviewGeoPoint;
+import com.zanh.route_sharing.repository.sharedroute.preview.model.SharedRoutePreviewCriteria;
+import com.zanh.route_sharing.repository.sharedroute.preview.model.SharedRoutePreviewPreparation;
+import com.zanh.route_sharing.repository.sharedroute.preview.SharedRoutePreviewRepository;
 import com.zanh.route_sharing.service.SharedRoutePreviewService;
 import com.zanh.route_sharing.service.preview.PreviewResponseMapper;
-import com.zanh.route_sharing.service.preview.RoutePlanValidator;
-import com.zanh.route_sharing.service.routing.GeoCoordinate;
-import com.zanh.route_sharing.service.routing.RoutePlan;
+import com.zanh.route_sharing.service.routing.model.GeoCoordinate;
+import com.zanh.route_sharing.service.routing.model.RoutePlan;
 import com.zanh.route_sharing.service.routing.RoutePlanner;
-import com.zanh.route_sharing.service.routing.RoutePlanRequest;
-import com.zanh.route_sharing.service.routing.RouteWaypoint;
-import com.zanh.route_sharing.service.routing.RouteWaypointRole;
+import com.zanh.route_sharing.service.routing.model.RoutePlanRequest;
+import com.zanh.route_sharing.service.routing.model.RouteWaypoint;
+import com.zanh.route_sharing.service.routing.model.RouteWaypointRole;
+import com.zanh.route_sharing.utils.spatial.Wgs84Coordinates;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 
@@ -30,26 +31,18 @@ import java.util.List;
 @Service
 public class SharedRoutePreviewServiceImpl implements SharedRoutePreviewService {
 
-    private static final BigDecimal MIN_LATITUDE = new BigDecimal("-90");
-    private static final BigDecimal MAX_LATITUDE = new BigDecimal("90");
-    private static final BigDecimal MIN_LONGITUDE = new BigDecimal("-180");
-    private static final BigDecimal MAX_LONGITUDE = new BigDecimal("180");
-
     private final SharedRoutePreviewRepository repository;
     private final RoutePlanner routePlanner;
-    private final RoutePlanValidator routePlanValidator;
     private final PreviewResponseMapper responseMapper;
     private final Clock clock;
 
     public SharedRoutePreviewServiceImpl(
             SharedRoutePreviewRepository repository,
             RoutePlanner routePlanner,
-            RoutePlanValidator routePlanValidator,
             PreviewResponseMapper responseMapper,
             Clock clock) {
         this.repository = repository;
         this.routePlanner = routePlanner;
-        this.routePlanValidator = routePlanValidator;
         this.responseMapper = responseMapper;
         this.clock = clock;
     }
@@ -59,7 +52,7 @@ public class SharedRoutePreviewServiceImpl implements SharedRoutePreviewService 
             Long actorUserId,
             Long sharedRouteId,
             PreviewSharedRouteRequest request) {
-        requireActor(actorUserId);
+        AuthenticatedPrincipalValidator.requireUserId(actorUserId);
         requireRouteId(sharedRouteId);
         requireRequest(request);
         requireDistinctEndpoints(request.pickup(), request.passengerDestination());
@@ -83,16 +76,26 @@ public class SharedRoutePreviewServiceImpl implements SharedRoutePreviewService 
 
         RoutePlanRequest routeRequest = new RoutePlanRequest(
                 List.of(
-                        waypoint(RouteWaypointRole.DRIVER_ORIGIN, preparation.route().origin()),
-                        waypoint(RouteWaypointRole.PASSENGER_PICKUP, request.pickup()),
-                        waypoint(RouteWaypointRole.PROPOSED_DROPOFF, preparation.match().proposedDropoff()),
-                        waypoint(RouteWaypointRole.DRIVER_DESTINATION,
-                                preparation.route().driverDestination())),
+                        waypoint(
+                                RouteWaypointRole.DRIVER_ORIGIN,
+                                preparation.route().origin().latitude(),
+                                preparation.route().origin().longitude()),
+                        waypoint(
+                                RouteWaypointRole.PASSENGER_PICKUP,
+                                request.pickup().latitude(),
+                                request.pickup().longitude()),
+                        waypoint(
+                                RouteWaypointRole.PROPOSED_DROPOFF,
+                                preparation.match().proposedDropoff().latitude(),
+                                preparation.match().proposedDropoff().longitude()),
+                        waypoint(
+                                RouteWaypointRole.DRIVER_DESTINATION,
+                                preparation.route().driverDestination().latitude(),
+                                preparation.route().driverDestination().longitude())),
                 preparation.vehicle().vehicleType(),
                 false);
 
         RoutePlan routePlan = routePlanner.plan(routeRequest);
-        routePlanValidator.validate(routeRequest, routePlan);
 
         Instant checkedAt = clock.instant();
         if (!repository.remainsCurrent(preparation.consistencyToken(), checkedAt)) {
@@ -107,18 +110,9 @@ public class SharedRoutePreviewServiceImpl implements SharedRoutePreviewService 
 
     private static RouteWaypoint waypoint(
             RouteWaypointRole role,
-            PreviewGeoPoint point) {
-        return new RouteWaypoint(
-                role,
-                new GeoCoordinate(point.latitude(), point.longitude()));
-    }
-
-    private static RouteWaypoint waypoint(
-            RouteWaypointRole role,
-            PreviewPointRequest point) {
-        return new RouteWaypoint(
-                role,
-                new GeoCoordinate(point.latitude(), point.longitude()));
+            BigDecimal latitude,
+            BigDecimal longitude) {
+        return new RouteWaypoint(role, new GeoCoordinate(latitude, longitude));
     }
 
     private static BusinessException evaluationError(PreviewEvaluationStatus status) {
@@ -137,15 +131,6 @@ public class SharedRoutePreviewServiceImpl implements SharedRoutePreviewService 
                     "Lộ trình không còn phù hợp với điểm đón và điểm đến hiện tại.");
             case ELIGIBLE -> throw new IllegalArgumentException("ELIGIBLE is not an error status");
         };
-    }
-
-    private static void requireActor(Long actorUserId) {
-        if (actorUserId == null || actorUserId <= 0) {
-            throw error(
-                    HttpStatus.UNAUTHORIZED,
-                    "AUTHENTICATED_USER_REQUIRED",
-                    "Không xác định được người dùng đang đăng nhập.");
-        }
     }
 
     private static void requireRouteId(Long sharedRouteId) {
@@ -179,22 +164,17 @@ public class SharedRoutePreviewServiceImpl implements SharedRoutePreviewService 
                 || point.address().length() > 500) {
             return false;
         }
-        return between(point.latitude(), MIN_LATITUDE, MAX_LATITUDE)
-                && between(point.longitude(), MIN_LONGITUDE, MAX_LONGITUDE);
-    }
-
-    private static boolean between(
-            BigDecimal value,
-            BigDecimal minimum,
-            BigDecimal maximum) {
-        return value.compareTo(minimum) >= 0 && value.compareTo(maximum) <= 0;
+        return Wgs84Coordinates.isValid(point.latitude(), point.longitude());
     }
 
     private static void requireDistinctEndpoints(
             PreviewPointRequest pickup,
             PreviewPointRequest destination) {
-        if (pickup.latitude().compareTo(destination.latitude()) == 0
-                && pickup.longitude().compareTo(destination.longitude()) == 0) {
+        if (Wgs84Coordinates.same(
+                pickup.latitude(),
+                pickup.longitude(),
+                destination.latitude(),
+                destination.longitude())) {
             throw error(
                     HttpStatus.BAD_REQUEST,
                     "INVALID_SHARED_ROUTE_PREVIEW_REQUEST",

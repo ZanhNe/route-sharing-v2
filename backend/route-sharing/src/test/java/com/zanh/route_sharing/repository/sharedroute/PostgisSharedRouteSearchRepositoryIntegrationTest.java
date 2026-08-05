@@ -2,11 +2,11 @@ package com.zanh.route_sharing.repository.sharedroute;
 
 import com.zanh.route_sharing.domain.enums.LoaiDiemTha;
 import com.zanh.route_sharing.domain.enums.LoaiGhepTuyen;
-import com.zanh.route_sharing.repository.SharedRouteSearchContext;
-import com.zanh.route_sharing.repository.SharedRouteSearchCriteria;
-import com.zanh.route_sharing.repository.SharedRouteSearchPage;
-import com.zanh.route_sharing.repository.SharedRouteSearchRepository;
-import com.zanh.route_sharing.repository.SharedRouteSearchRow;
+import com.zanh.route_sharing.repository.sharedroute.common.model.SharedRouteMatchingContext;
+import com.zanh.route_sharing.repository.sharedroute.search.model.SharedRouteSearchCriteria;
+import com.zanh.route_sharing.repository.sharedroute.search.model.SharedRouteSearchPage;
+import com.zanh.route_sharing.repository.sharedroute.search.SharedRouteSearchRepository;
+import com.zanh.route_sharing.repository.sharedroute.search.model.SharedRouteSearchRow;
 import com.zanh.route_sharing.testsupport.sharedroute.integration.SharedRouteSearchDatabaseFixture;
 import com.zanh.route_sharing.testsupport.sharedroute.integration.SharedRouteSearchDatabaseFixture.IneligibleMutation;
 import com.zanh.route_sharing.testsupport.sharedroute.integration.SharedRouteSearchDatabaseFixture.Scenario;
@@ -57,7 +57,7 @@ class PostgisSharedRouteSearchRepositoryIntegrationTest {
         Scenario scenario = fixture.createStandardScenario(NOW, DEPARTURE);
 
         // Act
-        SharedRouteSearchContext context = sut.findSearchContext(
+        SharedRouteMatchingContext context = sut.findSearchContext(
                         scenario.actorId(),
                         scenario.schoolId(),
                         scenario.travelDate())
@@ -316,7 +316,7 @@ class PostgisSharedRouteSearchRepositoryIntegrationTest {
         fixture.expireActorBeforeRouteDate(scenario);
 
         LocalDate requestedTravelDate = LocalDate.of(2026, 8, 3);
-        SharedRouteSearchContext context = sut.findSearchContext(
+        SharedRouteMatchingContext context = sut.findSearchContext(
                         scenario.actorId(),
                         scenario.schoolId(),
                         requestedTravelDate)
@@ -427,7 +427,7 @@ class PostgisSharedRouteSearchRepositoryIntegrationTest {
             String destinationLongitude,
             int page,
             int size) {
-        SharedRouteSearchContext context = sut.findSearchContext(
+        SharedRouteMatchingContext context = sut.findSearchContext(
                         scenario.actorId(),
                         scenario.schoolId(),
                         scenario.travelDate())

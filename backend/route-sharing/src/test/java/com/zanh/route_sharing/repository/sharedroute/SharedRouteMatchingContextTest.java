@@ -1,10 +1,11 @@
 package com.zanh.route_sharing.repository.sharedroute;
 
+import com.zanh.route_sharing.repository.sharedroute.common.model.SharedRouteMatchingContext;
+
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
-import com.zanh.route_sharing.repository.*;
 
 import java.math.BigDecimal;
 import java.util.stream.Stream;
@@ -12,12 +13,12 @@ import java.util.stream.Stream;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-class SharedRouteSearchContextTest {
+class SharedRouteMatchingContextTest {
 
     @Test
     void givenValidConfiguration_whenCreated_thenValuesArePreserved() {
         // Arrange & Act
-        SharedRouteSearchContext context = new SharedRouteSearchContext(
+        SharedRouteMatchingContext context = new SharedRouteMatchingContext(
                 new BigDecimal("500"),
                 new BigDecimal("300"),
                 new BigDecimal("0"),
@@ -36,7 +37,7 @@ class SharedRouteSearchContextTest {
             BigDecimal sameDestinationRadius,
             BigDecimal destinationNearRouteRadius) {
         // Act & Assert
-        assertThatThrownBy(() -> new SharedRouteSearchContext(
+        assertThatThrownBy(() -> new SharedRouteMatchingContext(
                 sameDestinationRadius,
                 destinationNearRouteRadius,
                 BigDecimal.ZERO,
@@ -47,7 +48,7 @@ class SharedRouteSearchContextTest {
     @Test
     void givenNegativePickupDeviation_whenCreated_thenIllegalArgumentIsThrown() {
         // Act & Assert
-        assertThatThrownBy(() -> new SharedRouteSearchContext(
+        assertThatThrownBy(() -> new SharedRouteMatchingContext(
                 BigDecimal.ONE,
                 BigDecimal.ONE,
                 new BigDecimal("-0.01"),
@@ -58,7 +59,7 @@ class SharedRouteSearchContextTest {
     @Test
     void givenNegativeDepartureTolerance_whenCreated_thenIllegalArgumentIsThrown() {
         // Act & Assert
-        assertThatThrownBy(() -> new SharedRouteSearchContext(
+        assertThatThrownBy(() -> new SharedRouteMatchingContext(
                 BigDecimal.ONE,
                 BigDecimal.ONE,
                 BigDecimal.ZERO,

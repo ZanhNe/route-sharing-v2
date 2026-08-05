@@ -1,9 +1,9 @@
 package com.zanh.route_sharing.testsupport.sharedroute;
 
-import com.zanh.route_sharing.repository.SharedRouteSearchContext;
-import com.zanh.route_sharing.repository.SharedRouteSearchCriteria;
-import com.zanh.route_sharing.repository.SharedRouteSearchPage;
-import com.zanh.route_sharing.repository.SharedRouteSearchRepository;
+import com.zanh.route_sharing.repository.sharedroute.common.model.SharedRouteMatchingContext;
+import com.zanh.route_sharing.repository.sharedroute.search.model.SharedRouteSearchCriteria;
+import com.zanh.route_sharing.repository.sharedroute.search.model.SharedRouteSearchPage;
+import com.zanh.route_sharing.repository.sharedroute.search.SharedRouteSearchRepository;
 
 import java.time.LocalDate;
 import java.util.List;
@@ -11,8 +11,8 @@ import java.util.Optional;
 
 public final class RecordingSharedRouteSearchRepository implements SharedRouteSearchRepository {
 
-    private Optional<SharedRouteSearchContext> context =
-            Optional.of(SharedRouteSearchContextMother.standardConfiguration());
+    private Optional<SharedRouteMatchingContext> context =
+            Optional.of(SharedRouteMatchingContextMother.standardConfiguration());
     private SharedRouteSearchPage page = new SharedRouteSearchPage(List.of(), 0L);
 
     private int contextQueryCount;
@@ -23,7 +23,7 @@ public final class RecordingSharedRouteSearchRepository implements SharedRouteSe
     private SharedRouteSearchCriteria lastCriteria;
 
     public RecordingSharedRouteSearchRepository withContext(
-            SharedRouteSearchContext context) {
+            SharedRouteMatchingContext context) {
         this.context = Optional.ofNullable(context);
         return this;
     }
@@ -40,7 +40,7 @@ public final class RecordingSharedRouteSearchRepository implements SharedRouteSe
     }
 
     @Override
-    public Optional<SharedRouteSearchContext> findSearchContext(
+    public Optional<SharedRouteMatchingContext> findSearchContext(
             Long actorUserId,
             Long schoolId,
             LocalDate requestedTravelDate) {

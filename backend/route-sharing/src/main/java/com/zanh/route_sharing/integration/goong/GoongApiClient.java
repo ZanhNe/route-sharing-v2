@@ -56,7 +56,7 @@ public class GoongApiClient implements GoongApiGateway {
                 throw new BusinessException(HttpStatus.SERVICE_UNAVAILABLE, "GOONG_RATE_LIMITED",
                         "Dịch vụ bản đồ đang giới hạn số lượng yêu cầu. Vui lòng thử lại sau.");
             }
-            throw new BusinessException(HttpStatus.BAD_GATEWAY, "MAP_PROVIDER_UNAVAILABLE",
+            throw new BusinessException(HttpStatus.SERVICE_UNAVAILABLE, "MAP_PROVIDER_UNAVAILABLE",
                     "Dịch vụ bản đồ không xử lý được yêu cầu.");
         } catch (ResourceAccessException exception) {
             log.warn("Không thể kết nối dịch vụ bản đồ tại {}", relativePath, exception);
@@ -64,7 +64,7 @@ public class GoongApiClient implements GoongApiGateway {
                 throw new BusinessException(HttpStatus.GATEWAY_TIMEOUT, "MAP_PROVIDER_TIMEOUT",
                         "Dịch vụ bản đồ phản hồi quá thời gian cho phép.");
             }
-            throw new BusinessException(HttpStatus.BAD_GATEWAY, "MAP_PROVIDER_UNAVAILABLE",
+            throw new BusinessException(HttpStatus.SERVICE_UNAVAILABLE, "MAP_PROVIDER_UNAVAILABLE",
                     "Không thể kết nối dịch vụ bản đồ.");
         }
     }

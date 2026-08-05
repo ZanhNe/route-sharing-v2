@@ -1,6 +1,7 @@
 package com.zanh.route_sharing.utils;
 
 import com.zanh.route_sharing.exception.BusinessException;
+import com.zanh.route_sharing.utils.spatial.Wgs84Coordinates;
 import org.locationtech.jts.geom.Coordinate;
 import org.locationtech.jts.geom.Geometry;
 import org.locationtech.jts.geom.LineString;
@@ -32,9 +33,7 @@ public final class SpatialValidator {
     }
 
     public static void validateWgs84Coordinate(double longitude, double latitude, String name) {
-        if (!Double.isFinite(longitude) || !Double.isFinite(latitude)
-                || longitude < -180 || longitude > 180
-                || latitude < -90 || latitude > 90) {
+        if (!Wgs84Coordinates.isValidLongitudeLatitude(longitude, latitude)) {
             throw invalid("Tọa độ " + name + " không hợp lệ theo WGS84.");
         }
     }

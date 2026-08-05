@@ -1,7 +1,6 @@
 package com.zanh.route_sharing.service.impl;
 
 import tools.jackson.databind.json.JsonMapper;
-import com.zanh.route_sharing.config.properties.GoongProperties;
 import com.zanh.route_sharing.domain.enums.LoaiDiemTha;
 import com.zanh.route_sharing.domain.enums.LoaiGhepTuyen;
 import com.zanh.route_sharing.domain.enums.LoaiPhuongTien;
@@ -20,7 +19,6 @@ import com.zanh.route_sharing.repository.sharedroute.preview.model.PreviewRouteS
 import com.zanh.route_sharing.repository.sharedroute.preview.model.PreviewVehicleSnapshot;
 import com.zanh.route_sharing.repository.sharedroute.preview.model.SharedRoutePreviewCriteria;
 import com.zanh.route_sharing.repository.sharedroute.preview.model.SharedRoutePreviewPreparation;
-import com.zanh.route_sharing.service.routing.RoutePlanValidator;
 import com.zanh.route_sharing.service.routing.RoutePlanner;
 import com.zanh.route_sharing.service.routing.model.RouteBounds;
 import com.zanh.route_sharing.service.routing.model.RoutePlan;
@@ -201,13 +199,10 @@ class SharedRoutePreviewServiceImplTest {
         private static SharedRoutePreviewServiceImpl service(
                         SharedRoutePreviewRepository repository,
                         RoutePlanner routePlanner) {
-                GoongProperties properties = new GoongProperties();
-                RoutePlanValidator validator = new RoutePlanValidator(properties);
                 Clock clock = new SequenceClock(NOW, CHECKED_AT);
                 return new SharedRoutePreviewServiceImpl(
                                 repository,
                                 routePlanner,
-                                validator,
                                 new PreviewResponseMapper(
                                                 new RouteGeoJsonWriter(JsonMapper.builder().build())),
                                 clock);
@@ -240,6 +235,7 @@ class SharedRoutePreviewServiceImplTest {
                 PreviewMatch match = new PreviewMatch(
                                 matchType,
                                 dropoffType,
+                                point("10.7700", "106.6900", null),
                                 proposedDropoff,
                                 new BigDecimal("12.50"),
                                 new BigDecimal("20.00"),
@@ -267,6 +263,11 @@ class SharedRoutePreviewServiceImplTest {
                                 new BigDecimal("200.00"),
                                 new BigDecimal("150.00"),
                                 new BigDecimal("150.00"),
+                                900L,
+                                new BigDecimal("60.00"),
+                                900L,
+                                900L,
+                                3600L,
                                 route.expectedDepartureTime(),
                                 route.remainingSeats());
         }

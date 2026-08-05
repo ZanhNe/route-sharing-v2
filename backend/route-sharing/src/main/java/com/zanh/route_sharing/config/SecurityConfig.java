@@ -63,14 +63,19 @@ public class SecurityConfig {
 
         @Bean
         CorsConfigurationSource apiCorsConfigurationSource() {
-                if (corsProperties.getAllowedOrigins().stream().anyMatch("*"::equals)) {
-                        throw new IllegalStateException("app.cors.allowed-origins must not contain '*'");
-                }
                 CorsConfiguration configuration = new CorsConfiguration();
                 configuration.setAllowedOrigins(corsProperties.getAllowedOrigins());
                 configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
-                configuration.setAllowedHeaders(List.of("Authorization", "Content-Type", "Accept", "X-Requested-With"));
-                configuration.setExposedHeaders(List.of("Location", "Content-Disposition"));
+                configuration.setAllowedHeaders(List.of(
+                                "Authorization",
+                                "Content-Type",
+                                "Accept",
+                                "X-Requested-With",
+                                "Idempotency-Key"));
+                configuration.setExposedHeaders(List.of(
+                                "Location",
+                                "Content-Disposition",
+                                "Idempotency-Replayed"));
 
                 configuration.setAllowCredentials(false);
                 configuration.setMaxAge(3600L);

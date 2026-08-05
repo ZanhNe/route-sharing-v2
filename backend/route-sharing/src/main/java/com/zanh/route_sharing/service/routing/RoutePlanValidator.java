@@ -7,6 +7,7 @@ import com.zanh.route_sharing.service.routing.model.RoutePlanLeg;
 import com.zanh.route_sharing.service.routing.model.RoutePlanRequest;
 import com.zanh.route_sharing.service.routing.model.RouteWaypoint;
 import com.zanh.route_sharing.utils.GeoDistanceUtils;
+import com.zanh.route_sharing.utils.spatial.Wgs84Coordinates;
 import org.locationtech.jts.geom.Coordinate;
 import org.locationtech.jts.geom.LineString;
 import org.locationtech.jts.linearref.LengthIndexedLine;
@@ -47,12 +48,7 @@ public class RoutePlanValidator {
         }
 
         for (Coordinate coordinate : geometry.getCoordinates()) {
-            if (!Double.isFinite(coordinate.x)
-                    || !Double.isFinite(coordinate.y)
-                    || coordinate.x < -180.0d
-                    || coordinate.x > 180.0d
-                    || coordinate.y < -90.0d
-                    || coordinate.y > 90.0d) {
+            if (!Wgs84Coordinates.isValidLongitudeLatitude(coordinate.x, coordinate.y)) {
                 throw invalidProviderResponse("Dịch vụ bản đồ trả về tọa độ ngoài WGS84.");
             }
         }
@@ -132,15 +128,13 @@ public class RoutePlanValidator {
             previousIndex = projection.index();
         }
 
-        // The endpoint is anchored by the explicit end-distance check above. It is
-        // necessarily after all projected intermediate waypoints on the LineString.
         double routeEndIndex = geometry.getLength();
         if (routeEndIndex + INDEX_EPSILON < previousIndex) {
             throw invalidProviderResponse("Dịch vụ bản đồ đảo thứ tự các điểm dừng.");
         }
     }
 
-    private static Projection projectOnSuffix(
+    static Projection projectOnSuffix(
             LineString geometry,
             Coordinate expected,
             double minimumIndex) {
@@ -220,6 +214,6 @@ public class RoutePlanValidator {
                 message);
     }
 
-    private record Projection(double index, double distanceMeters) {
+    record Projection(double index, double distanceMeters) {
     }
 }

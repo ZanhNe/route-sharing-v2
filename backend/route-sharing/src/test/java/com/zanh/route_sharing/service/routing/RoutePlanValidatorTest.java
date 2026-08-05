@@ -1,15 +1,15 @@
-package com.zanh.route_sharing.service.preview;
+package com.zanh.route_sharing.service.routing;
 
 import com.zanh.route_sharing.config.properties.GoongProperties;
 import com.zanh.route_sharing.domain.enums.LoaiPhuongTien;
 import com.zanh.route_sharing.exception.BusinessException;
-import com.zanh.route_sharing.service.routing.RouteBounds;
-import com.zanh.route_sharing.service.routing.GeoCoordinate;
-import com.zanh.route_sharing.service.routing.RoutePlan;
-import com.zanh.route_sharing.service.routing.RoutePlanLeg;
-import com.zanh.route_sharing.service.routing.RoutePlanRequest;
-import com.zanh.route_sharing.service.routing.RouteWaypoint;
-import com.zanh.route_sharing.service.routing.RouteWaypointRole;
+import com.zanh.route_sharing.service.routing.model.RouteBounds;
+import com.zanh.route_sharing.service.routing.model.GeoCoordinate;
+import com.zanh.route_sharing.service.routing.model.RoutePlan;
+import com.zanh.route_sharing.service.routing.model.RoutePlanLeg;
+import com.zanh.route_sharing.service.routing.model.RoutePlanRequest;
+import com.zanh.route_sharing.service.routing.model.RouteWaypoint;
+import com.zanh.route_sharing.service.routing.model.RouteWaypointRole;
 import org.junit.jupiter.api.Test;
 import org.locationtech.jts.geom.Coordinate;
 import org.locationtech.jts.geom.GeometryFactory;
@@ -22,6 +22,7 @@ import java.util.List;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import com.zanh.route_sharing.service.routing.RoutePlanValidator;
 
 class RoutePlanValidatorTest {
 
