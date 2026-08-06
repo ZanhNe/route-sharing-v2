@@ -67,4 +67,49 @@ public class ThongBao extends Base {
                 .nguoiNhan(driver)
                 .build();
     }
+
+    public static ThongBao bookingAccepted(YeuCauDiChung rideRequest) {
+        return bookingDecision(
+                rideRequest,
+                LoaiThongBao.BOOKING_ACCEPTED,
+                "Yêu cầu đi chung đã được chấp nhận",
+                "Tài xế đã chấp nhận yêu cầu đi chung của bạn.",
+                "ACCEPTED");
+    }
+
+    public static ThongBao bookingRejected(YeuCauDiChung rideRequest) {
+        return bookingDecision(
+                rideRequest,
+                LoaiThongBao.BOOKING_REJECTED,
+                "Yêu cầu đi chung đã bị từ chối",
+                "Tài xế đã từ chối yêu cầu đi chung của bạn.",
+                "REJECTED");
+    }
+
+    private static ThongBao bookingDecision(
+            YeuCauDiChung rideRequest,
+            LoaiThongBao notificationType,
+            String title,
+            String content,
+            String decision) {
+        if (rideRequest == null || rideRequest.getId() == null) {
+            throw new IllegalArgumentException("Yêu cầu đi chung phải được lưu trước khi tạo thông báo.");
+        }
+        NguoiDung passenger = rideRequest.getHanhKhach();
+        if (passenger == null) {
+            throw new IllegalArgumentException("Hành khách nhận thông báo không được trống.");
+        }
+        return ThongBao.builder()
+                .loaiThongBao(notificationType)
+                .tieuDe(title)
+                .noiDung(content)
+                .kenhGui(KenhThongBao.IN_APP)
+                .trangThaiThongBao(TrangThaiThongBao.PENDING)
+                .loaiDoiTuongLienQuan("YEU_CAU_DI_CHUNG")
+                .doiTuongLienQuanId(rideRequest.getId())
+                .deduplicationKey(notificationType.name() + ":" + rideRequest.getId() + ":" + decision)
+                .nguoiNhan(passenger)
+                .build();
+    }
+
 }

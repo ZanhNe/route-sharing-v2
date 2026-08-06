@@ -1,13 +1,12 @@
 package com.zanh.route_sharing.service;
 
 import com.zanh.route_sharing.dto.riderequest.CreateRideRequestRequest;
-import com.zanh.route_sharing.service.riderequest.model.RideRequestCreationResult;
+import com.zanh.route_sharing.dto.riderequest.RideRequestResponse;
 
 public interface RideRequestCreationService {
 
-    RideRequestCreationResult create(
+    RideRequestResponse create(
             Long actorUserId,
             Long routeId,
-            String idempotencyKey,
             CreateRideRequestRequest request);
 }

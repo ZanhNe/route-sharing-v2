@@ -54,6 +54,8 @@ public class DevSeedDataService {
         private static final String CREATE_ROUTE_PERMISSION = "CREATE_SHARED_ROUTE";
         private static final String SEARCH_ROUTE_PERMISSION = "SEARCH_SHARED_ROUTE";
         private static final String CREATE_RIDE_REQUEST_PERMISSION = "CREATE_RIDE_REQUEST";
+        private static final String VIEW_ROUTE_RIDE_REQUESTS_PERMISSION = "VIEW_ROUTE_RIDE_REQUESTS";
+        private static final String RESPOND_RIDE_REQUEST_PERMISSION = "RESPOND_RIDE_REQUEST";
         private static final String DRIVER_GROUP = "DRIVER";
         private static final ZoneId BUSINESS_ZONE = ZoneId.of("Asia/Ho_Chi_Minh");
         private static final GeometryFactory GEOMETRY_FACTORY = new GeometryFactory(new PrecisionModel(), 4326);
@@ -92,8 +94,19 @@ public class DevSeedDataService {
                                 CREATE_RIDE_REQUEST_PERMISSION,
                                 "Gửi yêu cầu đi chung",
                                 "Cho phép hành khách gửi yêu cầu tham gia một lộ trình chia sẻ.");
+                QuyenHan viewRouteRideRequestsPermission = ensurePermission(
+                                VIEW_ROUTE_RIDE_REQUESTS_PERMISSION,
+                                "Xem yêu cầu đi chung của lộ trình",
+                                "Cho phép tài xế xem các yêu cầu PENDING thuộc lộ trình do mình đăng.");
+                QuyenHan respondRideRequestPermission = ensurePermission(
+                                RESPOND_RIDE_REQUEST_PERMISSION,
+                                "Phản hồi yêu cầu đi chung",
+                                "Cho phép tài xế chấp nhận hoặc từ chối yêu cầu PENDING thuộc lộ trình do mình đăng.");
 
-                NhomQuyen driverGroup = ensureDriverGroup(createPermission);
+                NhomQuyen driverGroup = ensureDriverGroup(
+                                createPermission,
+                                viewRouteRideRequestsPermission,
+                                respondRideRequestPermission);
                 NguoiDung driver = ensureDriverUser(driverGroup, now);
                 HoSoTaiXe driverProfile = ensureDriverProfile(driver, now);
                 DongXe vehicleModel = ensureVehicleModel();
@@ -176,7 +189,7 @@ public class DevSeedDataService {
                 return permissionRepository.save(permission);
         }
 
-        private NhomQuyen ensureDriverGroup(QuyenHan createPermission) {
+        private NhomQuyen ensureDriverGroup(QuyenHan... permissions) {
                 NhomQuyen group = groupRepository.findByMaNhomIgnoreCase(DRIVER_GROUP)
                                 .orElseGet(() -> NhomQuyen.builder()
                                                 .maNhom(DRIVER_GROUP)
@@ -186,10 +199,12 @@ public class DevSeedDataService {
                                                 .build());
 
                 group.setDangHoatDong(true);
-                if (group.getDanhSachQuyenHan().stream()
-                                .noneMatch(item -> item.getMaQuyen()
-                                                .equalsIgnoreCase(createPermission.getMaQuyen()))) {
-                        group.getDanhSachQuyenHan().add(createPermission);
+                for (QuyenHan permission : permissions) {
+                        if (group.getDanhSachQuyenHan().stream()
+                                        .noneMatch(item -> item.getMaQuyen()
+                                                        .equalsIgnoreCase(permission.getMaQuyen()))) {
+                                group.getDanhSachQuyenHan().add(permission);
+                        }
                 }
                 return groupRepository.save(group);
         }

@@ -101,6 +101,17 @@ public class LoTrinhChiaSe extends Base {
                 return entity;
         }
 
+
+        public void allocateOneSeat() {
+                if (this.trangThaiLoTrinh != TrangThaiLoTrinh.OPEN) {
+                        throw new IllegalStateException("Chỉ lộ trình OPEN mới được cấp ghế.");
+                }
+                if (this.soGheConLai == null || this.soGheConLai <= 0) {
+                        throw new IllegalStateException("Lộ trình không còn ghế trống.");
+                }
+                this.soGheConLai = this.soGheConLai - 1;
+        }
+
         private static Point requirePoint(Point point, String fieldName) {
                 if (point == null || point.isEmpty() || point.getSRID() != 4326) {
                         throw new IllegalArgumentException(fieldName + " phải là Point WGS84 SRID 4326 hợp lệ.");

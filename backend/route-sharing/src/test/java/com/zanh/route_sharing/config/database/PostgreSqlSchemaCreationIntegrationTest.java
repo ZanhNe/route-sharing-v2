@@ -36,14 +36,11 @@ class PostgreSqlSchemaCreationIntegrationTest {
                 "diem_tha_de_xuat",
                 "muc_ho_tro_hanh_khach_de_nghi",
                 "expires_at",
-                "idempotency_key",
-                "request_fingerprint",
                 "tai_xe_id_luc_gui",
                 "cau_hinh_id_luc_gui",
                 "cooldown_until");
         assertThat(indexes).contains(
                 "uk_yeu_cau_hanh_khach_blocking",
-                "uk_yeu_cau_actor_idempotency",
                 "idx_yeu_cau_cooldown_lookup",
                 "idx_yeu_cau_route_queue",
                 "uk_thong_bao_deduplication_key");

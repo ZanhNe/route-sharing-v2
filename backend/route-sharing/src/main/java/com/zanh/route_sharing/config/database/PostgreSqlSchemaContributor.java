@@ -46,8 +46,6 @@ public final class PostgreSqlSchemaContributor implements AdditionalMappingContr
             + "ON yeu_cau_di_chung (hanh_khach_id) "
             + "WHERE trang_thai_yeu_cau IN "
             + "('PENDING','ACCEPTED','ON_BOARD','DISPUTED')",
-        "CREATE UNIQUE INDEX IF NOT EXISTS uk_yeu_cau_actor_idempotency "
-            + "ON yeu_cau_di_chung (hanh_khach_id, idempotency_key)",
         "CREATE INDEX IF NOT EXISTS idx_yeu_cau_cooldown_lookup "
             + "ON yeu_cau_di_chung "
             + "(hanh_khach_id, tai_xe_id_luc_gui, cooldown_until DESC) "
@@ -181,7 +179,6 @@ public final class PostgreSqlSchemaContributor implements AdditionalMappingContr
         "DROP INDEX IF EXISTS uk_thong_bao_deduplication_key",
         "DROP INDEX IF EXISTS idx_yeu_cau_route_queue",
         "DROP INDEX IF EXISTS idx_yeu_cau_cooldown_lookup",
-        "DROP INDEX IF EXISTS uk_yeu_cau_actor_idempotency",
         "DROP INDEX IF EXISTS uk_yeu_cau_hanh_khach_blocking",
         "DROP INDEX IF EXISTS uk_yeu_cau_hanh_khach_lo_trinh_active",
 

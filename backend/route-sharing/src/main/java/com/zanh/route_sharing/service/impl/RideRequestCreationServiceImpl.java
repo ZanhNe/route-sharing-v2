@@ -4,12 +4,11 @@ import com.zanh.route_sharing.config.properties.GoongProperties;
 import com.zanh.route_sharing.domain.enums.LoaiDiemTha;
 import com.zanh.route_sharing.domain.riderequest.RideRequestSnapshot;
 import com.zanh.route_sharing.dto.riderequest.CreateRideRequestRequest;
+import com.zanh.route_sharing.dto.riderequest.RideRequestResponse;
 import com.zanh.route_sharing.dto.sharedroute.RouteEndpointRequest;
 import com.zanh.route_sharing.exception.BusinessException;
 import com.zanh.route_sharing.repository.sharedroute.riderequest.RideRequestCreationRepository;
-import com.zanh.route_sharing.repository.sharedroute.riderequest.model.IdempotencyRecord;
 import com.zanh.route_sharing.repository.sharedroute.riderequest.model.RideRequestCommitCommand;
-import com.zanh.route_sharing.repository.sharedroute.riderequest.model.RideRequestCommitResult;
 import com.zanh.route_sharing.repository.sharedroute.riderequest.model.RideRequestCriteria;
 import com.zanh.route_sharing.repository.sharedroute.riderequest.model.RideRequestEvaluation;
 import com.zanh.route_sharing.repository.sharedroute.riderequest.model.RideRequestEvaluationStatus;
@@ -19,11 +18,9 @@ import com.zanh.route_sharing.security.AuthenticatedPrincipalValidator;
 import com.zanh.route_sharing.service.LocationLabelResolver;
 import com.zanh.route_sharing.service.RideRequestCreationService;
 import com.zanh.route_sharing.service.riderequest.RideRequestExpiryPolicy;
-import com.zanh.route_sharing.service.riderequest.RideRequestFingerprint;
 import com.zanh.route_sharing.service.riderequest.RideRequestResponseMapper;
 import com.zanh.route_sharing.service.riderequest.RideRequestSnapshotCalculator;
 import com.zanh.route_sharing.service.riderequest.model.PickupDeviation;
-import com.zanh.route_sharing.service.riderequest.model.RideRequestCreationResult;
 import com.zanh.route_sharing.service.routing.RoutePlanner;
 import com.zanh.route_sharing.service.routing.model.GeoCoordinate;
 import com.zanh.route_sharing.service.routing.model.RoutePlan;
@@ -40,7 +37,6 @@ import java.time.Clock;
 import java.time.Instant;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 
 @Service
 public class RideRequestCreationServiceImpl implements RideRequestCreationService {
@@ -50,7 +46,6 @@ public class RideRequestCreationServiceImpl implements RideRequestCreationServic
     private final LocationLabelResolver locationLabelResolver;
     private final RideRequestSnapshotCalculator snapshotCalculator;
     private final RideRequestExpiryPolicy expiryPolicy;
-    private final RideRequestFingerprint fingerprint;
     private final RideRequestResponseMapper responseMapper;
     private final GoongProperties routePlanningProperties;
     private final Clock clock;
@@ -61,7 +56,6 @@ public class RideRequestCreationServiceImpl implements RideRequestCreationServic
             LocationLabelResolver locationLabelResolver,
             RideRequestSnapshotCalculator snapshotCalculator,
             RideRequestExpiryPolicy expiryPolicy,
-            RideRequestFingerprint fingerprint,
             RideRequestResponseMapper responseMapper,
             GoongProperties routePlanningProperties,
             Clock clock) {
@@ -70,30 +64,20 @@ public class RideRequestCreationServiceImpl implements RideRequestCreationServic
         this.locationLabelResolver = locationLabelResolver;
         this.snapshotCalculator = snapshotCalculator;
         this.expiryPolicy = expiryPolicy;
-        this.fingerprint = fingerprint;
         this.responseMapper = responseMapper;
         this.routePlanningProperties = routePlanningProperties;
         this.clock = clock;
     }
 
     @Override
-    public RideRequestCreationResult create(
+    public RideRequestResponse create(
             Long actorUserId,
             Long routeId,
-            String rawIdempotencyKey,
             CreateRideRequestRequest request) {
         AuthenticatedPrincipalValidator.requireUserId(actorUserId);
         requireRouteId(routeId);
         requireRequest(request);
         requireDistinctEndpoints(request.pickup(), request.passengerDestination());
-
-        String idempotencyKey = fingerprint.normalizeKey(rawIdempotencyKey);
-        String requestFingerprint = fingerprint.calculate(actorUserId, routeId, request);
-
-        Optional<IdempotencyRecord> existing = repository.findReplay(actorUserId, idempotencyKey);
-        if (existing.isPresent()) {
-            return replay(existing.orElseThrow(), requestFingerprint);
-        }
 
         Instant evaluatedAt = clock.instant();
         RideRequestCriteria criteria = new RideRequestCriteria(
@@ -139,34 +123,15 @@ public class RideRequestCreationServiceImpl implements RideRequestCreationServic
                 proposedDropoffAddress,
                 request.proposedSupportAmount());
 
-        RideRequestCommitResult commitResult = repository.commit(
+        return responseMapper.toResponse(repository.commit(
                 new RideRequestCommitCommand(
                         actorUserId,
                         routeId,
-                        idempotencyKey,
-                        requestFingerprint,
                         sentAt,
                         expiresAt,
                         snapshot,
                         request.note(),
-                        preparation.consistencyToken()));
-        return new RideRequestCreationResult(
-                responseMapper.toResponse(commitResult.persistedView()),
-                !commitResult.created());
-    }
-
-    private RideRequestCreationResult replay(
-            IdempotencyRecord existing,
-            String requestFingerprint) {
-        if (!existing.fingerprint().equals(requestFingerprint)) {
-            throw new BusinessException(
-                    HttpStatus.CONFLICT,
-                    "IDEMPOTENCY_KEY_REUSED",
-                    "Idempotency-Key đã được dùng cho một yêu cầu có nội dung khác.");
-        }
-        return new RideRequestCreationResult(
-                responseMapper.toResponse(existing.persistedView()),
-                true);
+                        preparation.consistencyToken())));
     }
 
     private RoutePlanRequest passengerPlanRequest(

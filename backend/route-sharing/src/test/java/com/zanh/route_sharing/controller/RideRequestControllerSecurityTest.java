@@ -3,7 +3,6 @@ package com.zanh.route_sharing.controller;
 import com.zanh.route_sharing.dto.riderequest.CreateRideRequestRequest;
 import com.zanh.route_sharing.security.CustomUserDetails;
 import com.zanh.route_sharing.service.RideRequestCreationService;
-import com.zanh.route_sharing.service.riderequest.model.RideRequestCreationResult;
 import com.zanh.route_sharing.testsupport.riderequest.CreateRideRequestRequestBuilder;
 import com.zanh.route_sharing.testsupport.riderequest.RideRequestMother;
 import org.junit.jupiter.api.AfterEach;
@@ -13,6 +12,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.access.AccessDeniedException;
+import org.springframework.security.authentication.AuthenticationCredentialsNotFoundException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -30,8 +30,6 @@ import static org.mockito.Mockito.when;
 @SpringJUnitConfig(RideRequestControllerSecurityTest.Config.class)
 class RideRequestControllerSecurityTest {
 
-    private static final String KEY = "booking-501";
-
     @Autowired
     private RideRequestController sut;
 
@@ -44,8 +42,8 @@ class RideRequestControllerSecurityTest {
     void setUp() {
         reset(service);
         request = new CreateRideRequestRequestBuilder().build();
-        when(service.create(RideRequestMother.ACTOR_ID, RideRequestMother.ROUTE_ID, KEY, request))
-                .thenReturn(new RideRequestCreationResult(RideRequestMother.response(), false));
+        when(service.create(RideRequestMother.ACTOR_ID, RideRequestMother.ROUTE_ID, request))
+                .thenReturn(RideRequestMother.response());
     }
 
     @AfterEach
@@ -63,12 +61,10 @@ class RideRequestControllerSecurityTest {
         assertThatCode(() -> sut.create(
                 principal,
                 RideRequestMother.ROUTE_ID,
-                KEY,
                 request)).doesNotThrowAnyException();
         verify(service).create(
                 RideRequestMother.ACTOR_ID,
                 RideRequestMother.ROUTE_ID,
-                KEY,
                 request);
     }
 
@@ -82,8 +78,20 @@ class RideRequestControllerSecurityTest {
         assertThatThrownBy(() -> sut.create(
                 principal,
                 RideRequestMother.ROUTE_ID,
-                KEY,
                 request)).isInstanceOf(AccessDeniedException.class);
+        verifyNoInteractions(service);
+    }
+
+    @Test
+    void givenNoAuthentication_whenCreating_thenAuthenticationIsRequiredBeforeServiceCall() {
+        CustomUserDetails principal = activeUser(
+                RideRequestMother.ACTOR_ID,
+                "CREATE_RIDE_REQUEST");
+
+        assertThatThrownBy(() -> sut.create(
+                principal,
+                RideRequestMother.ROUTE_ID,
+                request)).isInstanceOf(AuthenticationCredentialsNotFoundException.class);
         verifyNoInteractions(service);
     }
 

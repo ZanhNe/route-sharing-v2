@@ -6,12 +6,12 @@ import com.zanh.route_sharing.exception.BusinessException;
 import com.zanh.route_sharing.exception.GlobalExceptionHandler;
 import com.zanh.route_sharing.security.CustomUserDetails;
 import com.zanh.route_sharing.service.RideRequestCreationService;
-import com.zanh.route_sharing.service.riderequest.model.RideRequestCreationResult;
 import com.zanh.route_sharing.testsupport.riderequest.RideRequestMother;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.core.MethodParameter;
@@ -20,6 +20,7 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.validation.beanvalidation.LocalValidatorFactoryBean;
+import org.springframework.validation.beanvalidation.MethodValidationPostProcessor;
 import org.springframework.web.bind.support.WebDataBinderFactory;
 import org.springframework.web.context.request.NativeWebRequest;
 import org.springframework.web.method.support.HandlerMethodArgumentResolver;
@@ -27,10 +28,10 @@ import org.springframework.web.method.support.ModelAndViewContainer;
 
 import java.util.List;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.nullValue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
@@ -44,14 +45,14 @@ import static org.springframework.test.web.servlet.setup.MockMvcBuilders.standal
 @ExtendWith(MockitoExtension.class)
 class RideRequestControllerTest {
 
-    private static final String VALID_KEY = "booking-501";
+    private static final String ENDPOINT = "/api/v1/shared-routes/{routeId}/ride-requests";
     private static final String VALID_REQUEST = """
             {
               "schoolId": 1,
               "pickup": {
                 "latitude": 10.776530,
                 "longitude": 106.700981,
-                "address": "Điểm đón hành khách"
+                "address": "  Điểm đón hành khách  "
               },
               "passengerDestination": {
                 "latitude": 10.782120,
@@ -59,7 +60,7 @@ class RideRequestControllerTest {
                 "address": "Điểm đến cuối cùng"
               },
               "proposedSupportAmount": 25000.00,
-              "note": "Tôi đứng tại cổng chính"
+              "note": "  Tôi đứng tại cổng chính  "
             }
             """;
 
@@ -81,7 +82,17 @@ class RideRequestControllerTest {
                 0L,
                 List.of(new SimpleGrantedAuthority("CREATE_RIDE_REQUEST")));
 
-        mockMvc = standaloneSetup(new RideRequestController(service))
+        MethodValidationPostProcessor methodValidation = new MethodValidationPostProcessor();
+        methodValidation.setValidator(validator);
+        methodValidation.setProxyTargetClass(true);
+        methodValidation.afterPropertiesSet();
+
+        RideRequestController validatedController = (RideRequestController)
+                methodValidation.postProcessAfterInitialization(
+                        new RideRequestController(service),
+                        "rideRequestController");
+
+        mockMvc = standaloneSetup(validatedController)
                 .setControllerAdvice(new GlobalExceptionHandler())
                 .setValidator(validator)
                 .setCustomArgumentResolvers(new FixedPrincipalResolver(principal))
@@ -94,22 +105,19 @@ class RideRequestControllerTest {
     }
 
     @Test
-    void givenValidCommand_whenCreating_thenCreatedEnvelopeLocationAndReplayHeaderMatchContract()
+    void givenValidCommand_whenCreating_thenCreatedEnvelopeLocationAndNormalizedDelegationMatchContract()
             throws Exception {
         when(service.create(
                 eq(RideRequestMother.ACTOR_ID),
                 eq(RideRequestMother.ROUTE_ID),
-                eq(VALID_KEY),
                 any(CreateRideRequestRequest.class)))
-                .thenReturn(new RideRequestCreationResult(RideRequestMother.response(), false));
+                .thenReturn(RideRequestMother.response());
 
-        mockMvc.perform(post("/api/v1/shared-routes/{routeId}/ride-requests", RideRequestMother.ROUTE_ID)
-                        .header("Idempotency-Key", VALID_KEY)
+        mockMvc.perform(post(ENDPOINT, RideRequestMother.ROUTE_ID)
                         .contentType(APPLICATION_JSON)
                         .content(VALID_REQUEST))
                 .andExpect(status().isCreated())
                 .andExpect(header().string("Location", "/api/v1/ride-requests/501"))
-                .andExpect(header().string("Idempotency-Replayed", "false"))
                 .andExpect(jsonPath("$.status").value(201))
                 .andExpect(jsonPath("$.message").value(
                         "Gửi yêu cầu đi chung thành công. "
@@ -121,33 +129,37 @@ class RideRequestControllerTest {
                 .andExpect(jsonPath("$.data.seatReserved").value(false))
                 .andExpect(jsonPath("$.data.matchType").value("TRUNG_DOAN_TUYEN"))
                 .andExpect(jsonPath("$.data.dropoffType").value("DIEM_THA_TRUNG_GIAN"))
+                .andExpect(jsonPath("$.data.pickup.latitude").value(10.776530))
+                .andExpect(jsonPath("$.data.pickup.longitude").value(106.700981))
                 .andExpect(jsonPath("$.data.proposedSupportAmount").value(25000.00))
                 .andExpect(jsonPath("$.data.agreedSupportAmount").value(nullValue()));
 
+        ArgumentCaptor<CreateRideRequestRequest> requestCaptor =
+                ArgumentCaptor.forClass(CreateRideRequestRequest.class);
         verify(service).create(
                 eq(RideRequestMother.ACTOR_ID),
                 eq(RideRequestMother.ROUTE_ID),
-                eq(VALID_KEY),
-                any(CreateRideRequestRequest.class));
+                requestCaptor.capture());
+        assertThat(requestCaptor.getValue().pickup().address())
+                .isEqualTo("Điểm đón hành khách");
+        assertThat(requestCaptor.getValue().note()).isEqualTo("Tôi đứng tại cổng chính");
     }
 
     @Test
-    void givenIdempotentReplay_whenCreating_thenCreatedStatusAndSameLocationArePreserved()
+    void givenInvalidNestedPoint_whenBinding_thenNestedValidationErrorIsReturnedBeforeServiceCall()
             throws Exception {
-        when(service.create(
-                eq(RideRequestMother.ACTOR_ID),
-                eq(RideRequestMother.ROUTE_ID),
-                eq(VALID_KEY),
-                any(CreateRideRequestRequest.class)))
-                .thenReturn(new RideRequestCreationResult(RideRequestMother.response(), true));
+        String invalid = VALID_REQUEST.replace(
+                "\"address\": \"  Điểm đón hành khách  \"",
+                "\"address\": \"   \"");
 
-        mockMvc.perform(post("/api/v1/shared-routes/{routeId}/ride-requests", RideRequestMother.ROUTE_ID)
-                        .header("Idempotency-Key", VALID_KEY)
+        mockMvc.perform(post(ENDPOINT, RideRequestMother.ROUTE_ID)
                         .contentType(APPLICATION_JSON)
-                        .content(VALID_REQUEST))
-                .andExpect(status().isCreated())
-                .andExpect(header().string("Location", "/api/v1/ride-requests/501"))
-                .andExpect(header().string("Idempotency-Replayed", "true"));
+                        .content(invalid))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("VALIDATION_ERROR"))
+                .andExpect(jsonPath("$.errors['pickup.address']").exists());
+
+        verifyNoInteractions(service);
     }
 
     @Test
@@ -155,8 +167,7 @@ class RideRequestControllerTest {
             throws Exception {
         String invalid = VALID_REQUEST.replace("25000.00", "25000.001");
 
-        mockMvc.perform(post("/api/v1/shared-routes/{routeId}/ride-requests", RideRequestMother.ROUTE_ID)
-                        .header("Idempotency-Key", VALID_KEY)
+        mockMvc.perform(post(ENDPOINT, RideRequestMother.ROUTE_ID)
                         .contentType(APPLICATION_JSON)
                         .content(invalid))
                 .andExpect(status().isBadRequest())
@@ -167,23 +178,70 @@ class RideRequestControllerTest {
     }
 
     @Test
-    void givenMissingIdempotencyKey_whenServiceRejects_thenContractErrorIsReturned()
+    void givenInvalidRouteId_whenBinding_thenPathValidationErrorIsReturnedBeforeServiceCall()
+            throws Exception {
+        mockMvc.perform(post(ENDPOINT, 0)
+                        .contentType(APPLICATION_JSON)
+                        .content(VALID_REQUEST))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("VALIDATION_ERROR"));
+
+        verifyNoInteractions(service);
+    }
+
+    @Test
+    void givenMalformedJson_whenBinding_thenMalformedRequestIsReturnedBeforeServiceCall()
+            throws Exception {
+        mockMvc.perform(post(ENDPOINT, RideRequestMother.ROUTE_ID)
+                        .contentType(APPLICATION_JSON)
+                        .content("{\"schoolId\": 1"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("MALFORMED_REQUEST"));
+
+        verifyNoInteractions(service);
+    }
+
+    @Test
+    void givenMissingBody_whenBinding_thenMalformedRequestIsReturnedBeforeServiceCall()
+            throws Exception {
+        mockMvc.perform(post(ENDPOINT, RideRequestMother.ROUTE_ID)
+                        .contentType(APPLICATION_JSON))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("MALFORMED_REQUEST"));
+
+        verifyNoInteractions(service);
+    }
+
+    @Test
+    void givenUnsupportedContentType_whenBinding_thenMediaTypeErrorIsReturnedBeforeServiceCall()
+            throws Exception {
+        mockMvc.perform(post(ENDPOINT, RideRequestMother.ROUTE_ID)
+                        .contentType("text/plain")
+                        .content(VALID_REQUEST))
+                .andExpect(status().isUnsupportedMediaType())
+                .andExpect(jsonPath("$.code").value("UNSUPPORTED_MEDIA_TYPE"));
+
+        verifyNoInteractions(service);
+    }
+
+    @Test
+    void givenStaleRoute_whenServiceRejects_thenConflictErrorEnvelopeIsPreserved()
             throws Exception {
         when(service.create(
                 eq(RideRequestMother.ACTOR_ID),
                 eq(RideRequestMother.ROUTE_ID),
-                isNull(),
                 any(CreateRideRequestRequest.class)))
                 .thenThrow(new BusinessException(
-                        HttpStatus.BAD_REQUEST,
-                        "MISSING_IDEMPOTENCY_KEY",
-                        "Thiếu header Idempotency-Key bắt buộc."));
+                        HttpStatus.CONFLICT,
+                        "RIDE_REQUEST_STALE",
+                        "Lộ trình đã thay đổi trong lúc xử lý yêu cầu."));
 
-        mockMvc.perform(post("/api/v1/shared-routes/{routeId}/ride-requests", RideRequestMother.ROUTE_ID)
+        mockMvc.perform(post(ENDPOINT, RideRequestMother.ROUTE_ID)
                         .contentType(APPLICATION_JSON)
                         .content(VALID_REQUEST))
-                .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.code").value("MISSING_IDEMPOTENCY_KEY"))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.status").value(409))
+                .andExpect(jsonPath("$.code").value("RIDE_REQUEST_STALE"))
                 .andExpect(jsonPath("$.path").value(
                         "/api/v1/shared-routes/22/ride-requests"));
     }

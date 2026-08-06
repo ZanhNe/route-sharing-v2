@@ -82,4 +82,45 @@ public class NhatKyTrangThaiYeuCau {
         event.reasonCode = "CREATED";
         return event;
     }
+
+    public static NhatKyTrangThaiYeuCau accepted(
+            YeuCauDiChung rideRequest,
+            NguoiDung actor,
+            Instant occurredAt) {
+        return transition(rideRequest, actor, occurredAt,
+                TrangThaiYeuCau.PENDING, TrangThaiYeuCau.ACCEPTED, "ACCEPTED");
+    }
+
+    public static NhatKyTrangThaiYeuCau rejected(
+            YeuCauDiChung rideRequest,
+            NguoiDung actor,
+            Instant occurredAt) {
+        return transition(rideRequest, actor, occurredAt,
+                TrangThaiYeuCau.PENDING, TrangThaiYeuCau.REJECTED, "REJECTED");
+    }
+
+    private static NhatKyTrangThaiYeuCau transition(
+            YeuCauDiChung rideRequest,
+            NguoiDung actor,
+            Instant occurredAt,
+            TrangThaiYeuCau previous,
+            TrangThaiYeuCau next,
+            String reasonCode) {
+        if (rideRequest == null || rideRequest.getId() == null) {
+            throw new IllegalArgumentException("Yêu cầu đi chung phải được lưu trước khi tạo nhật ký.");
+        }
+        if (rideRequest.getTrangThaiYeuCau() != next) {
+            throw new IllegalArgumentException("Trạng thái yêu cầu không khớp sự kiện cần ghi.");
+        }
+        NhatKyTrangThaiYeuCau event = new NhatKyTrangThaiYeuCau();
+        event.yeuCauDiChung = rideRequest;
+        event.sequence = 2L;
+        event.trangThaiTruoc = previous;
+        event.trangThaiSau = next;
+        event.actor = Objects.requireNonNull(actor, "actor không được trống");
+        event.occurredAt = Objects.requireNonNull(occurredAt, "occurredAt không được trống");
+        event.reasonCode = reasonCode;
+        return event;
+    }
+
 }

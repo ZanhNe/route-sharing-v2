@@ -9,8 +9,6 @@ import java.util.Objects;
 public record RideRequestCommitCommand(
         Long actorUserId,
         Long routeId,
-        String idempotencyKey,
-        String requestFingerprint,
         Instant sentAt,
         Instant expiresAt,
         RideRequestSnapshot snapshot,
@@ -20,8 +18,6 @@ public record RideRequestCommitCommand(
     public RideRequestCommitCommand {
         Objects.requireNonNull(actorUserId, "actorUserId không được trống");
         Objects.requireNonNull(routeId, "routeId không được trống");
-        Objects.requireNonNull(idempotencyKey, "idempotencyKey không được trống");
-        Objects.requireNonNull(requestFingerprint, "requestFingerprint không được trống");
         Objects.requireNonNull(sentAt, "sentAt không được trống");
         Objects.requireNonNull(expiresAt, "expiresAt không được trống");
         Objects.requireNonNull(snapshot, "snapshot không được trống");

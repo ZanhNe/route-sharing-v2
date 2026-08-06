@@ -35,7 +35,6 @@ class EntitySchemaMetadataTest {
                                                 "ck_yeu_cau_matching",
                                                 "ck_yeu_cau_muc_ho_tro",
                                                 "ck_yeu_cau_thoi_han",
-                                                "ck_yeu_cau_idempotency",
                                                 "ck_yeu_cau_policy_snapshot",
                                                 "ck_yeu_cau_cooldown")),
                                 Map.entry(ChuyenDi.class, Set.of("ck_chuyen_di_so_khach")),

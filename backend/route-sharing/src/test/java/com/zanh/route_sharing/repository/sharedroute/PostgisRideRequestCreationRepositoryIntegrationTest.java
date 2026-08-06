@@ -6,9 +6,10 @@ import com.zanh.route_sharing.domain.enums.TrangThaiYeuCau;
 import com.zanh.route_sharing.exception.BusinessException;
 import com.zanh.route_sharing.repository.sharedroute.riderequest.RideRequestCreationRepository;
 import com.zanh.route_sharing.repository.sharedroute.riderequest.model.RideRequestCommitCommand;
-import com.zanh.route_sharing.repository.sharedroute.riderequest.model.RideRequestCommitResult;
+import com.zanh.route_sharing.repository.sharedroute.riderequest.model.RideRequestPersistedView;
 import com.zanh.route_sharing.repository.sharedroute.riderequest.model.RideRequestCriteria;
 import com.zanh.route_sharing.repository.sharedroute.riderequest.model.RideRequestEvaluation;
+import com.zanh.route_sharing.repository.sharedroute.riderequest.model.RideRequestEvaluationStatus;
 import com.zanh.route_sharing.repository.sharedroute.riderequest.model.RideRequestPreparation;
 import com.zanh.route_sharing.service.riderequest.RideRequestSnapshotCalculator;
 import com.zanh.route_sharing.service.riderequest.model.PickupDeviation;
@@ -24,6 +25,8 @@ import com.zanh.route_sharing.testsupport.sharedroute.integration.SharedRouteSea
 import jakarta.persistence.EntityManager;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.EnumSource;
 import org.locationtech.jts.geom.Coordinate;
 import org.locationtech.jts.geom.GeometryFactory;
 import org.locationtech.jts.geom.LineString;
@@ -42,6 +45,7 @@ import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 @SpringBootTest
 @ActiveProfiles("test")
@@ -67,28 +71,14 @@ class PostgisRideRequestCreationRepositoryIntegrationTest {
     }
 
     @Test
-    void givenEligibleCommand_whenCommittingAndReplaying_thenExactlyOneAggregateIsPersistedAndSeatsStayUnchanged() {
+    void givenEligibleCommand_whenCommitting_thenAggregateAuditNotificationAndSeatInvariantArePersisted() {
         Scenario scenario = createScenario();
-        RideRequestCommitCommand command = command(scenario, scenario.routeId(), "integration-key-001", "a");
+        RideRequestCommitCommand command = command(scenario, scenario.routeId());
 
-        RideRequestCommitResult created = sut.commit(command);
-        transactionTemplate.executeWithoutResult(status -> entityManager.createQuery(
-                        "update YeuCauDiChung request "
-                                + "set request.trangThaiYeuCau = :accepted, "
-                                + "request.mucHoTroDaThoaThuan = :agreed "
-                                + "where request.id = :requestId")
-                .setParameter("accepted", TrangThaiYeuCau.ACCEPTED)
-                .setParameter("agreed", new BigDecimal("27000.00"))
-                .setParameter("requestId", created.persistedView().rideRequestId())
-                .executeUpdate());
-        RideRequestCommitResult replayed = sut.commit(command);
+        RideRequestPersistedView created = sut.commit(command);
 
-        assertThat(created.created()).isTrue();
-        assertThat(replayed.created()).isFalse();
-        assertThat(replayed.persistedView().rideRequestId())
-                .isEqualTo(created.persistedView().rideRequestId());
-        assertThat(replayed.persistedView().status()).isEqualTo(TrangThaiYeuCau.PENDING);
-        assertThat(replayed.persistedView().agreedSupportAmount()).isNull();
+        assertThat(created.status()).isEqualTo(TrangThaiYeuCau.PENDING);
+        assertThat(created.agreedSupportAmount()).isNull();
         transactionTemplate.executeWithoutResult(status -> {
             assertThat(count(
                     "select count(request) from YeuCauDiChung request "
@@ -97,12 +87,12 @@ class PostgisRideRequestCreationRepositoryIntegrationTest {
             assertThat(count(
                     "select count(event) from NhatKyTrangThaiYeuCau event "
                             + "where event.yeuCauDiChung.id = :actorId",
-                    created.persistedView().rideRequestId())).isEqualTo(1L);
+                    created.rideRequestId())).isEqualTo(1L);
             assertThat(count(
                     "select count(notification) from ThongBao notification "
                             + "where notification.doiTuongLienQuanId = :actorId "
                             + "and notification.loaiDoiTuongLienQuan = 'YEU_CAU_DI_CHUNG'",
-                    created.persistedView().rideRequestId())).isEqualTo(1L);
+                    created.rideRequestId())).isEqualTo(1L);
             assertThat(fixture.remainingSeats(scenario.routeId())).isEqualTo(2);
         });
     }
@@ -113,16 +103,8 @@ class PostgisRideRequestCreationRepositoryIntegrationTest {
         Scenario scenario = createScenario();
         Long secondRouteId = transactionTemplate.execute(status ->
                 fixture.createAdditionalEquivalentRoute(scenario, DEPARTURE.plusSeconds(60)));
-        RideRequestCommitCommand first = command(
-                scenario,
-                scenario.routeId(),
-                "integration-key-101",
-                "b");
-        RideRequestCommitCommand second = command(
-                scenario,
-                secondRouteId,
-                "integration-key-102",
-                "c");
+        RideRequestCommitCommand first = command(scenario, scenario.routeId());
+        RideRequestCommitCommand second = command(scenario, secondRouteId);
 
         ExecutorService executor = Executors.newFixedThreadPool(2);
         CountDownLatch ready = new CountDownLatch(2);
@@ -137,7 +119,7 @@ class PostgisRideRequestCreationRepositoryIntegrationTest {
                     firstResult.get(20, TimeUnit.SECONDS),
                     secondResult.get(20, TimeUnit.SECONDS));
 
-            assertThat(outcomes).filteredOn(RideRequestCommitResult.class::isInstance).hasSize(1);
+            assertThat(outcomes).filteredOn(RideRequestPersistedView.class::isInstance).hasSize(1);
             assertThat(outcomes).filteredOn(BusinessException.class::isInstance)
                     .singleElement()
                     .satisfies(outcome -> assertThat(((BusinessException) outcome).getCode())
@@ -150,6 +132,185 @@ class PostgisRideRequestCreationRepositoryIntegrationTest {
                 assertThat(fixture.remainingSeats(scenario.routeId())).isEqualTo(2);
                 assertThat(fixture.remainingSeats(secondRouteId)).isEqualTo(2);
             });
+        } finally {
+            executor.shutdownNow();
+        }
+    }
+
+
+    @Test
+    void givenCurrentEligibleRoute_whenEvaluating_thenPreparationContainsCurrentPolicyAndConsistencyToken() {
+        Scenario scenario = createScenario();
+
+        RideRequestEvaluation result = sut.evaluate(criteria(scenario, scenario.routeId(), request()));
+
+        assertThat(result.status()).isEqualTo(RideRequestEvaluationStatus.ELIGIBLE);
+        RideRequestPreparation preparation = result.requirePreparation();
+        assertThat(preparation.routeId()).isEqualTo(scenario.routeId());
+        assertThat(preparation.driverId()).isEqualTo(scenario.driverId());
+        assertThat(preparation.remainingSeats()).isEqualTo(2);
+        assertThat(preparation.policy().configurationId()).isEqualTo(scenario.configurationId());
+        assertThat(preparation.policy().requestTtl().toSeconds()).isEqualTo(900L);
+        assertThat(preparation.policy().bookingCutoff().toSeconds()).isEqualTo(900L);
+        assertThat(preparation.consistencyToken().routeId()).isEqualTo(scenario.routeId());
+        assertThat(rideRequestCount(scenario.actorId())).isZero();
+        assertThat(remainingSeats(scenario.routeId())).isEqualTo(2);
+    }
+
+    @ParameterizedTest
+    @EnumSource(SharedRouteSearchDatabaseFixture.IneligibleMutation.class)
+    void givenRouteDriverOrVehicleBecomesIneligible_whenEvaluating_thenStableEvaluationStatusIsReturned(
+            SharedRouteSearchDatabaseFixture.IneligibleMutation mutation) {
+        Scenario scenario = createScenario();
+        transactionTemplate.executeWithoutResult(status ->
+                fixture.applyIneligibleMutation(scenario, mutation, NOW));
+
+        RideRequestEvaluation result = sut.evaluate(criteria(scenario, scenario.routeId(), request()));
+
+        RideRequestEvaluationStatus expected = switch (mutation) {
+            case CLOSED_ROUTE, NO_REMAINING_SEATS, DEPARTED_ROUTE ->
+                    RideRequestEvaluationStatus.ROUTE_UNAVAILABLE;
+            case DRIVER_INACTIVE, DRIVER_PROFILE_INACTIVE, VEHICLE_INACTIVE ->
+                    RideRequestEvaluationStatus.DRIVER_OR_VEHICLE_INELIGIBLE;
+            case DRIVER_MEMBERSHIP_EXPIRED ->
+                    RideRequestEvaluationStatus.NOT_FOUND_OR_INACCESSIBLE;
+        };
+        assertThat(result.status()).isEqualTo(expected);
+        assertThat(rideRequestCount(scenario.actorId())).isZero();
+    }
+
+    @Test
+    void givenActorOwnsTheRoute_whenEvaluating_thenSelfRouteIsRejected() {
+        Scenario scenario = createScenario();
+        transactionTemplate.executeWithoutResult(status ->
+                fixture.makeRouteOwnedByActor(scenario, NOW));
+
+        RideRequestEvaluation result = sut.evaluate(criteria(scenario, scenario.routeId(), request()));
+
+        assertThat(result.status()).isEqualTo(RideRequestEvaluationStatus.SELF_ROUTE);
+        assertThat(rideRequestCount(scenario.actorId())).isZero();
+    }
+
+    @Test
+    void givenActorMembershipExpired_whenEvaluating_thenRouteIsHiddenAsNotFoundOrInaccessible() {
+        Scenario scenario = createScenario();
+        transactionTemplate.executeWithoutResult(status ->
+                fixture.expireActorBeforeRouteDate(scenario));
+
+        RideRequestEvaluation result = sut.evaluate(criteria(scenario, scenario.routeId(), request()));
+
+        assertThat(result.status())
+                .isEqualTo(RideRequestEvaluationStatus.NOT_FOUND_OR_INACCESSIBLE);
+    }
+
+    @Test
+    void givenDestinationNoLongerMatchesRoute_whenEvaluating_thenNoLongerMatchesIsReturned() {
+        Scenario scenario = createScenario();
+        CreateRideRequestRequest farDestination = new CreateRideRequestRequest(
+                scenario.schoolId(),
+                request().pickup(),
+                new RouteEndpointRequest(
+                        new BigDecimal("11.500000"),
+                        new BigDecimal("108.500000"),
+                        "Điểm đến không còn gần tuyến"),
+                new BigDecimal("25000.00"),
+                null);
+
+        RideRequestEvaluation result = sut.evaluate(
+                criteria(scenario, scenario.routeId(), farDestination));
+
+        assertThat(result.status()).isEqualTo(RideRequestEvaluationStatus.NO_LONGER_MATCHES);
+    }
+
+    @Test
+    void givenExistingBlockingRequest_whenEvaluatingOrCommittingAgain_thenSameBlockingRequestIsReported() {
+        Scenario scenario = createScenario();
+        RideRequestCommitCommand first = command(scenario, scenario.routeId());
+        Long existingId = sut.commit(first).rideRequestId();
+
+        RideRequestEvaluation evaluation = sut.evaluate(
+                criteria(scenario, scenario.routeId(), request()));
+        assertThat(evaluation.status())
+                .isEqualTo(RideRequestEvaluationStatus.UNFINISHED_REQUEST_EXISTS);
+        assertThat(evaluation.existingRideRequestId()).isEqualTo(existingId);
+        assertThat(evaluation.existingStatus()).isEqualTo(TrangThaiYeuCau.PENDING);
+
+        assertThatThrownBy(() -> sut.commit(first))
+                .isInstanceOfSatisfying(BusinessException.class, exception -> {
+                    assertThat(exception.getCode())
+                            .isEqualTo("UNFINISHED_RIDE_REQUEST_ALREADY_EXISTS");
+                    assertThat(exception.getErrors())
+                            .containsEntry("existingRideRequestId", existingId.toString())
+                            .containsEntry("status", "PENDING");
+                });
+        assertThat(rideRequestCount(scenario.actorId())).isEqualTo(1L);
+    }
+
+    @Test
+    void givenCommandDoesNotMatchConsistencyToken_whenCommitting_thenStaleConflictIsReturnedWithoutPersistence() {
+        Scenario scenario = createScenario();
+        RideRequestCommitCommand valid = command(scenario, scenario.routeId());
+        RideRequestCommitCommand stale = new RideRequestCommitCommand(
+                valid.actorUserId(),
+                valid.routeId() + 999L,
+                valid.sentAt(),
+                valid.expiresAt(),
+                valid.snapshot(),
+                valid.note(),
+                valid.consistencyToken());
+
+        assertThatThrownBy(() -> sut.commit(stale))
+                .isInstanceOfSatisfying(BusinessException.class, exception ->
+                        assertThat(exception.getCode()).isEqualTo("RIDE_REQUEST_STALE"));
+        assertThat(rideRequestCount(scenario.actorId())).isZero();
+        assertThat(remainingSeats(scenario.routeId())).isEqualTo(2);
+    }
+
+    @Test
+    void givenExpiryDoesNotEqualCurrentTtlAndCutoff_whenCommitting_thenCutoffConflictIsReturned() {
+        Scenario scenario = createScenario();
+        RideRequestCommitCommand valid = command(scenario, scenario.routeId());
+        RideRequestCommitCommand invalidExpiry = new RideRequestCommitCommand(
+                valid.actorUserId(),
+                valid.routeId(),
+                valid.sentAt(),
+                valid.expiresAt().plusSeconds(1),
+                valid.snapshot(),
+                valid.note(),
+                valid.consistencyToken());
+
+        assertThatThrownBy(() -> sut.commit(invalidExpiry))
+                .isInstanceOfSatisfying(BusinessException.class, exception ->
+                        assertThat(exception.getCode())
+                                .isEqualTo("SHARED_ROUTE_BOOKING_CUTOFF_REACHED"));
+        assertThat(rideRequestCount(scenario.actorId())).isZero();
+    }
+
+    @Test
+    void givenTwoConcurrentDuplicateCommands_whenCommitting_thenOneCreatesAndOneIsRejectedAsBlocking()
+            throws Exception {
+        Scenario scenario = createScenario();
+        RideRequestCommitCommand command = command(scenario, scenario.routeId());
+        ExecutorService executor = Executors.newFixedThreadPool(2);
+        CountDownLatch ready = new CountDownLatch(2);
+        CountDownLatch start = new CountDownLatch(1);
+        try {
+            Future<Object> first = executor.submit(() -> commitAfterBarrier(command, ready, start));
+            Future<Object> second = executor.submit(() -> commitAfterBarrier(command, ready, start));
+            assertThat(ready.await(10, TimeUnit.SECONDS)).isTrue();
+            start.countDown();
+
+            List<Object> outcomes = List.of(
+                    first.get(20, TimeUnit.SECONDS),
+                    second.get(20, TimeUnit.SECONDS));
+
+            assertThat(outcomes).filteredOn(RideRequestPersistedView.class::isInstance).hasSize(1);
+            assertThat(outcomes).filteredOn(BusinessException.class::isInstance)
+                    .singleElement()
+                    .satisfies(outcome -> assertThat(((BusinessException) outcome).getCode())
+                            .isEqualTo("UNFINISHED_RIDE_REQUEST_ALREADY_EXISTS"));
+            assertThat(rideRequestCount(scenario.actorId())).isEqualTo(1L);
+            assertThat(remainingSeats(scenario.routeId())).isEqualTo(2);
         } finally {
             executor.shutdownNow();
         }
@@ -173,11 +334,25 @@ class PostgisRideRequestCreationRepositoryIntegrationTest {
                 fixture.createStandardScenario(NOW, DEPARTURE));
     }
 
-    private RideRequestCommitCommand command(
+
+    private static RideRequestCriteria criteria(
             Scenario scenario,
             Long routeId,
-            String key,
-            String fingerprintCharacter) {
+            CreateRideRequestRequest request) {
+        return new RideRequestCriteria(
+                scenario.actorId(),
+                scenario.schoolId(),
+                routeId,
+                request.pickup().latitude(),
+                request.pickup().longitude(),
+                request.passengerDestination().latitude(),
+                request.passengerDestination().longitude(),
+                NOW);
+    }
+
+    private RideRequestCommitCommand command(
+            Scenario scenario,
+            Long routeId) {
         CreateRideRequestRequest request = request();
         RideRequestEvaluation evaluation = sut.evaluate(new RideRequestCriteria(
                 scenario.actorId(),
@@ -203,8 +378,6 @@ class PostgisRideRequestCreationRepositoryIntegrationTest {
         return new RideRequestCommitCommand(
                 scenario.actorId(),
                 routeId,
-                key,
-                fingerprintCharacter.repeat(64),
                 NOW,
                 NOW.plusSeconds(900),
                 snapshot,
@@ -292,6 +465,20 @@ class PostgisRideRequestCreationRepositoryIntegrationTest {
             BigDecimal latitude,
             BigDecimal longitude) {
         return new RouteWaypoint(role, new GeoCoordinate(latitude, longitude));
+    }
+
+
+    private long rideRequestCount(Long actorUserId) {
+        return transactionTemplate.execute(status -> entityManager.createQuery(
+                        "select count(request) from YeuCauDiChung request "
+                                + "where request.hanhKhach.id = :actorUserId",
+                        Long.class)
+                .setParameter("actorUserId", actorUserId)
+                .getSingleResult());
+    }
+
+    private int remainingSeats(Long routeId) {
+        return transactionTemplate.execute(status -> fixture.remainingSeats(routeId));
     }
 
     private long count(String jpql, Long id) {

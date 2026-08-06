@@ -17,9 +17,7 @@ import com.zanh.route_sharing.repository.sharedroute.preview.model.PreviewEvalua
 import com.zanh.route_sharing.repository.sharedroute.preview.model.SharedRoutePreviewCriteria;
 import com.zanh.route_sharing.repository.sharedroute.preview.model.SharedRoutePreviewPreparation;
 import com.zanh.route_sharing.repository.sharedroute.riderequest.RideRequestCreationRepository;
-import com.zanh.route_sharing.repository.sharedroute.riderequest.model.IdempotencyRecord;
 import com.zanh.route_sharing.repository.sharedroute.riderequest.model.RideRequestCommitCommand;
-import com.zanh.route_sharing.repository.sharedroute.riderequest.model.RideRequestCommitResult;
 import com.zanh.route_sharing.repository.sharedroute.riderequest.model.RideRequestCriteria;
 import com.zanh.route_sharing.repository.sharedroute.riderequest.model.RideRequestEvaluation;
 import com.zanh.route_sharing.repository.sharedroute.riderequest.model.RideRequestEvaluationStatus;
@@ -60,14 +58,6 @@ public class PostgisRideRequestCreationRepository implements RideRequestCreation
                         SharedRoutePreviewRepository previewRepository) {
                 this.entityManager = entityManager;
                 this.previewRepository = previewRepository;
-        }
-
-        @Override
-        @Transactional(readOnly = true)
-        public Optional<IdempotencyRecord> findReplay(
-                        Long actorUserId,
-                        String idempotencyKey) {
-                return findReplayInternal(actorUserId, idempotencyKey);
         }
 
         @Override
@@ -138,7 +128,7 @@ public class PostgisRideRequestCreationRepository implements RideRequestCreation
 
         @Override
         @Transactional
-        public RideRequestCommitResult commit(RideRequestCommitCommand command) {
+        public RideRequestPersistedView commit(RideRequestCommitCommand command) {
                 NguoiDung passenger = entityManager.find(
                                 NguoiDung.class,
                                 command.actorUserId(),
@@ -148,17 +138,6 @@ public class PostgisRideRequestCreationRepository implements RideRequestCreation
                                         HttpStatus.NOT_FOUND,
                                         "SHARED_ROUTE_NOT_FOUND",
                                         "Không tìm thấy lộ trình chia sẻ phù hợp.");
-                }
-
-                Optional<IdempotencyRecord> replay = findReplayInternal(
-                                command.actorUserId(),
-                                command.idempotencyKey());
-                if (replay.isPresent()) {
-                        IdempotencyRecord existing = replay.orElseThrow();
-                        if (!existing.fingerprint().equals(command.requestFingerprint())) {
-                                throw idempotencyKeyReused();
-                        }
-                        return RideRequestCommitResult.replayed(existing.persistedView());
                 }
 
                 Optional<BlockingRequest> blocking = findBlocking(command.actorUserId());
@@ -203,8 +182,6 @@ public class PostgisRideRequestCreationRepository implements RideRequestCreation
                                 command.snapshot(),
                                 command.sentAt(),
                                 command.expiresAt(),
-                                command.idempotencyKey(),
-                                command.requestFingerprint(),
                                 command.note());
 
                 try {
@@ -221,31 +198,7 @@ public class PostgisRideRequestCreationRepository implements RideRequestCreation
                         throw mapConstraint(exception);
                 }
 
-                return RideRequestCommitResult.created(toCreationView(rideRequest));
-        }
-
-        private Optional<IdempotencyRecord> findReplayInternal(
-                        Long actorUserId,
-                        String idempotencyKey) {
-                List<YeuCauDiChung> results = entityManager.createQuery(
-                                "select request from YeuCauDiChung request "
-                                                + "join fetch request.loTrinhChiaSe route "
-                                                + "where request.hanhKhach.id = :actorUserId "
-                                                + "and request.idempotencyKey = :idempotencyKey",
-                                YeuCauDiChung.class)
-                                .setParameter("actorUserId", actorUserId)
-                                .setParameter("idempotencyKey", idempotencyKey)
-                                .setMaxResults(1)
-                                .getResultList();
-                if (results.isEmpty()) {
-                        return Optional.empty();
-                }
-                YeuCauDiChung entity = results.get(0);
-                return Optional.of(new IdempotencyRecord(
-                                actorUserId,
-                                idempotencyKey,
-                                entity.getRequestFingerprint(),
-                                toCreationView(entity)));
+                return toCreationView(rideRequest);
         }
 
         private Optional<BlockingRequest> findBlocking(Long actorUserId) {
@@ -383,13 +336,6 @@ public class PostgisRideRequestCreationRepository implements RideRequestCreation
                                 Map.of("cooldownUntil", cooldownUntil.toString()));
         }
 
-        private static BusinessException idempotencyKeyReused() {
-                return new BusinessException(
-                                HttpStatus.CONFLICT,
-                                "IDEMPOTENCY_KEY_REUSED",
-                                "Idempotency-Key đã được dùng cho một yêu cầu có nội dung khác.");
-        }
-
         private static BusinessException stale() {
                 return new BusinessException(
                                 HttpStatus.CONFLICT,
@@ -411,12 +357,6 @@ public class PostgisRideRequestCreationRepository implements RideRequestCreation
                                         HttpStatus.CONFLICT,
                                         "UNFINISHED_RIDE_REQUEST_ALREADY_EXISTS",
                                         "Bạn đang có một yêu cầu hoặc chuyến đi chưa kết thúc.");
-                }
-                if ("uk_yeu_cau_actor_idempotency".equals(constraint)) {
-                        return new BusinessException(
-                                        HttpStatus.CONFLICT,
-                                        "CONCURRENT_MODIFICATION",
-                                        "Yêu cầu tương đương đang được xử lý. Vui lòng gửi lại với cùng Idempotency-Key.");
                 }
                 return new BusinessException(
                                 HttpStatus.CONFLICT,

@@ -70,12 +70,10 @@ public class SecurityConfig {
                                 "Authorization",
                                 "Content-Type",
                                 "Accept",
-                                "X-Requested-With",
-                                "Idempotency-Key"));
+                                "X-Requested-With"));
                 configuration.setExposedHeaders(List.of(
                                 "Location",
-                                "Content-Disposition",
-                                "Idempotency-Replayed"));
+                                "Content-Disposition"));
 
                 configuration.setAllowCredentials(false);
                 configuration.setMaxAge(3600L);
