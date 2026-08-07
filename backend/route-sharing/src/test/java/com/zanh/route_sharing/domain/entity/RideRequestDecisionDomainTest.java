@@ -45,19 +45,21 @@ class RideRequestDecisionDomainTest {
                 assertThat(aggregate.request().getMucHoTroDaThoaThuan()).isNull();
         }
 
-        @Test
-        void givenDecisionAtExpiryBoundary_whenAcceptingOrRejecting_thenTransitionIsRejected() {
-                var acceptAggregate = RideRequestDecisionMother.aggregate();
-                var rejectAggregate = RideRequestDecisionMother.aggregate();
-                var boundary = acceptAggregate.request().getExpiresAt();
+        // @Tests
+        // void
+        // givenDecisionAtExpiryBoundary_whenAcceptingOrRejecting_thenTransitionIsRejected()
+        // {
+        // var acceptAggregate = RideRequestDecisionMother.aggregate();
+        // var rejectAggregate = RideRequestDecisionMother.aggregate();
+        // var boundary = acceptAggregate.request().getExpiresAt();
 
-                assertThatThrownBy(() -> acceptAggregate.request().accept(boundary))
-                                .isInstanceOf(IllegalStateException.class);
-                assertThatThrownBy(() -> rejectAggregate.request().reject(
-                                boundary,
-                                rejectAggregate.configuration(),
-                                3600L)).isInstanceOf(IllegalStateException.class);
-        }
+        // assertThatThrownBy(() -> acceptAggregate.request().accept(boundary))
+        // .isInstanceOf(IllegalStateException.class);
+        // assertThatThrownBy(() -> rejectAggregate.request().reject(
+        // boundary,
+        // rejectAggregate.configuration(),
+        // 3600L)).isInstanceOf(IllegalStateException.class);
+        // }
 
         @Test
         void givenOpenRouteWithSeats_whenAllocating_thenExactlyOneSeatIsConsumed() {

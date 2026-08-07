@@ -266,7 +266,6 @@ class SharedRoutePreviewServiceImplTest {
                                 900L,
                                 new BigDecimal("60.00"),
                                 900L,
-                                900L,
                                 3600L,
                                 route.expectedDepartureTime(),
                                 route.remainingSeats());

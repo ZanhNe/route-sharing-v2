@@ -99,6 +99,64 @@ public class NhatKyTrangThaiYeuCau {
                 TrangThaiYeuCau.PENDING, TrangThaiYeuCau.REJECTED, "REJECTED");
     }
 
+    public static NhatKyTrangThaiYeuCau cancelledByPassenger(
+            YeuCauDiChung rideRequest,
+            NguoiDung actor,
+            Instant occurredAt,
+            TrangThaiYeuCau previous) {
+        if (previous != TrangThaiYeuCau.PENDING && previous != TrangThaiYeuCau.ACCEPTED) {
+            throw new IllegalArgumentException("Trạng thái trước khi hành khách hủy không hợp lệ.");
+        }
+        return transitionWithSequence(
+                rideRequest, actor, occurredAt, previous,
+                TrangThaiYeuCau.CANCELLED_BY_PASSENGER,
+                "CANCELLED_BY_PASSENGER",
+                previous == TrangThaiYeuCau.PENDING ? 2L : 3L);
+    }
+
+    public static NhatKyTrangThaiYeuCau routeCancelledByDriver(
+            YeuCauDiChung rideRequest,
+            NguoiDung actor,
+            Instant occurredAt,
+            TrangThaiYeuCau previous,
+            long sequence) {
+        if (previous != TrangThaiYeuCau.PENDING && previous != TrangThaiYeuCau.ACCEPTED) {
+            throw new IllegalArgumentException("Trạng thái trước khi route cascade không hợp lệ.");
+        }
+        if (sequence <= 0) {
+            throw new IllegalArgumentException("sequence phải là số dương.");
+        }
+        return transitionWithSequence(
+                rideRequest, actor, occurredAt, previous,
+                TrangThaiYeuCau.CANCELLED_BY_DRIVER,
+                "ROUTE_CANCELLED_BY_DRIVER", sequence);
+    }
+
+    private static NhatKyTrangThaiYeuCau transitionWithSequence(
+            YeuCauDiChung rideRequest,
+            NguoiDung actor,
+            Instant occurredAt,
+            TrangThaiYeuCau previous,
+            TrangThaiYeuCau next,
+            String reasonCode,
+            long sequence) {
+        if (rideRequest == null || rideRequest.getId() == null) {
+            throw new IllegalArgumentException("Yêu cầu đi chung phải được lưu trước khi tạo nhật ký.");
+        }
+        if (rideRequest.getTrangThaiYeuCau() != next) {
+            throw new IllegalArgumentException("Trạng thái yêu cầu không khớp sự kiện cần ghi.");
+        }
+        NhatKyTrangThaiYeuCau event = new NhatKyTrangThaiYeuCau();
+        event.yeuCauDiChung = rideRequest;
+        event.sequence = sequence;
+        event.trangThaiTruoc = previous;
+        event.trangThaiSau = next;
+        event.actor = Objects.requireNonNull(actor, "actor không được trống");
+        event.occurredAt = Objects.requireNonNull(occurredAt, "occurredAt không được trống");
+        event.reasonCode = reasonCode;
+        return event;
+    }
+
     private static NhatKyTrangThaiYeuCau transition(
             YeuCauDiChung rideRequest,
             NguoiDung actor,

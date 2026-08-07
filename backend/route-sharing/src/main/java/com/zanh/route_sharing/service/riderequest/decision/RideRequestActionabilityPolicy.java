@@ -10,37 +10,32 @@ import java.time.Instant;
 @Component
 public class RideRequestActionabilityPolicy {
 
-    public void requireActionable(Instant decisionAt, Instant expiresAt) {
-        if (decisionAt == null || expiresAt == null || !decisionAt.isBefore(expiresAt)) {
-            throw new BusinessException(
-                    HttpStatus.CONFLICT,
-                    "RIDE_REQUEST_EXPIRED",
-                    "Yêu cầu đi chung đã hết thời hạn xử lý.");
-        }
-    }
-
     public void requireAcceptWindowOpen(
             Instant decisionAt,
-            Instant departureTime,
-            long bookingCutoffSeconds) {
-        if (decisionAt == null || departureTime == null || bookingCutoffSeconds < 0) {
-            throw cutoffReached();
+            Instant expectedDepartureTime,
+            Long bookingCutoffSeconds) {
+        if (decisionAt == null || expectedDepartureTime == null
+                || bookingCutoffSeconds == null || bookingCutoffSeconds < 0) {
+            throw unavailableConfiguration();
         }
-        final Instant cutoffBoundary;
+        final Instant boundary;
         try {
-            cutoffBoundary = departureTime.minusSeconds(bookingCutoffSeconds);
+            boundary = expectedDepartureTime.minusSeconds(bookingCutoffSeconds);
         } catch (DateTimeException | ArithmeticException exception) {
-            throw cutoffReached();
+            throw unavailableConfiguration();
         }
-        if (!decisionAt.isBefore(cutoffBoundary)) {
-            throw cutoffReached();
+        if (!decisionAt.isBefore(boundary)) {
+            throw new BusinessException(
+                    HttpStatus.CONFLICT,
+                    "SHARED_ROUTE_BOOKING_CUTOFF_REACHED",
+                    "Lộ trình đã hết thời gian nhận yêu cầu đi chung.");
         }
     }
 
-    private static BusinessException cutoffReached() {
+    private static BusinessException unavailableConfiguration() {
         return new BusinessException(
                 HttpStatus.CONFLICT,
-                "SHARED_ROUTE_BOOKING_CUTOFF_REACHED",
-                "Lộ trình đã qua thời điểm tiếp nhận quyết định đi chung.");
+                "BUSINESS_CONFIGURATION_UNAVAILABLE",
+                "Không thể xác định thời hạn nhận yêu cầu của lộ trình.");
     }
 }

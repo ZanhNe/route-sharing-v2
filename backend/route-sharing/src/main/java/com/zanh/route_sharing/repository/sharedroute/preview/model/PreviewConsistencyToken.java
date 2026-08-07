@@ -34,7 +34,6 @@ public record PreviewConsistencyToken(
         BigDecimal maxPickupDeviationMeters,
         Long maxPickupDeviationSeconds,
         BigDecimal minimumConvenienceRatioPercent,
-        Long requestTtlSeconds,
         Long bookingCutoffSeconds,
         Long rejectionCooldownSeconds,
         Instant expectedDepartureTime,
@@ -71,7 +70,6 @@ public record PreviewConsistencyToken(
         Objects.requireNonNull(maxPickupDeviationSeconds, "maxPickupDeviationSeconds không được trống");
         Objects.requireNonNull(minimumConvenienceRatioPercent,
                 "minimumConvenienceRatioPercent không được trống");
-        Objects.requireNonNull(requestTtlSeconds, "requestTtlSeconds không được trống");
         Objects.requireNonNull(bookingCutoffSeconds, "bookingCutoffSeconds không được trống");
         Objects.requireNonNull(rejectionCooldownSeconds, "rejectionCooldownSeconds không được trống");
         Objects.requireNonNull(expectedDepartureTime, "expectedDepartureTime không được trống");

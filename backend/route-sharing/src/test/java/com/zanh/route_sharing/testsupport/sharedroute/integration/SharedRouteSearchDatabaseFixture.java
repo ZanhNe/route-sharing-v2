@@ -82,7 +82,6 @@ public final class SharedRouteSearchDatabaseFixture {
                                 .doLechThoiGianKhoiHanhPhut(30)
                                 .soNgayLuuViTri(30)
                                 .soNgayLuuNhatKy(90)
-                                .requestTtlSeconds(900L)
                                 .bookingCutoffSeconds(900L)
                                 .rejectionCooldownSeconds(3600L)
                                 .batBuocTepXacNhanChuXeKhiKhongChinhChu(false)
@@ -240,7 +239,7 @@ public final class SharedRouteSearchDatabaseFixture {
                         IneligibleMutation mutation,
                         Instant now) {
                 switch (mutation) {
-                        case CLOSED_ROUTE -> route(scenario).setTrangThaiLoTrinh(TrangThaiLoTrinh.CANCELLED);
+                        case CLOSED_ROUTE -> route(scenario).cancelByDriver(now, "Test fixture: route đã đóng");
                         case NO_REMAINING_SEATS -> route(scenario).setSoGheConLai(0);
                         case DEPARTED_ROUTE -> route(scenario).setThoiGianKhoiHanhDuKien(now.minusSeconds(60));
                         case DRIVER_INACTIVE -> user(scenario.driverId())

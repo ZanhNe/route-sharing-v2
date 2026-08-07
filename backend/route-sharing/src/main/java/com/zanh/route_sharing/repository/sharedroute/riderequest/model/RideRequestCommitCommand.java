@@ -10,7 +10,6 @@ public record RideRequestCommitCommand(
         Long actorUserId,
         Long routeId,
         Instant sentAt,
-        Instant expiresAt,
         RideRequestSnapshot snapshot,
         String note,
         PreviewConsistencyToken consistencyToken) {
@@ -19,7 +18,6 @@ public record RideRequestCommitCommand(
         Objects.requireNonNull(actorUserId, "actorUserId không được trống");
         Objects.requireNonNull(routeId, "routeId không được trống");
         Objects.requireNonNull(sentAt, "sentAt không được trống");
-        Objects.requireNonNull(expiresAt, "expiresAt không được trống");
         Objects.requireNonNull(snapshot, "snapshot không được trống");
         Objects.requireNonNull(consistencyToken, "consistencyToken không được trống");
     }

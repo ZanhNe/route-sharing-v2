@@ -59,7 +59,7 @@ class JpaRideRequestDecisionRepositoryIntegrationTest {
 
     @Test
     void givenPendingRequest_whenAccepting_thenRequestSeatAuditAndPassengerNotificationCommitTogether() {
-        TestAggregate aggregate = createAggregate(2, false);
+        TestAggregate aggregate = createAggregate(2);
 
         var result = service.accept(
                 aggregate.scenario().driverId(),
@@ -82,7 +82,7 @@ class JpaRideRequestDecisionRepositoryIntegrationTest {
 
     @Test
     void givenPendingRequest_whenRejecting_thenSeatStaysAndCurrentCooldownIsPersisted() {
-        TestAggregate aggregate = createAggregate(2, false);
+        TestAggregate aggregate = createAggregate(2);
 
         var result = service.reject(
                 aggregate.scenario().driverId(),
@@ -105,15 +105,15 @@ class JpaRideRequestDecisionRepositoryIntegrationTest {
 
     @Test
     void givenAlreadyAcceptedRequest_whenAcceptingAgain_thenConflictHasNoDuplicateSideEffect() {
-        TestAggregate aggregate = createAggregate(2, false);
+        TestAggregate aggregate = createAggregate(2);
         service.accept(aggregate.scenario().driverId(), aggregate.scenario().routeId(), aggregate.requestId());
 
         assertThatThrownBy(() -> service.accept(
                 aggregate.scenario().driverId(),
                 aggregate.scenario().routeId(),
                 aggregate.requestId()))
-                .isInstanceOfSatisfying(BusinessException.class,
-                        exception -> assertThat(exception.getCode()).isEqualTo("INVALID_RIDE_REQUEST_STATE"));
+                .isInstanceOfSatisfying(BusinessException.class, exception ->
+                        assertThat(exception.getCode()).isEqualTo("INVALID_RIDE_REQUEST_STATE"));
 
         transactionTemplate.executeWithoutResult(status -> {
             assertThat(remainingSeats(aggregate.scenario().routeId())).isEqualTo(1);
@@ -124,14 +124,14 @@ class JpaRideRequestDecisionRepositoryIntegrationTest {
 
     @Test
     void givenNonOwner_whenDeciding_thenRouteIsHiddenAndNothingChanges() {
-        TestAggregate aggregate = createAggregate(2, false);
+        TestAggregate aggregate = createAggregate(2);
 
         assertThatThrownBy(() -> service.reject(
                 aggregate.scenario().actorId(),
                 aggregate.scenario().routeId(),
                 aggregate.requestId()))
-                .isInstanceOfSatisfying(BusinessException.class,
-                        exception -> assertThat(exception.getCode()).isEqualTo("SHARED_ROUTE_NOT_FOUND"));
+                .isInstanceOfSatisfying(BusinessException.class, exception ->
+                        assertThat(exception.getCode()).isEqualTo("SHARED_ROUTE_NOT_FOUND"));
 
         transactionTemplate.executeWithoutResult(status -> {
             assertThat(statusOf(aggregate.requestId())).isEqualTo(TrangThaiYeuCau.PENDING);
@@ -141,28 +141,11 @@ class JpaRideRequestDecisionRepositoryIntegrationTest {
     }
 
     @Test
-    void givenExpiredRequest_whenDeciding_thenNoMutationOccurs() {
-        TestAggregate aggregate = createAggregate(2, true);
-
-        assertThatThrownBy(() -> service.accept(
-                aggregate.scenario().driverId(),
-                aggregate.scenario().routeId(),
-                aggregate.requestId()))
-                .isInstanceOfSatisfying(BusinessException.class,
-                        exception -> assertThat(exception.getCode()).isEqualTo("RIDE_REQUEST_EXPIRED"));
-
-        transactionTemplate.executeWithoutResult(status -> {
-            assertThat(statusOf(aggregate.requestId())).isEqualTo(TrangThaiYeuCau.PENDING);
-            assertThat(remainingSeats(aggregate.scenario().routeId())).isEqualTo(2);
-        });
-    }
-
-    @Test
     void givenCurrentDriverProfileIneligible_whenAccepting_thenNoMutationOccurs() {
-        TestAggregate aggregate = createAggregate(2, false);
+        TestAggregate aggregate = createAggregate(2);
         transactionTemplate.executeWithoutResult(status -> entityManager.createQuery(
-                "update HoSoTaiXe profile set profile.trangThaiTaiXe = :state "
-                        + "where profile.id = :profileId")
+                        "update HoSoTaiXe profile set profile.trangThaiTaiXe = :state "
+                                + "where profile.id = :profileId")
                 .setParameter("state", TrangThaiTaiXe.SUSPENDED)
                 .setParameter("profileId", aggregate.scenario().driverProfileId())
                 .executeUpdate());
@@ -171,8 +154,8 @@ class JpaRideRequestDecisionRepositoryIntegrationTest {
                 aggregate.scenario().driverId(),
                 aggregate.scenario().routeId(),
                 aggregate.requestId()))
-                .isInstanceOfSatisfying(BusinessException.class,
-                        exception -> assertThat(exception.getCode()).isEqualTo("DRIVER_OR_VEHICLE_INELIGIBLE"));
+                .isInstanceOfSatisfying(BusinessException.class, exception ->
+                        assertThat(exception.getCode()).isEqualTo("DRIVER_OR_VEHICLE_INELIGIBLE"));
 
         transactionTemplate.executeWithoutResult(status -> {
             assertThat(statusOf(aggregate.requestId())).isEqualTo(TrangThaiYeuCau.PENDING);
@@ -182,7 +165,7 @@ class JpaRideRequestDecisionRepositoryIntegrationTest {
 
     @Test
     void givenTwoPendingRequestsAndLastSeat_whenAcceptingConcurrently_thenExactlyOneWins() throws Exception {
-        TestAggregate aggregate = createAggregate(1, false);
+        TestAggregate aggregate = createAggregate(1);
         Long secondRequestId = createAdditionalPendingRequest(aggregate.scenario());
         List<Object> outcomes = runConcurrent(
                 () -> service.accept(
@@ -210,7 +193,7 @@ class JpaRideRequestDecisionRepositoryIntegrationTest {
 
     @Test
     void givenSamePendingRequest_whenAcceptAndRejectRace_thenExactlyOneTerminalTransitionWins() throws Exception {
-        TestAggregate aggregate = createAggregate(1, false);
+        TestAggregate aggregate = createAggregate(1);
 
         List<Object> outcomes = runConcurrent(
                 () -> service.accept(
@@ -240,18 +223,18 @@ class JpaRideRequestDecisionRepositoryIntegrationTest {
         });
     }
 
-    private TestAggregate createAggregate(int seats, boolean expired) {
+    private TestAggregate createAggregate(int seats) {
         Instant now = Instant.now();
         Instant departure = now.plusSeconds(7200);
-        Scenario scenario = transactionTemplate.execute(status -> fixture.createStandardScenario(now, departure));
+        Scenario scenario = transactionTemplate.execute(status ->
+                fixture.createStandardScenario(now, departure));
         Long requestId = transactionTemplate.execute(status -> {
             LoTrinhChiaSe route = entityManager.find(LoTrinhChiaSe.class, scenario.routeId());
             route.setSoGheCungCap(Math.max(seats, 1));
             route.setSoGheConLai(seats);
-            Instant sentAt = expired ? now.minusSeconds(120) : now.minusSeconds(30);
-            Instant expiresAt = expired ? now.minusSeconds(1) : now.plusSeconds(1200);
+            Instant sentAt = now.minusSeconds(30);
             NguoiDung passenger = entityManager.find(NguoiDung.class, scenario.actorId());
-            return persistPending(scenario, route, passenger, sentAt, expiresAt);
+            return persistPending(scenario, route, passenger, sentAt);
         });
         return new TestAggregate(scenario, requestId);
     }
@@ -265,8 +248,7 @@ class JpaRideRequestDecisionRepositoryIntegrationTest {
                     scenario,
                     route,
                     secondPassenger,
-                    now.minusSeconds(20),
-                    now.plusSeconds(1200));
+                    now.minusSeconds(20));
         });
     }
 
@@ -302,8 +284,7 @@ class JpaRideRequestDecisionRepositoryIntegrationTest {
             Scenario scenario,
             LoTrinhChiaSe route,
             NguoiDung passenger,
-            Instant sentAt,
-            Instant expiresAt) {
+            Instant sentAt) {
         NguoiDung driver = entityManager.find(NguoiDung.class, scenario.driverId());
         CauHinhNghiepVu configuration = entityManager.find(
                 CauHinhNghiepVu.class, scenario.configurationId());
@@ -315,7 +296,6 @@ class JpaRideRequestDecisionRepositoryIntegrationTest {
                 RideRequestDecisionMother.snapshot(
                         route.getVersion(), driver.getId(), configuration, route.getThoiGianKhoiHanhDuKien()),
                 sentAt,
-                expiresAt,
                 "Integration decision");
         entityManager.persist(request);
         entityManager.flush();
@@ -355,35 +335,35 @@ class JpaRideRequestDecisionRepositoryIntegrationTest {
 
     private int remainingSeats(Long routeId) {
         return entityManager.createQuery(
-                "select route.soGheConLai from LoTrinhChiaSe route where route.id = :id",
-                Integer.class)
+                        "select route.soGheConLai from LoTrinhChiaSe route where route.id = :id",
+                        Integer.class)
                 .setParameter("id", routeId)
                 .getSingleResult();
     }
 
     private TrangThaiYeuCau statusOf(Long requestId) {
         return entityManager.createQuery(
-                "select request.trangThaiYeuCau from YeuCauDiChung request where request.id = :id",
-                TrangThaiYeuCau.class)
+                        "select request.trangThaiYeuCau from YeuCauDiChung request where request.id = :id",
+                        TrangThaiYeuCau.class)
                 .setParameter("id", requestId)
                 .getSingleResult();
     }
 
     private long stateEventCount(Long requestId) {
         return entityManager.createQuery(
-                "select count(event) from NhatKyTrangThaiYeuCau event "
-                        + "where event.yeuCauDiChung.id = :id",
-                Long.class)
+                        "select count(event) from NhatKyTrangThaiYeuCau event "
+                                + "where event.yeuCauDiChung.id = :id",
+                        Long.class)
                 .setParameter("id", requestId)
                 .getSingleResult();
     }
 
     private long notificationCount(Long requestId, LoaiThongBao type) {
         return entityManager.createQuery(
-                "select count(notification) from ThongBao notification "
-                        + "where notification.doiTuongLienQuanId = :id "
-                        + "and notification.loaiThongBao = :type",
-                Long.class)
+                        "select count(notification) from ThongBao notification "
+                                + "where notification.doiTuongLienQuanId = :id "
+                                + "and notification.loaiThongBao = :type",
+                        Long.class)
                 .setParameter("id", requestId)
                 .setParameter("type", type)
                 .getSingleResult();
@@ -391,8 +371,8 @@ class JpaRideRequestDecisionRepositoryIntegrationTest {
 
     private long tripCount(Long routeId) {
         return entityManager.createQuery(
-                "select count(trip) from ChuyenDi trip where trip.loTrinhChiaSe.id = :id",
-                Long.class)
+                        "select count(trip) from ChuyenDi trip where trip.loTrinhChiaSe.id = :id",
+                        Long.class)
                 .setParameter("id", routeId)
                 .getSingleResult();
     }

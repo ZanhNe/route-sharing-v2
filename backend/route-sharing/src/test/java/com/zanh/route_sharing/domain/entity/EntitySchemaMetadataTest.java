@@ -28,13 +28,15 @@ class EntitySchemaMetadataTest {
                                 Map.entry(LoTrinhChiaSe.class, Set.of(
                                                 "ck_lo_trinh_so_ghe",
                                                 "ck_lo_trinh_khoang_cach",
-                                                "ck_lo_trinh_muc_ho_tro")),
+                                                "ck_lo_trinh_muc_ho_tro",
+                                                "ck_lo_trinh_huy")),
                                 Map.entry(YeuCauDiChung.class, Set.of(
                                                 "ck_yeu_cau_ty_le",
                                                 "ck_yeu_cau_khoang_cach",
                                                 "ck_yeu_cau_matching",
                                                 "ck_yeu_cau_muc_ho_tro",
-                                                "ck_yeu_cau_thoi_han",
+                                                "ck_yeu_cau_booking_policy",
+                    "ck_yeu_cau_huy",
                                                 "ck_yeu_cau_policy_snapshot",
                                                 "ck_yeu_cau_cooldown")),
                                 Map.entry(ChuyenDi.class, Set.of("ck_chuyen_di_so_khach")),

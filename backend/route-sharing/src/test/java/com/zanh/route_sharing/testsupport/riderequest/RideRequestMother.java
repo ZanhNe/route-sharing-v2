@@ -45,7 +45,6 @@ public final class RideRequestMother {
                 900L,
                 new BigDecimal("60.00"),
                 Duration.ofMinutes(15),
-                Duration.ofMinutes(15),
                 Duration.ofHours(1));
     }
 
@@ -67,7 +66,6 @@ public final class RideRequestMother {
                 new BigDecimal("150.00"),
                 900L,
                 new BigDecimal("60.00"),
-                900L,
                 900L,
                 3600L,
                 DEPARTURE,
@@ -101,7 +99,6 @@ public final class RideRequestMother {
                 ROUTE_ID,
                 TrangThaiYeuCau.PENDING,
                 NOW,
-                NOW.plusSeconds(900),
                 LoaiGhepTuyen.TRUNG_DOAN_TUYEN,
                 LoaiDiemTha.DIEM_THA_TRUNG_GIAN,
                 point("106.700981", "10.776530", "Điểm đón"),
@@ -124,7 +121,6 @@ public final class RideRequestMother {
                 ROUTE_ID,
                 TrangThaiYeuCau.PENDING,
                 NOW,
-                NOW.plusSeconds(900),
                 false,
                 LoaiGhepTuyen.TRUNG_DOAN_TUYEN,
                 LoaiDiemTha.DIEM_THA_TRUNG_GIAN,

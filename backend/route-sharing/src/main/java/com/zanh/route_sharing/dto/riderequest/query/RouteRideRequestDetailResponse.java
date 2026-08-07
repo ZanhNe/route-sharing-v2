@@ -23,11 +23,11 @@ public record RouteRideRequestDetailResponse(
         Instant readAt) {
 
     public RouteRideRequestDetailResponse {
-        Objects.requireNonNull(route, "route không được trống.");
-        Objects.requireNonNull(passenger, "passenger không được trống.");
-        Objects.requireNonNull(request, "request không được trống.");
-        Objects.requireNonNull(map, "map không được trống.");
-        Objects.requireNonNull(readAt, "readAt không được trống.");
+        Objects.requireNonNull(route, "route must not be null");
+        Objects.requireNonNull(passenger, "passenger must not be null");
+        Objects.requireNonNull(request, "request must not be null");
+        Objects.requireNonNull(map, "map must not be null");
+        Objects.requireNonNull(readAt, "readAt must not be null");
     }
 
     public record RouteContext(
@@ -41,14 +41,14 @@ public record RouteRideRequestDetailResponse(
             StoredRoute originalRoute) {
 
         public RouteContext {
-            Objects.requireNonNull(routeId, "routeId phải là số dương.");
-            Objects.requireNonNull(routeStatus, "routeStatus không được trống.");
-            Objects.requireNonNull(expectedDepartureTime, "expectedDepartureTime không được trống.");
-            Objects.requireNonNull(offeredSeats, "offeredSeats không được trống.");
-            Objects.requireNonNull(remainingSeats, "remainingSeats không được trống.");
-            Objects.requireNonNull(origin, "origin không được trống.");
-            Objects.requireNonNull(driverDestination, "driverDestination không được trống.");
-            Objects.requireNonNull(originalRoute, "originalRoute không được trống.");
+            Objects.requireNonNull(routeId, "routeId must not be null");
+            Objects.requireNonNull(routeStatus, "routeStatus must not be null");
+            Objects.requireNonNull(expectedDepartureTime, "expectedDepartureTime must not be null");
+            Objects.requireNonNull(offeredSeats, "offeredSeats must not be null");
+            Objects.requireNonNull(remainingSeats, "remainingSeats must not be null");
+            Objects.requireNonNull(origin, "origin must not be null");
+            Objects.requireNonNull(driverDestination, "driverDestination must not be null");
+            Objects.requireNonNull(originalRoute, "originalRoute must not be null");
         }
     }
 
@@ -60,8 +60,8 @@ public record RouteRideRequestDetailResponse(
             LocalDate dateOfBirth) {
 
         public Passenger {
-            Objects.requireNonNull(passengerId, "passengerId không được trống.");
-            Objects.requireNonNull(fullName, "fullName không được trống.");
+            Objects.requireNonNull(passengerId, "passengerId must not be null");
+            Objects.requireNonNull(fullName, "fullName must not be null");
         }
     }
 
@@ -69,8 +69,6 @@ public record RouteRideRequestDetailResponse(
             Long rideRequestId,
             TrangThaiYeuCau status,
             Instant sentAt,
-            Instant expiresAt,
-            boolean expired,
             String note,
             RideRequestPointResponse pickup,
             RideRequestPointResponse passengerDestination,
@@ -89,26 +87,25 @@ public record RouteRideRequestDetailResponse(
             Instant departureTimeAtRequest) {
 
         public PendingRequest {
-            Objects.requireNonNull(rideRequestId, "rideRequestId không được trống.");
+            Objects.requireNonNull(rideRequestId, "rideRequestId must not be null");
             if (status != TrangThaiYeuCau.PENDING) {
-                throw new IllegalArgumentException("Pending detail phải có trạng thái PENDING");
+                throw new IllegalArgumentException("Pending detail must have PENDING status");
             }
-            Objects.requireNonNull(sentAt, "sentAt không được trống.");
-            Objects.requireNonNull(expiresAt, "expiresAt không được trống.");
-            Objects.requireNonNull(pickup, "pickup không được trống.");
-            Objects.requireNonNull(passengerDestination, "passengerDestination không được trống.");
-            Objects.requireNonNull(proposedDropoff, "proposedDropoff không được trống.");
-            Objects.requireNonNull(matchType, "matchType không được trống.");
-            Objects.requireNonNull(dropoffType, "dropoffType không được trống.");
-            Objects.requireNonNull(pickupDeviationMeters, "pickupDeviationMeters không được trống.");
-            Objects.requireNonNull(pickupDeviationSeconds, "pickupDeviationSeconds không được trống.");
+            Objects.requireNonNull(sentAt, "sentAt must not be null");
+            Objects.requireNonNull(pickup, "pickup must not be null");
+            Objects.requireNonNull(passengerDestination, "passengerDestination must not be null");
+            Objects.requireNonNull(proposedDropoff, "proposedDropoff must not be null");
+            Objects.requireNonNull(matchType, "matchType must not be null");
+            Objects.requireNonNull(dropoffType, "dropoffType must not be null");
+            Objects.requireNonNull(pickupDeviationMeters, "pickupDeviationMeters must not be null");
+            Objects.requireNonNull(pickupDeviationSeconds, "pickupDeviationSeconds must not be null");
             Objects.requireNonNull(passengerDesiredDistanceMeters,
-                    "passengerDesiredDistanceMeters không được trống.");
-            Objects.requireNonNull(servedDistanceMeters, "servedDistanceMeters không được trống.");
-            Objects.requireNonNull(remainingDistanceMeters, "remainingDistanceMeters không được trống.");
-            Objects.requireNonNull(convenienceRatioPercent, "convenienceRatioPercent không được trống.");
-            Objects.requireNonNull(proposedSupportAmount, "proposedSupportAmount không được trống.");
-            Objects.requireNonNull(departureTimeAtRequest, "departureTimeAtRequest không được trống.");
+                    "passengerDesiredDistanceMeters must not be null");
+            Objects.requireNonNull(servedDistanceMeters, "servedDistanceMeters must not be null");
+            Objects.requireNonNull(remainingDistanceMeters, "remainingDistanceMeters must not be null");
+            Objects.requireNonNull(convenienceRatioPercent, "convenienceRatioPercent must not be null");
+            Objects.requireNonNull(proposedSupportAmount, "proposedSupportAmount must not be null");
+            Objects.requireNonNull(departureTimeAtRequest, "departureTimeAtRequest must not be null");
         }
     }
 
@@ -119,9 +116,9 @@ public record RouteRideRequestDetailResponse(
             List<Marker> markers) {
 
         public StoredMap {
-            Objects.requireNonNull(originalDriverRoute, "originalDriverRoute không được trống.");
-            Objects.requireNonNull(passengerDesiredRoute, "passengerDesiredRoute không được trống.");
-            Objects.requireNonNull(servedSegment, "servedSegment không được trống.");
+            Objects.requireNonNull(originalDriverRoute, "originalDriverRoute must not be null");
+            Objects.requireNonNull(passengerDesiredRoute, "passengerDesiredRoute must not be null");
+            Objects.requireNonNull(servedSegment, "servedSegment must not be null");
             markers = markers == null ? List.of() : List.copyOf(markers);
         }
     }
@@ -133,8 +130,8 @@ public record RouteRideRequestDetailResponse(
             Long durationSeconds) {
 
         public StoredRoute {
-            Objects.requireNonNull(meaning, "meaning không được trống.");
-            Objects.requireNonNull(geoJson, "geoJson không được trống.");
+            Objects.requireNonNull(meaning, "meaning must not be null");
+            Objects.requireNonNull(geoJson, "geoJson must not be null");
         }
     }
 
@@ -144,9 +141,9 @@ public record RouteRideRequestDetailResponse(
             RideRequestPointResponse point) {
 
         public Marker {
-            Objects.requireNonNull(role, "role không được trống.");
-            Objects.requireNonNull(label, "label không được trống.");
-            Objects.requireNonNull(point, "point không được trống.");
+            Objects.requireNonNull(role, "role must not be null");
+            Objects.requireNonNull(label, "label must not be null");
+            Objects.requireNonNull(point, "point must not be null");
         }
     }
 

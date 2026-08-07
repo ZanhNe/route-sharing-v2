@@ -15,7 +15,7 @@ public record RouteRideRequestPageResponse(
         List<PendingRequestSummary> items) {
 
     public RouteRideRequestPageResponse {
-        Objects.requireNonNull(route, "route không được trống.");
+        Objects.requireNonNull(route, "route must not be null");
         items = items == null ? List.of() : List.copyOf(items);
     }
 
@@ -27,11 +27,11 @@ public record RouteRideRequestPageResponse(
             Integer remainingSeats) {
 
         public RouteContext {
-            Objects.requireNonNull(routeId, "routeId không được trống.");
-            Objects.requireNonNull(routeStatus, "routeStatus không được trống.");
-            Objects.requireNonNull(expectedDepartureTime, "expectedDepartureTime không được trống.");
-            Objects.requireNonNull(offeredSeats, "offeredSeats không được trống.");
-            Objects.requireNonNull(remainingSeats, "remainingSeats không được trống.");
+            Objects.requireNonNull(routeId, "routeId must not be null");
+            Objects.requireNonNull(routeStatus, "routeStatus must not be null");
+            Objects.requireNonNull(expectedDepartureTime, "expectedDepartureTime must not be null");
+            Objects.requireNonNull(offeredSeats, "offeredSeats must not be null");
+            Objects.requireNonNull(remainingSeats, "remainingSeats must not be null");
         }
     }
 
@@ -39,8 +39,6 @@ public record RouteRideRequestPageResponse(
             Long rideRequestId,
             TrangThaiYeuCau status,
             Instant sentAt,
-            Instant expiresAt,
-            boolean expired,
             PassengerSummary passenger,
             String pickupAddress,
             String passengerDestinationAddress,
@@ -49,19 +47,18 @@ public record RouteRideRequestPageResponse(
             BigDecimal proposedSupportAmount) {
 
         public PendingRequestSummary {
-            Objects.requireNonNull(rideRequestId, "rideRequestId không được trống.");
+            Objects.requireNonNull(rideRequestId, "rideRequestId must not be null");
             if (status != TrangThaiYeuCau.PENDING) {
-                throw new IllegalArgumentException("Pending summary phải có trạng thái PENDING.");
+                throw new IllegalArgumentException("Pending summary must have PENDING status");
             }
-            Objects.requireNonNull(sentAt, "sentAt không được trống.");
-            Objects.requireNonNull(expiresAt, "expiresAt không được trống.");
-            Objects.requireNonNull(passenger, "passenger không được trống.");
-            Objects.requireNonNull(pickupAddress, "pickupAddress không được trống.");
+            Objects.requireNonNull(sentAt, "sentAt must not be null");
+            Objects.requireNonNull(passenger, "passenger must not be null");
+            Objects.requireNonNull(pickupAddress, "pickupAddress must not be null");
             Objects.requireNonNull(passengerDestinationAddress,
-                    "passengerDestinationAddress không được trống.");
-            Objects.requireNonNull(matchType, "matchType không được trống.");
-            Objects.requireNonNull(dropoffType, "dropoffType không được trống.");
-            Objects.requireNonNull(proposedSupportAmount, "proposedSupportAmount không được trống.");
+                    "passengerDestinationAddress must not be null");
+            Objects.requireNonNull(matchType, "matchType must not be null");
+            Objects.requireNonNull(dropoffType, "dropoffType must not be null");
+            Objects.requireNonNull(proposedSupportAmount, "proposedSupportAmount must not be null");
         }
     }
 
@@ -71,8 +68,8 @@ public record RouteRideRequestPageResponse(
             String avatarUrl) {
 
         public PassengerSummary {
-            Objects.requireNonNull(passengerId, "passengerId không được trống.");
-            Objects.requireNonNull(fullName, "fullName không được trống.");
+            Objects.requireNonNull(passengerId, "passengerId must not be null");
+            Objects.requireNonNull(fullName, "fullName must not be null");
         }
     }
 }

@@ -35,14 +35,30 @@ class PostgreSqlSchemaCreationIntegrationTest {
         assertThat(columns).contains(
                 "diem_tha_de_xuat",
                 "muc_ho_tro_hanh_khach_de_nghi",
-                "expires_at",
+                "huy_luc",
+                "ly_do_huy",
                 "tai_xe_id_luc_gui",
                 "cau_hinh_id_luc_gui",
                 "cooldown_until");
+        assertThat(columns).doesNotContain("expires_at", "request_ttl_applied_seconds");
+        assertThat(jdbc.queryForObject(
+                "select count(*) from information_schema.tables "
+                        + "where table_schema = current_schema() "
+                        + "and table_name = 'nhat_ky_trang_thai_lo_trinh'",
+                Long.class)).isEqualTo(1L);
         assertThat(indexes).contains(
                 "uk_yeu_cau_hanh_khach_blocking",
                 "idx_yeu_cau_cooldown_lookup",
                 "idx_yeu_cau_route_queue",
                 "uk_thong_bao_deduplication_key");
+        String cooldownIndexDefinition = jdbc.queryForObject(
+                "select indexdef from pg_indexes "
+                        + "where schemaname = current_schema() "
+                        + "and tablename = 'yeu_cau_di_chung' "
+                        + "and indexname = 'idx_yeu_cau_cooldown_lookup'",
+                String.class);
+        assertThat(cooldownIndexDefinition)
+                .contains("hanh_khach_id", "lo_trinh_chia_se_id", "cooldown_until")
+                .doesNotContain("tai_xe_id_luc_gui");
     }
 }

@@ -1,7 +1,6 @@
 package com.zanh.route_sharing.service.riderequest.query;
 
 import com.zanh.route_sharing.dto.riderequest.query.RouteRideRequestDetailResponse.StoredRouteMeaning;
-import com.zanh.route_sharing.repository.sharedroute.riderequest.query.model.PendingRideRequestPageSnapshot;
 import com.zanh.route_sharing.testsupport.riderequest.query.RouteRideRequestQueryMother;
 import com.zanh.route_sharing.utils.spatial.RouteGeoJsonWriter;
 import org.junit.jupiter.api.BeforeEach;
@@ -23,22 +22,15 @@ class RouteRideRequestResponseMapperTest {
     }
 
     @Test
-    void givenReadTimeBeforeExpiry_whenMappingPage_thenExpiredIsFalse() {
+    void givenPendingSnapshot_whenMappingPage_thenStatusAndBusinessDataArePreservedWithoutExpiryField() {
         var result = sut.toPage(
                 RouteRideRequestQueryMother.page(),
-                RouteRideRequestQueryMother.EXPIRES_AT.minusNanos(1));
+                RouteRideRequestQueryMother.READ_AT);
 
-        assertThat(result.data().items().get(0).expired()).isFalse();
-    }
-
-    @Test
-    void givenReadTimeAtExpiry_whenMappingPage_thenExpiredIsTrueWithoutChangingStoredStatus() {
-        PendingRideRequestPageSnapshot snapshot = RouteRideRequestQueryMother.page();
-
-        var result = sut.toPage(snapshot, RouteRideRequestQueryMother.EXPIRES_AT);
-
-        assertThat(result.data().items().get(0).expired()).isTrue();
+        assertThat(result.data().items()).hasSize(1);
         assertThat(result.data().items().get(0).status().name()).isEqualTo("PENDING");
+        assertThat(result.data().items().get(0).proposedSupportAmount())
+                .isEqualByComparingTo("25000.00");
     }
 
     @Test

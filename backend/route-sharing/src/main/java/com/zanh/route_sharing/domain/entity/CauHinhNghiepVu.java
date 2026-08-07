@@ -18,8 +18,7 @@ import java.math.BigDecimal;
                                 + "AND ban_kinh_xac_dinh_da_den_met > 0 "
                                 + "AND thoi_gian_cho_khach_giay >= 0 "
                                 + "AND thoi_gian_mat_tin_hieu_giay > 0"),
-                @CheckConstraint(name = "ck_cau_hinh_yeu_cau_di_chung", constraint = "request_ttl_seconds > 0 "
-                                + "AND booking_cutoff_seconds >= 0 "
+                @CheckConstraint(name = "ck_cau_hinh_yeu_cau_di_chung", constraint = "booking_cutoff_seconds >= 0 "
                                 + "AND rejection_cooldown_seconds >= 0")
 })
 @Getter
@@ -49,8 +48,6 @@ public class CauHinhNghiepVu extends Base {
         private Integer soNgayLuuViTri;
         @Column(name = "so_ngay_luu_nhat_ky", nullable = false)
         private Integer soNgayLuuNhatKy;
-        @Column(name = "request_ttl_seconds", nullable = false)
-        private Long requestTtlSeconds;
         @Column(name = "booking_cutoff_seconds", nullable = false)
         private Long bookingCutoffSeconds;
         @Column(name = "rejection_cooldown_seconds", nullable = false)

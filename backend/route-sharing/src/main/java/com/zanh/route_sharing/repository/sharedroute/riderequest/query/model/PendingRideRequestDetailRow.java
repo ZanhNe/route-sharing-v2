@@ -14,7 +14,6 @@ public record PendingRideRequestDetailRow(
         Long rideRequestId,
         TrangThaiYeuCau status,
         Instant sentAt,
-        Instant expiresAt,
         String note,
         Long passengerId,
         String passengerFullName,
@@ -46,34 +45,33 @@ public record PendingRideRequestDetailRow(
         Instant departureTimeAtRequest) {
 
     public PendingRideRequestDetailRow {
-        Objects.requireNonNull(rideRequestId, "rideRequestId không được trống.");
+        Objects.requireNonNull(rideRequestId, "rideRequestId must not be null");
         if (status != TrangThaiYeuCau.PENDING) {
             throw new IllegalArgumentException("Pending detail must be PENDING");
         }
-        Objects.requireNonNull(sentAt, "sentAt không được trống.");
-        Objects.requireNonNull(expiresAt, "expiresAt không được trống.");
-        Objects.requireNonNull(passengerId, "passengerId không được trống.");
-        Objects.requireNonNull(passengerFullName, "passengerFullName không được trống.");
-        Objects.requireNonNull(pickupLatitude, "pickupLatitude không được trống.");
-        Objects.requireNonNull(pickupLongitude, "pickupLongitude không được trống.");
-        Objects.requireNonNull(pickupAddress, "pickupAddress không được trống.");
-        Objects.requireNonNull(passengerDestinationLatitude, "passengerDestinationLatitude không được trống.");
-        Objects.requireNonNull(passengerDestinationLongitude, "passengerDestinationLongitude không được trống.");
-        Objects.requireNonNull(passengerDestinationAddress, "passengerDestinationAddress không được trống.");
-        Objects.requireNonNull(proposedDropoffLatitude, "proposedDropoffLatitude không được trống.");
-        Objects.requireNonNull(proposedDropoffLongitude, "proposedDropoffLongitude không được trống.");
-        Objects.requireNonNull(proposedDropoffAddress, "proposedDropoffAddress không được trống.");
-        Objects.requireNonNull(matchType, "matchType không được trống.");
-        Objects.requireNonNull(dropoffType, "dropoffType không được trống.");
-        Objects.requireNonNull(passengerDesiredRouteGeoJson, "passengerDesiredRouteGeoJson không được trống.");
-        Objects.requireNonNull(servedSegmentGeoJson, "servedSegmentGeoJson không được trống.");
-        Objects.requireNonNull(pickupDeviationMeters, "pickupDeviationMeters không được trống.");
-        Objects.requireNonNull(pickupDeviationSeconds, "pickupDeviationSeconds không được trống.");
-        Objects.requireNonNull(passengerDesiredDistanceMeters, "passengerDesiredDistanceMeters không được trống.");
-        Objects.requireNonNull(servedDistanceMeters, "servedDistanceMeters không được trống.");
-        Objects.requireNonNull(remainingDistanceMeters, "remainingDistanceMeters không được trống.");
-        Objects.requireNonNull(convenienceRatioPercent, "convenienceRatioPercent không được trống.");
-        Objects.requireNonNull(proposedSupportAmount, "proposedSupportAmount không được trống.");
-        Objects.requireNonNull(departureTimeAtRequest, "departureTimeAtRequest không được trống.");
+        Objects.requireNonNull(sentAt, "sentAt must not be null");
+        Objects.requireNonNull(passengerId, "passengerId must not be null");
+        Objects.requireNonNull(passengerFullName, "passengerFullName must not be null");
+        Objects.requireNonNull(pickupLatitude, "pickupLatitude must not be null");
+        Objects.requireNonNull(pickupLongitude, "pickupLongitude must not be null");
+        Objects.requireNonNull(pickupAddress, "pickupAddress must not be null");
+        Objects.requireNonNull(passengerDestinationLatitude, "passengerDestinationLatitude must not be null");
+        Objects.requireNonNull(passengerDestinationLongitude, "passengerDestinationLongitude must not be null");
+        Objects.requireNonNull(passengerDestinationAddress, "passengerDestinationAddress must not be null");
+        Objects.requireNonNull(proposedDropoffLatitude, "proposedDropoffLatitude must not be null");
+        Objects.requireNonNull(proposedDropoffLongitude, "proposedDropoffLongitude must not be null");
+        Objects.requireNonNull(proposedDropoffAddress, "proposedDropoffAddress must not be null");
+        Objects.requireNonNull(matchType, "matchType must not be null");
+        Objects.requireNonNull(dropoffType, "dropoffType must not be null");
+        Objects.requireNonNull(passengerDesiredRouteGeoJson, "passengerDesiredRouteGeoJson must not be null");
+        Objects.requireNonNull(servedSegmentGeoJson, "servedSegmentGeoJson must not be null");
+        Objects.requireNonNull(pickupDeviationMeters, "pickupDeviationMeters must not be null");
+        Objects.requireNonNull(pickupDeviationSeconds, "pickupDeviationSeconds must not be null");
+        Objects.requireNonNull(passengerDesiredDistanceMeters, "passengerDesiredDistanceMeters must not be null");
+        Objects.requireNonNull(servedDistanceMeters, "servedDistanceMeters must not be null");
+        Objects.requireNonNull(remainingDistanceMeters, "remainingDistanceMeters must not be null");
+        Objects.requireNonNull(convenienceRatioPercent, "convenienceRatioPercent must not be null");
+        Objects.requireNonNull(proposedSupportAmount, "proposedSupportAmount must not be null");
+        Objects.requireNonNull(departureTimeAtRequest, "departureTimeAtRequest must not be null");
     }
 }

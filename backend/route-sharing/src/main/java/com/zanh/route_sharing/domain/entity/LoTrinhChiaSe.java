@@ -21,7 +21,10 @@ import java.util.Objects;
                                 + "AND so_ghe_con_lai >= 0 "
                                 + "AND so_ghe_con_lai <= so_ghe_cung_cap"),
                 @CheckConstraint(name = "ck_lo_trinh_khoang_cach", constraint = "khoang_cach_du_kien_met >= 0 AND thoi_luong_du_kien_giay >= 0"),
-                @CheckConstraint(name = "ck_lo_trinh_muc_ho_tro", constraint = "muc_ho_tro_goi_y_moi_km IS NULL OR muc_ho_tro_goi_y_moi_km >= 0")
+                @CheckConstraint(name = "ck_lo_trinh_muc_ho_tro", constraint = "muc_ho_tro_goi_y_moi_km IS NULL OR muc_ho_tro_goi_y_moi_km >= 0"),
+                @CheckConstraint(name = "ck_lo_trinh_huy", constraint = "trang_thai_lo_trinh <> 'CANCELLED' OR "
+                                + "(huy_luc IS NOT NULL AND ly_do_huy IS NOT NULL "
+                                + "AND char_length(btrim(ly_do_huy)) BETWEEN 1 AND 2000)")
 })
 @Getter
 @Setter
@@ -110,6 +113,37 @@ public class LoTrinhChiaSe extends Base {
                         throw new IllegalStateException("Lộ trình không còn ghế trống.");
                 }
                 this.soGheConLai = this.soGheConLai - 1;
+        }
+
+        public void releaseOneSeat() {
+                if (this.trangThaiLoTrinh != TrangThaiLoTrinh.OPEN) {
+                        throw new IllegalStateException("Chỉ lộ trình OPEN mới được hoàn ghế.");
+                }
+                if (this.soGheConLai == null || this.soGheCungCap == null
+                                || this.soGheConLai >= this.soGheCungCap) {
+                        throw new IllegalStateException("Không thể hoàn ghế vượt quá số ghế cung cấp.");
+                }
+                this.soGheConLai = this.soGheConLai + 1;
+        }
+
+        public void cancelByDriver(Instant cancelledAt, String reason) {
+                Objects.requireNonNull(cancelledAt, "cancelledAt không được trống");
+                if (this.trangThaiLoTrinh != TrangThaiLoTrinh.OPEN) {
+                        throw new IllegalStateException("Chỉ lộ trình OPEN mới có thể được hủy.");
+                }
+                if (this.chuyenDi != null) {
+                        throw new IllegalStateException("Lộ trình đã hình thành chuyến đi thực tế.");
+                }
+                if (reason == null || reason.isBlank()) {
+                        throw new IllegalArgumentException("Lý do hủy không được để trống.");
+                }
+                String normalizedReason = reason.trim();
+                if (normalizedReason.length() > 2000) {
+                        throw new IllegalArgumentException("Lý do hủy không được vượt quá 2000 ký tự.");
+                }
+                this.trangThaiLoTrinh = TrangThaiLoTrinh.CANCELLED;
+                this.huyLuc = cancelledAt;
+                this.lyDoHuy = normalizedReason;
         }
 
         private static Point requirePoint(Point point, String fieldName) {

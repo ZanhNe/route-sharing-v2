@@ -17,7 +17,6 @@ import com.zanh.route_sharing.repository.sharedroute.riderequest.model.RideReque
 import com.zanh.route_sharing.security.AuthenticatedPrincipalValidator;
 import com.zanh.route_sharing.service.LocationLabelResolver;
 import com.zanh.route_sharing.service.RideRequestCreationService;
-import com.zanh.route_sharing.service.riderequest.RideRequestExpiryPolicy;
 import com.zanh.route_sharing.service.riderequest.RideRequestResponseMapper;
 import com.zanh.route_sharing.service.riderequest.RideRequestSnapshotCalculator;
 import com.zanh.route_sharing.service.riderequest.model.PickupDeviation;
@@ -45,7 +44,6 @@ public class RideRequestCreationServiceImpl implements RideRequestCreationServic
     private final RoutePlanner routePlanner;
     private final LocationLabelResolver locationLabelResolver;
     private final RideRequestSnapshotCalculator snapshotCalculator;
-    private final RideRequestExpiryPolicy expiryPolicy;
     private final RideRequestResponseMapper responseMapper;
     private final GoongProperties routePlanningProperties;
     private final Clock clock;
@@ -55,7 +53,6 @@ public class RideRequestCreationServiceImpl implements RideRequestCreationServic
             RoutePlanner routePlanner,
             LocationLabelResolver locationLabelResolver,
             RideRequestSnapshotCalculator snapshotCalculator,
-            RideRequestExpiryPolicy expiryPolicy,
             RideRequestResponseMapper responseMapper,
             GoongProperties routePlanningProperties,
             Clock clock) {
@@ -63,7 +60,6 @@ public class RideRequestCreationServiceImpl implements RideRequestCreationServic
         this.routePlanner = routePlanner;
         this.locationLabelResolver = locationLabelResolver;
         this.snapshotCalculator = snapshotCalculator;
-        this.expiryPolicy = expiryPolicy;
         this.responseMapper = responseMapper;
         this.routePlanningProperties = routePlanningProperties;
         this.clock = clock;
@@ -107,11 +103,6 @@ public class RideRequestCreationServiceImpl implements RideRequestCreationServic
                 request.passengerDestination());
 
         Instant sentAt = clock.instant();
-        Instant expiresAt = expiryPolicy.calculate(
-                sentAt,
-                preparation.expectedDepartureTime(),
-                preparation.policy().requestTtl(),
-                preparation.policy().bookingCutoff());
 
         RideRequestSnapshot snapshot = snapshotCalculator.calculate(
                 preparation,
@@ -128,7 +119,6 @@ public class RideRequestCreationServiceImpl implements RideRequestCreationServic
                         actorUserId,
                         routeId,
                         sentAt,
-                        expiresAt,
                         snapshot,
                         request.note(),
                         preparation.consistencyToken())));

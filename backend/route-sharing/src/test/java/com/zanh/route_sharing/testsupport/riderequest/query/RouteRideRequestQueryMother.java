@@ -23,7 +23,6 @@ public final class RouteRideRequestQueryMother {
     public static final Long REQUEST_ID = 501L;
     public static final Instant READ_AT = Instant.parse("2026-08-06T00:10:00Z");
     public static final Instant SENT_AT = Instant.parse("2026-08-06T00:00:00Z");
-    public static final Instant EXPIRES_AT = Instant.parse("2026-08-06T00:15:00Z");
 
     private RouteRideRequestQueryMother() {
     }
@@ -51,7 +50,6 @@ public final class RouteRideRequestQueryMother {
                 REQUEST_ID,
                 TrangThaiYeuCau.PENDING,
                 SENT_AT,
-                EXPIRES_AT,
                 7L,
                 "Nguyễn Văn A",
                 "https://example.test/avatar.png",
@@ -75,7 +73,6 @@ public final class RouteRideRequestQueryMother {
                 REQUEST_ID,
                 TrangThaiYeuCau.PENDING,
                 SENT_AT,
-                EXPIRES_AT,
                 "Tôi đứng tại cổng chính",
                 7L,
                 "Nguyễn Văn A",
@@ -117,7 +114,6 @@ public final class RouteRideRequestQueryMother {
                 REQUEST_ID,
                 TrangThaiYeuCau.PENDING,
                 SENT_AT,
-                EXPIRES_AT,
                 "Tôi đứng tại cổng chính",
                 7L,
                 "Nguyễn Văn A",

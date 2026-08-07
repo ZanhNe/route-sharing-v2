@@ -1,8 +1,7 @@
 package com.zanh.route_sharing.controller;
 
 import com.zanh.route_sharing.service.RideRequestDecisionService;
-import com.zanh.route_sharing.service.riderequest.decision.RideRequestDecisionResponseMapper;
-import com.zanh.route_sharing.service.riderequest.decision.model.RideRequestDecisionResult;
+import com.zanh.route_sharing.dto.riderequest.decision.RideRequestDecisionResponse;
 import com.zanh.route_sharing.testsupport.riderequest.decision.RideRequestDecisionMother;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -37,7 +36,7 @@ class RideRequestDecisionControllerSecurityTest {
     @BeforeEach
     void setUp() {
         reset(service);
-        RideRequestDecisionResult result = new RideRequestDecisionResult(
+        RideRequestDecisionResponse result = new RideRequestDecisionResponse(
                 RideRequestDecisionMother.ROUTE_ID,
                 RideRequestDecisionMother.REQUEST_ID,
                 com.zanh.route_sharing.domain.enums.TrangThaiYeuCau.ACCEPTED,
@@ -133,15 +132,9 @@ class RideRequestDecisionControllerSecurityTest {
         }
 
         @Bean
-        RideRequestDecisionResponseMapper rideRequestDecisionResponseMapper() {
-            return new RideRequestDecisionResponseMapper();
-        }
-
-        @Bean
         RideRequestDecisionController rideRequestDecisionController(
-                RideRequestDecisionService service,
-                RideRequestDecisionResponseMapper mapper) {
-            return new RideRequestDecisionController(service, mapper);
+                RideRequestDecisionService service) {
+            return new RideRequestDecisionController(service);
         }
     }
 }

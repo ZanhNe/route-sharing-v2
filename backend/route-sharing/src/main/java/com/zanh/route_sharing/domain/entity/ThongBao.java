@@ -86,6 +86,63 @@ public class ThongBao extends Base {
                 "REJECTED");
     }
 
+    public static ThongBao bookingCancelledByPassenger(YeuCauDiChung rideRequest) {
+        if (rideRequest == null || rideRequest.getId() == null
+                || rideRequest.getLoTrinhChiaSe() == null
+                || rideRequest.getLoTrinhChiaSe().getTaiXe() == null) {
+            throw new IllegalArgumentException("Không xác định được tài xế nhận thông báo hủy.");
+        }
+        return bookingCancellation(
+                rideRequest,
+                rideRequest.getLoTrinhChiaSe().getTaiXe(),
+                LoaiThongBao.BOOKING_CANCELLED_BY_PASSENGER,
+                "Hành khách đã hủy yêu cầu đi chung",
+                "Hành khách đã hủy yêu cầu hoặc booking trên lộ trình của bạn.",
+                "CANCELLED_BY_PASSENGER");
+    }
+
+    public static ThongBao routeCancelledByDriver(YeuCauDiChung rideRequest) {
+        if (rideRequest == null || rideRequest.getId() == null
+                || rideRequest.getHanhKhach() == null
+                || rideRequest.getLoTrinhChiaSe() == null
+                || rideRequest.getLoTrinhChiaSe().getId() == null) {
+            throw new IllegalArgumentException("Không xác định được hành khách hoặc lộ trình để thông báo hủy.");
+        }
+        return ThongBao.builder()
+                .loaiThongBao(LoaiThongBao.ROUTE_CANCELLED_BY_DRIVER)
+                .tieuDe("Tài xế đã hủy lộ trình chia sẻ")
+                .noiDung("Tài xế đã hủy lộ trình; yêu cầu hoặc booking của bạn đã được kết thúc.")
+                .kenhGui(KenhThongBao.IN_APP)
+                .trangThaiThongBao(TrangThaiThongBao.PENDING)
+                .loaiDoiTuongLienQuan("LO_TRINH_CHIA_SE")
+                .doiTuongLienQuanId(rideRequest.getLoTrinhChiaSe().getId())
+                .deduplicationKey("ROUTE_CANCELLED_BY_DRIVER:"
+                        + rideRequest.getLoTrinhChiaSe().getId() + ":"
+                        + rideRequest.getId() + ":CANCELLED_BY_DRIVER")
+                .nguoiNhan(rideRequest.getHanhKhach())
+                .build();
+    }
+
+    private static ThongBao bookingCancellation(
+            YeuCauDiChung rideRequest,
+            NguoiDung recipient,
+            LoaiThongBao type,
+            String title,
+            String content,
+            String state) {
+        return ThongBao.builder()
+                .loaiThongBao(type)
+                .tieuDe(title)
+                .noiDung(content)
+                .kenhGui(KenhThongBao.IN_APP)
+                .trangThaiThongBao(TrangThaiThongBao.PENDING)
+                .loaiDoiTuongLienQuan("YEU_CAU_DI_CHUNG")
+                .doiTuongLienQuanId(rideRequest.getId())
+                .deduplicationKey(type.name() + ":" + rideRequest.getId() + ":" + state)
+                .nguoiNhan(recipient)
+                .build();
+    }
+
     private static ThongBao bookingDecision(
             YeuCauDiChung rideRequest,
             LoaiThongBao notificationType,

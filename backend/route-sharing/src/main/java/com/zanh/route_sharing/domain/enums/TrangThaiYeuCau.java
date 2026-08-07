@@ -6,7 +6,6 @@ public enum TrangThaiYeuCau {
     REJECTED,
     CANCELLED_BY_PASSENGER,
     CANCELLED_BY_DRIVER,
-    EXPIRED,
     NO_SHOW,
     PICKUP_FAILED,
     ON_BOARD,

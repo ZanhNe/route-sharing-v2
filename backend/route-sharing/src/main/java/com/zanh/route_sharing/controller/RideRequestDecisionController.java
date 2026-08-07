@@ -4,7 +4,6 @@ import com.zanh.route_sharing.dto.response.ApiResponse;
 import com.zanh.route_sharing.dto.riderequest.decision.RideRequestDecisionResponse;
 import com.zanh.route_sharing.security.CustomUserDetails;
 import com.zanh.route_sharing.service.RideRequestDecisionService;
-import com.zanh.route_sharing.service.riderequest.decision.RideRequestDecisionResponseMapper;
 import jakarta.validation.constraints.Positive;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -22,13 +21,9 @@ import org.springframework.web.bind.annotation.RestController;
 public class RideRequestDecisionController {
 
     private final RideRequestDecisionService service;
-    private final RideRequestDecisionResponseMapper mapper;
 
-    public RideRequestDecisionController(
-            RideRequestDecisionService service,
-            RideRequestDecisionResponseMapper mapper) {
+    public RideRequestDecisionController(RideRequestDecisionService service) {
         this.service = service;
-        this.mapper = mapper;
     }
 
     @PostMapping("/{routeId}/ride-requests/{rideRequestId}/accept")
@@ -37,8 +32,8 @@ public class RideRequestDecisionController {
             @AuthenticationPrincipal CustomUserDetails principal,
             @PathVariable @Positive(message = "routeId phải là số dương.") Long routeId,
             @PathVariable @Positive(message = "rideRequestId phải là số dương.") Long rideRequestId) {
-        RideRequestDecisionResponse data = mapper.toResponse(
-                service.accept(principal.getId(), routeId, rideRequestId));
+        RideRequestDecisionResponse data = service.accept(
+                principal.getId(), routeId, rideRequestId);
         return ResponseEntity.ok(ApiResponse.success(
                 HttpStatus.OK.value(),
                 data,
@@ -51,8 +46,8 @@ public class RideRequestDecisionController {
             @AuthenticationPrincipal CustomUserDetails principal,
             @PathVariable @Positive(message = "routeId phải là số dương.") Long routeId,
             @PathVariable @Positive(message = "rideRequestId phải là số dương.") Long rideRequestId) {
-        RideRequestDecisionResponse data = mapper.toResponse(
-                service.reject(principal.getId(), routeId, rideRequestId));
+        RideRequestDecisionResponse data = service.reject(
+                principal.getId(), routeId, rideRequestId);
         return ResponseEntity.ok(ApiResponse.success(
                 HttpStatus.OK.value(),
                 data,

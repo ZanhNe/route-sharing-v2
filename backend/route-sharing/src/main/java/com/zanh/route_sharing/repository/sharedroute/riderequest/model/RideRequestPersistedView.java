@@ -14,7 +14,6 @@ public record RideRequestPersistedView(
         Long routeId,
         TrangThaiYeuCau status,
         Instant sentAt,
-        Instant expiresAt,
         LoaiGhepTuyen matchType,
         LoaiDiemTha dropoffType,
         RideRequestPointSnapshot pickup,
@@ -35,7 +34,6 @@ public record RideRequestPersistedView(
         Objects.requireNonNull(routeId, "routeId không được trống");
         Objects.requireNonNull(status, "status không được trống");
         Objects.requireNonNull(sentAt, "sentAt không được trống");
-        Objects.requireNonNull(expiresAt, "expiresAt không được trống");
         Objects.requireNonNull(matchType, "matchType không được trống");
         Objects.requireNonNull(dropoffType, "dropoffType không được trống");
         Objects.requireNonNull(pickup, "pickup không được trống");

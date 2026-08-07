@@ -12,7 +12,6 @@ public record PendingRideRequestSummaryRow(
         Long rideRequestId,
         TrangThaiYeuCau status,
         Instant sentAt,
-        Instant expiresAt,
         Long passengerId,
         String passengerFullName,
         String passengerAvatarUrl,
@@ -23,18 +22,18 @@ public record PendingRideRequestSummaryRow(
         BigDecimal proposedSupportAmount) {
 
     public PendingRideRequestSummaryRow {
-        Objects.requireNonNull(rideRequestId, "rideRequestId không được trống.");
+        Objects.requireNonNull(rideRequestId, "rideRequestId must not be null");
         if (status != TrangThaiYeuCau.PENDING) {
-            throw new IllegalArgumentException("Pending queue phải chứa duy nhất request đang ở trạng thái PENDING.");
+            throw new IllegalArgumentException("Pending row must have PENDING status");
         }
-        Objects.requireNonNull(sentAt, "sentAt không được trống.");
-        Objects.requireNonNull(expiresAt, "expiresAt không được trống.");
-        Objects.requireNonNull(passengerId, "passengerId không được trống.");
-        Objects.requireNonNull(passengerFullName, "passengerFullName không được trống.");
-        Objects.requireNonNull(pickupAddress, "pickupAddress không được trống.");
-        Objects.requireNonNull(passengerDestinationAddress, "passengerDestinationAddress không được trống.");
-        Objects.requireNonNull(matchType, "matchType không được trống.");
-        Objects.requireNonNull(dropoffType, "dropoffType không được trống.");
-        Objects.requireNonNull(proposedSupportAmount, "proposedSupportAmount không được trống.");
+        Objects.requireNonNull(sentAt, "sentAt must not be null");
+        Objects.requireNonNull(passengerId, "passengerId must not be null");
+        Objects.requireNonNull(passengerFullName, "passengerFullName must not be null");
+        Objects.requireNonNull(pickupAddress, "pickupAddress must not be null");
+        Objects.requireNonNull(passengerDestinationAddress,
+                "passengerDestinationAddress must not be null");
+        Objects.requireNonNull(matchType, "matchType must not be null");
+        Objects.requireNonNull(dropoffType, "dropoffType must not be null");
+        Objects.requireNonNull(proposedSupportAmount, "proposedSupportAmount must not be null");
     }
 }

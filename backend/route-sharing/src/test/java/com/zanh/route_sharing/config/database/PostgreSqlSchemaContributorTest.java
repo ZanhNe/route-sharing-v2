@@ -14,6 +14,8 @@ class PostgreSqlSchemaContributorTest {
                 .contains("CREATE UNIQUE INDEX IF NOT EXISTS uk_yeu_cau_hanh_khach_blocking")
                 .contains("ON yeu_cau_di_chung (hanh_khach_id)")
                 .contains("CREATE INDEX IF NOT EXISTS idx_yeu_cau_cooldown_lookup")
+                .contains("(hanh_khach_id, lo_trinh_chia_se_id, cooldown_until DESC)")
+                .doesNotContain("(hanh_khach_id, tai_xe_id_luc_gui, cooldown_until DESC)")
                 .contains("CREATE INDEX IF NOT EXISTS idx_yeu_cau_route_queue")
                 .contains("CREATE UNIQUE INDEX IF NOT EXISTS uk_thong_bao_deduplication_key")
                 .contains("CREATE UNIQUE INDEX IF NOT EXISTS uk_diem_dung_driver_start_moi_chuyen")

@@ -125,7 +125,6 @@ final class PostgisSharedRoutePreviewSql {
           CAST(:maxPickupDeviationMeters AS numeric) AS used_max_pickup_deviation_m,
           cfg.thoi_gian_lech_don_toi_da_giay AS used_max_pickup_deviation_s,
           cfg.ty_le_tien_duong_toi_thieu AS used_minimum_convenience_ratio,
-          cfg.request_ttl_seconds AS used_request_ttl_s,
           cfg.booking_cutoff_seconds AS used_booking_cutoff_s,
           cfg.rejection_cooldown_seconds AS used_rejection_cooldown_s
       FROM matched
@@ -297,7 +296,6 @@ final class PostgisSharedRoutePreviewSql {
              AND cfg.khoang_cach_lech_don_toi_da_met = :maxPickupDeviationMeters
              AND cfg.thoi_gian_lech_don_toi_da_giay = :maxPickupDeviationSeconds
              AND cfg.ty_le_tien_duong_toi_thieu = :minimumConvenienceRatioPercent
-             AND cfg.request_ttl_seconds = :requestTtlSeconds
              AND cfg.booking_cutoff_seconds = :bookingCutoffSeconds
              AND cfg.rejection_cooldown_seconds = :rejectionCooldownSeconds
             JOIN ho_so_thanh_vien actor_membership

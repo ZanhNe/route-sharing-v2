@@ -110,7 +110,6 @@ public class PostgisSharedRoutePreviewRepository implements SharedRoutePreviewRe
                                                 token.maxPickupDeviationSeconds(), Types.BIGINT)
                                 .addValue("minimumConvenienceRatioPercent",
                                                 token.minimumConvenienceRatioPercent(), Types.NUMERIC)
-                                .addValue("requestTtlSeconds", token.requestTtlSeconds(), Types.BIGINT)
                                 .addValue("bookingCutoffSeconds", token.bookingCutoffSeconds(), Types.BIGINT)
                                 .addValue("rejectionCooldownSeconds",
                                                 token.rejectionCooldownSeconds(), Types.BIGINT)
@@ -261,7 +260,6 @@ public class PostgisSharedRoutePreviewRepository implements SharedRoutePreviewRe
                                 rs.getBigDecimal("used_max_pickup_deviation_m"),
                                 rs.getLong("used_max_pickup_deviation_s"),
                                 rs.getBigDecimal("used_minimum_convenience_ratio"),
-                                rs.getLong("used_request_ttl_s"),
                                 rs.getLong("used_booking_cutoff_s"),
                                 rs.getLong("used_rejection_cooldown_s"),
                                 route.expectedDepartureTime(),

@@ -12,7 +12,6 @@ public record RideRequestPolicySnapshot(
         BigDecimal maxPickupDeviationMeters,
         long maxPickupDeviationSeconds,
         BigDecimal minimumConvenienceRatioPercent,
-        Duration requestTtl,
         Duration bookingCutoff,
         Duration rejectionCooldown) {
 
@@ -31,7 +30,6 @@ public record RideRequestPolicySnapshot(
                 || minimumConvenienceRatioPercent.compareTo(new BigDecimal("100")) > 0) {
             throw new IllegalArgumentException("minimumConvenienceRatioPercent phải trong đoạn 0..100");
         }
-        requirePositive(requestTtl, "requestTtl");
         requireNonNegative(bookingCutoff, "bookingCutoff");
         requireNonNegative(rejectionCooldown, "rejectionCooldown");
     }
@@ -57,13 +55,6 @@ public record RideRequestPolicySnapshot(
     private static void requireNonNegative(BigDecimal value, String name) {
         if (value == null || value.signum() < 0) {
             throw new IllegalArgumentException(name + " không được âm");
-        }
-    }
-
-    private static void requirePositive(Duration value, String name) {
-        Objects.requireNonNull(value, name + " không được trống");
-        if (value.isZero() || value.isNegative()) {
-            throw new IllegalArgumentException(name + " phải lớn hơn 0");
         }
     }
 

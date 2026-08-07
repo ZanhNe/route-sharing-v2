@@ -4,8 +4,7 @@ import com.zanh.route_sharing.domain.enums.TrangThaiYeuCau;
 import com.zanh.route_sharing.exception.GlobalExceptionHandler;
 import com.zanh.route_sharing.security.CustomUserDetails;
 import com.zanh.route_sharing.service.RideRequestDecisionService;
-import com.zanh.route_sharing.service.riderequest.decision.RideRequestDecisionResponseMapper;
-import com.zanh.route_sharing.service.riderequest.decision.model.RideRequestDecisionResult;
+import com.zanh.route_sharing.dto.riderequest.decision.RideRequestDecisionResponse;
 import com.zanh.route_sharing.testsupport.riderequest.decision.RideRequestDecisionMother;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -57,9 +56,7 @@ class RideRequestDecisionControllerTest {
                 methodValidation.afterPropertiesSet();
                 RideRequestDecisionController controller = (RideRequestDecisionController) methodValidation
                                 .postProcessAfterInitialization(
-                                                new RideRequestDecisionController(
-                                                                service,
-                                                                new RideRequestDecisionResponseMapper()),
+                                                new RideRequestDecisionController(service),
                                                 "rideRequestDecisionController");
                 mockMvc = standaloneSetup(controller)
                                 .setControllerAdvice(new GlobalExceptionHandler())
@@ -78,7 +75,7 @@ class RideRequestDecisionControllerTest {
                 when(service.accept(
                                 RideRequestDecisionMother.ACTOR_ID,
                                 RideRequestDecisionMother.ROUTE_ID,
-                                RideRequestDecisionMother.REQUEST_ID)).thenReturn(new RideRequestDecisionResult(
+                                RideRequestDecisionMother.REQUEST_ID)).thenReturn(new RideRequestDecisionResponse(
                                                 RideRequestDecisionMother.ROUTE_ID,
                                                 RideRequestDecisionMother.REQUEST_ID,
                                                 TrangThaiYeuCau.ACCEPTED,
@@ -105,7 +102,7 @@ class RideRequestDecisionControllerTest {
                 when(service.reject(
                                 RideRequestDecisionMother.ACTOR_ID,
                                 RideRequestDecisionMother.ROUTE_ID,
-                                RideRequestDecisionMother.REQUEST_ID)).thenReturn(new RideRequestDecisionResult(
+                                RideRequestDecisionMother.REQUEST_ID)).thenReturn(new RideRequestDecisionResponse(
                                                 RideRequestDecisionMother.ROUTE_ID,
                                                 RideRequestDecisionMother.REQUEST_ID,
                                                 TrangThaiYeuCau.REJECTED,

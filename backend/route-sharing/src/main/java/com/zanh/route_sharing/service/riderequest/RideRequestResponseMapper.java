@@ -17,7 +17,6 @@ public class RideRequestResponseMapper {
                 view.routeId(),
                 view.status(),
                 view.sentAt(),
-                view.expiresAt(),
                 false,
                 view.matchType(),
                 view.dropoffType(),

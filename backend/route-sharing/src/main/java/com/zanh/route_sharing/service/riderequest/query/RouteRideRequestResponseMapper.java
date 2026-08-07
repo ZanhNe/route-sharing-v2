@@ -111,8 +111,6 @@ public class RouteRideRequestResponseMapper {
                 request.rideRequestId(),
                 request.status(),
                 request.sentAt(),
-                request.expiresAt(),
-                isExpired(request.expiresAt(), readAt),
                 request.note(),
                 pickup,
                 passengerDestination,
@@ -159,8 +157,6 @@ public class RouteRideRequestResponseMapper {
                 row.rideRequestId(),
                 row.status(),
                 row.sentAt(),
-                row.expiresAt(),
-                isExpired(row.expiresAt(), readAt),
                 new RouteRideRequestPageResponse.PassengerSummary(
                         row.passengerId(),
                         row.passengerFullName(),
@@ -186,7 +182,4 @@ public class RouteRideRequestResponseMapper {
         return new RideRequestPointResponse(latitude, longitude, address);
     }
 
-    private static boolean isExpired(Instant expiresAt, Instant readAt) {
-        return !readAt.isBefore(expiresAt);
-    }
 }

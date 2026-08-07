@@ -2,6 +2,10 @@ package com.zanh.route_sharing.repository.sharedroute;
 
 import com.zanh.route_sharing.dto.riderequest.CreateRideRequestRequest;
 import com.zanh.route_sharing.dto.sharedroute.RouteEndpointRequest;
+import com.zanh.route_sharing.domain.entity.CauHinhNghiepVu;
+import com.zanh.route_sharing.domain.entity.LoTrinhChiaSe;
+import com.zanh.route_sharing.domain.entity.NguoiDung;
+import com.zanh.route_sharing.domain.entity.YeuCauDiChung;
 import com.zanh.route_sharing.domain.enums.TrangThaiYeuCau;
 import com.zanh.route_sharing.exception.BusinessException;
 import com.zanh.route_sharing.repository.sharedroute.riderequest.RideRequestCreationRepository;
@@ -20,6 +24,7 @@ import com.zanh.route_sharing.service.routing.model.RoutePlanLeg;
 import com.zanh.route_sharing.service.routing.model.RoutePlanRequest;
 import com.zanh.route_sharing.service.routing.model.RouteWaypoint;
 import com.zanh.route_sharing.service.routing.model.RouteWaypointRole;
+import com.zanh.route_sharing.testsupport.riderequest.decision.RideRequestDecisionMother;
 import com.zanh.route_sharing.testsupport.sharedroute.integration.SharedRouteSearchDatabaseFixture;
 import com.zanh.route_sharing.testsupport.sharedroute.integration.SharedRouteSearchDatabaseFixture.Scenario;
 import jakarta.persistence.EntityManager;
@@ -150,7 +155,6 @@ class PostgisRideRequestCreationRepositoryIntegrationTest {
         assertThat(preparation.driverId()).isEqualTo(scenario.driverId());
         assertThat(preparation.remainingSeats()).isEqualTo(2);
         assertThat(preparation.policy().configurationId()).isEqualTo(scenario.configurationId());
-        assertThat(preparation.policy().requestTtl().toSeconds()).isEqualTo(900L);
         assertThat(preparation.policy().bookingCutoff().toSeconds()).isEqualTo(900L);
         assertThat(preparation.consistencyToken().routeId()).isEqualTo(scenario.routeId());
         assertThat(rideRequestCount(scenario.actorId())).isZero();
@@ -223,6 +227,81 @@ class PostgisRideRequestCreationRepositoryIntegrationTest {
     }
 
     @Test
+    void givenRejectedRequestOnSameRouteWithinCooldown_whenEvaluating_thenCooldownBlocksOnlyThatRoute() {
+        Scenario scenario = createScenario();
+        Instant rejectedAt = NOW.minusSeconds(60);
+        Instant expectedCooldownUntil = transactionTemplate.execute(status ->
+                persistRejectedRequest(scenario, scenario.routeId(), rejectedAt, 3600L));
+
+        RideRequestEvaluation result = sut.evaluate(criteria(scenario, scenario.routeId(), request()));
+
+        assertThat(result.status()).isEqualTo(RideRequestEvaluationStatus.REJECTION_COOLDOWN_ACTIVE);
+        assertThat(result.cooldownUntil()).isEqualTo(expectedCooldownUntil);
+        assertThat(rideRequestCount(scenario.actorId())).isEqualTo(1L);
+    }
+
+    @Test
+    void givenRejectedRequestOnFirstRouteWithinCooldown_whenEvaluatingSecondRouteOfSameDriver_thenSecondRouteRemainsEligible() {
+        Scenario scenario = createScenario();
+        Long secondRouteId = transactionTemplate.execute(status ->
+                fixture.createAdditionalEquivalentRoute(scenario, DEPARTURE.plusSeconds(60)));
+        transactionTemplate.executeWithoutResult(status ->
+                persistRejectedRequest(scenario, scenario.routeId(), NOW.minusSeconds(60), 3600L));
+
+        RideRequestEvaluation result = sut.evaluate(criteria(scenario, secondRouteId, request()));
+
+        assertThat(result.status()).isEqualTo(RideRequestEvaluationStatus.ELIGIBLE);
+        assertThat(result.requirePreparation().routeId()).isEqualTo(secondRouteId);
+    }
+
+    @Test
+    void givenRejectedRequestCooldownElapsed_whenEvaluatingSameRoute_thenRetryIsEligible() {
+        Scenario scenario = createScenario();
+        transactionTemplate.executeWithoutResult(status ->
+                persistRejectedRequest(scenario, scenario.routeId(), NOW.minusSeconds(3601), 3600L));
+
+        RideRequestEvaluation result = sut.evaluate(criteria(scenario, scenario.routeId(), request()));
+
+        assertThat(result.status()).isEqualTo(RideRequestEvaluationStatus.ELIGIBLE);
+    }
+
+    @Test
+    void givenConfigurationChangesAfterReject_whenEvaluatingSameRoute_thenStoredCooldownUntilRemainsAuthoritative() {
+        Scenario scenario = createScenario();
+        Instant rejectedAt = NOW.minusSeconds(60);
+        Instant expectedCooldownUntil = transactionTemplate.execute(status ->
+                persistRejectedRequest(scenario, scenario.routeId(), rejectedAt, 1800L));
+        transactionTemplate.executeWithoutResult(status -> {
+            CauHinhNghiepVu configuration = entityManager.find(
+                    CauHinhNghiepVu.class, scenario.configurationId());
+            configuration.setRejectionCooldownSeconds(7200L);
+        });
+
+        RideRequestEvaluation result = sut.evaluate(criteria(scenario, scenario.routeId(), request()));
+
+        assertThat(result.status()).isEqualTo(RideRequestEvaluationStatus.REJECTION_COOLDOWN_ACTIVE);
+        assertThat(result.cooldownUntil()).isEqualTo(expectedCooldownUntil);
+        assertThat(expectedCooldownUntil).isEqualTo(rejectedAt.plusSeconds(1800L));
+    }
+
+    @Test
+    void givenSameRouteCooldownAppearsAfterPreparation_whenCommitting_thenCommitRecheckBlocksCreation() {
+        Scenario scenario = createScenario();
+        RideRequestCommitCommand preparedCommand = command(scenario, scenario.routeId());
+        Instant expectedCooldownUntil = transactionTemplate.execute(status ->
+                persistRejectedRequest(scenario, scenario.routeId(), NOW.minusSeconds(30), 3600L));
+
+        assertThatThrownBy(() -> sut.commit(preparedCommand))
+                .isInstanceOfSatisfying(BusinessException.class, exception -> {
+                    assertThat(exception.getCode()).isEqualTo("RIDE_REQUEST_REJECTION_COOLDOWN_ACTIVE");
+                    assertThat(exception.getErrors())
+                            .containsEntry("cooldownUntil", expectedCooldownUntil.toString());
+                });
+        assertThat(rideRequestCount(scenario.actorId())).isEqualTo(1L);
+        assertThat(remainingSeats(scenario.routeId())).isEqualTo(2);
+    }
+
+    @Test
     void givenExistingBlockingRequest_whenEvaluatingOrCommittingAgain_thenSameBlockingRequestIsReported() {
         Scenario scenario = createScenario();
         RideRequestCommitCommand first = command(scenario, scenario.routeId());
@@ -254,7 +333,6 @@ class PostgisRideRequestCreationRepositoryIntegrationTest {
                 valid.actorUserId(),
                 valid.routeId() + 999L,
                 valid.sentAt(),
-                valid.expiresAt(),
                 valid.snapshot(),
                 valid.note(),
                 valid.consistencyToken());
@@ -267,19 +345,18 @@ class PostgisRideRequestCreationRepositoryIntegrationTest {
     }
 
     @Test
-    void givenExpiryDoesNotEqualCurrentTtlAndCutoff_whenCommitting_thenCutoffConflictIsReturned() {
+    void givenCommandAtBookingCutoff_whenCommitting_thenCutoffConflictIsReturned() {
         Scenario scenario = createScenario();
         RideRequestCommitCommand valid = command(scenario, scenario.routeId());
-        RideRequestCommitCommand invalidExpiry = new RideRequestCommitCommand(
+        RideRequestCommitCommand atCutoff = new RideRequestCommitCommand(
                 valid.actorUserId(),
                 valid.routeId(),
-                valid.sentAt(),
-                valid.expiresAt().plusSeconds(1),
+                valid.snapshot().expectedDepartureTime().minusSeconds(900L),
                 valid.snapshot(),
                 valid.note(),
                 valid.consistencyToken());
 
-        assertThatThrownBy(() -> sut.commit(invalidExpiry))
+        assertThatThrownBy(() -> sut.commit(atCutoff))
                 .isInstanceOfSatisfying(BusinessException.class, exception ->
                         assertThat(exception.getCode())
                                 .isEqualTo("SHARED_ROUTE_BOOKING_CUTOFF_REACHED"));
@@ -379,7 +456,6 @@ class PostgisRideRequestCreationRepositoryIntegrationTest {
                 scenario.actorId(),
                 routeId,
                 NOW,
-                NOW.plusSeconds(900),
                 snapshot,
                 request.note(),
                 preparation.consistencyToken());
@@ -467,6 +543,34 @@ class PostgisRideRequestCreationRepositoryIntegrationTest {
         return new RouteWaypoint(role, new GeoCoordinate(latitude, longitude));
     }
 
+
+    private Instant persistRejectedRequest(
+            Scenario scenario,
+            Long routeId,
+            Instant rejectedAt,
+            long cooldownSeconds) {
+        LoTrinhChiaSe route = entityManager.find(LoTrinhChiaSe.class, routeId);
+        NguoiDung passenger = entityManager.find(NguoiDung.class, scenario.actorId());
+        NguoiDung driver = entityManager.find(NguoiDung.class, scenario.driverId());
+        CauHinhNghiepVu configuration = entityManager.find(
+                CauHinhNghiepVu.class, scenario.configurationId());
+        YeuCauDiChung request = YeuCauDiChung.pending(
+                passenger,
+                route,
+                driver,
+                configuration,
+                RideRequestDecisionMother.snapshot(
+                        route.getVersion(),
+                        driver.getId(),
+                        configuration,
+                        route.getThoiGianKhoiHanhDuKien()),
+                rejectedAt.minusSeconds(30),
+                "Cooldown integration fixture");
+        entityManager.persist(request);
+        request.reject(rejectedAt, configuration, cooldownSeconds);
+        entityManager.flush();
+        return request.getCooldownUntil();
+    }
 
     private long rideRequestCount(Long actorUserId) {
         return transactionTemplate.execute(status -> entityManager.createQuery(

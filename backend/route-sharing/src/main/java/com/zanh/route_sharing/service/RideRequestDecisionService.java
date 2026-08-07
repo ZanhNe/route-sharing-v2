@@ -1,10 +1,10 @@
 package com.zanh.route_sharing.service;
 
-import com.zanh.route_sharing.service.riderequest.decision.model.RideRequestDecisionResult;
+import com.zanh.route_sharing.dto.riderequest.decision.RideRequestDecisionResponse;
 
 public interface RideRequestDecisionService {
 
-    RideRequestDecisionResult accept(Long actorId, Long routeId, Long rideRequestId);
+    RideRequestDecisionResponse accept(Long actorId, Long routeId, Long rideRequestId);
 
-    RideRequestDecisionResult reject(Long actorId, Long routeId, Long rideRequestId);
+    RideRequestDecisionResponse reject(Long actorId, Long routeId, Long rideRequestId);
 }

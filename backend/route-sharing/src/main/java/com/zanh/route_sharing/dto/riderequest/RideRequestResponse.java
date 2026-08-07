@@ -12,7 +12,6 @@ public record RideRequestResponse(
         Long routeId,
         TrangThaiYeuCau status,
         Instant sentAt,
-        Instant expiresAt,
         boolean seatReserved,
         LoaiGhepTuyen matchType,
         LoaiDiemTha dropoffType,

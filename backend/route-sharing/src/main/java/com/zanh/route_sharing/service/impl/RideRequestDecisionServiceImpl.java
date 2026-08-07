@@ -7,12 +7,14 @@ import com.zanh.route_sharing.domain.entity.ThongBao;
 import com.zanh.route_sharing.domain.entity.YeuCauDiChung;
 import com.zanh.route_sharing.domain.enums.TrangThaiLoTrinh;
 import com.zanh.route_sharing.domain.enums.TrangThaiYeuCau;
+import com.zanh.route_sharing.dto.riderequest.decision.RideRequestDecisionResponse;
 import com.zanh.route_sharing.exception.BusinessException;
 import com.zanh.route_sharing.repository.sharedroute.riderequest.decision.RideRequestDecisionRepository;
 import com.zanh.route_sharing.repository.sharedroute.riderequest.decision.model.CurrentAcceptEligibility;
 import com.zanh.route_sharing.security.AuthenticatedPrincipalValidator;
 import com.zanh.route_sharing.service.RideRequestDecisionService;
 import com.zanh.route_sharing.service.riderequest.decision.RideRequestActionabilityPolicy;
+import com.zanh.route_sharing.service.riderequest.decision.RideRequestDecisionResponseMapper;
 import com.zanh.route_sharing.service.riderequest.decision.model.RideRequestDecisionResult;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
@@ -31,25 +33,27 @@ public class RideRequestDecisionServiceImpl implements RideRequestDecisionServic
     private final RideRequestDecisionRepository repository;
     private final RideRequestActionabilityPolicy actionabilityPolicy;
     private final Clock clock;
+    private final RideRequestDecisionResponseMapper responseMapper;
 
     public RideRequestDecisionServiceImpl(
             RideRequestDecisionRepository repository,
             RideRequestActionabilityPolicy actionabilityPolicy,
-            Clock clock) {
+            Clock clock,
+            RideRequestDecisionResponseMapper responseMapper) {
         this.repository = repository;
         this.actionabilityPolicy = actionabilityPolicy;
         this.clock = clock;
+        this.responseMapper = responseMapper;
     }
 
     @Override
     @Transactional
-    public RideRequestDecisionResult accept(Long actorId, Long routeId, Long rideRequestId) {
+    public RideRequestDecisionResponse accept(Long actorId, Long routeId, Long rideRequestId) {
         validateInput(actorId, routeId, rideRequestId);
         LoTrinhChiaSe route = ownedRoute(actorId, routeId);
         YeuCauDiChung request = rideRequest(routeId, rideRequestId);
         Instant decisionAt = clock.instant();
         requirePending(request);
-        actionabilityPolicy.requireActionable(decisionAt, request.getExpiresAt());
         requireOpenRoute(route);
 
         CauHinhNghiepVu configuration = currentConfiguration(request);
@@ -84,18 +88,17 @@ public class RideRequestDecisionServiceImpl implements RideRequestDecisionServic
         repository.persistNotification(ThongBao.bookingAccepted(request));
         repository.flush();
 
-        return result(route, request, decisionAt);
+        return responseMapper.toResponse(result(route, request, decisionAt));
     }
 
     @Override
     @Transactional
-    public RideRequestDecisionResult reject(Long actorId, Long routeId, Long rideRequestId) {
+    public RideRequestDecisionResponse reject(Long actorId, Long routeId, Long rideRequestId) {
         validateInput(actorId, routeId, rideRequestId);
         LoTrinhChiaSe route = ownedRoute(actorId, routeId);
         YeuCauDiChung request = rideRequest(routeId, rideRequestId);
         Instant decisionAt = clock.instant();
         requirePending(request);
-        actionabilityPolicy.requireActionable(decisionAt, request.getExpiresAt());
         requireOpenRoute(route);
 
         CauHinhNghiepVu configuration = currentConfiguration(request);
@@ -112,7 +115,7 @@ public class RideRequestDecisionServiceImpl implements RideRequestDecisionServic
         repository.persistNotification(ThongBao.bookingRejected(request));
         repository.flush();
 
-        return result(route, request, decisionAt);
+        return responseMapper.toResponse(result(route, request, decisionAt));
     }
 
     private LoTrinhChiaSe ownedRoute(Long actorId, Long routeId) {
