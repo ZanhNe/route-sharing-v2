@@ -57,8 +57,11 @@ public class DevSeedDataService {
         private static final String VIEW_ROUTE_RIDE_REQUESTS_PERMISSION = "VIEW_ROUTE_RIDE_REQUESTS";
         private static final String RESPOND_RIDE_REQUEST_PERMISSION = "RESPOND_RIDE_REQUEST";
         private static final String CANCEL_OWN_RIDE_REQUEST_PERMISSION = "CANCEL_OWN_RIDE_REQUEST";
+        private static final String VIEW_OWN_RIDE_REQUESTS_PERMISSION = "VIEW_OWN_RIDE_REQUESTS";
+        private static final String VIEW_OWN_SHARED_ROUTES_PERMISSION = "VIEW_OWN_SHARED_ROUTES";
         private static final String LEGACY_CANCEL_ROUTE_RIDE_REQUEST_PERMISSION = "CANCEL_ROUTE_RIDE_REQUEST";
         private static final String CANCEL_OWN_SHARED_ROUTE_PERMISSION = "CANCEL_OWN_SHARED_ROUTE";
+        private static final String LOCK_OWN_SHARED_ROUTE_PERMISSION = "LOCK_OWN_SHARED_ROUTE";
         private static final String DRIVER_GROUP = "DRIVER";
         private static final ZoneId BUSINESS_ZONE = ZoneId.of("Asia/Ho_Chi_Minh");
         private static final GeometryFactory GEOMETRY_FACTORY = new GeometryFactory(new PrecisionModel(), 4326);
@@ -109,16 +112,30 @@ public class DevSeedDataService {
                                 CANCEL_OWN_RIDE_REQUEST_PERMISSION,
                                 "Hủy yêu cầu đi chung của mình",
                                 "Cho phép hành khách hủy yêu cầu hoặc booking của chính mình.");
+                QuyenHan viewOwnRideRequestsPermission = ensurePermission(
+                                VIEW_OWN_RIDE_REQUESTS_PERMISSION,
+                                "Xem yêu cầu đi chung của mình",
+                                "Cho phép hành khách xem danh sách và chi tiết yêu cầu đi chung của chính mình.");
                 QuyenHan cancelOwnSharedRoutePermission = ensurePermission(
                                 CANCEL_OWN_SHARED_ROUTE_PERMISSION,
                                 "Hủy lộ trình chia sẻ của mình",
                                 "Cho phép tài xế hủy lộ trình OPEN do mình đăng và kết thúc booking liên quan.");
+                QuyenHan viewOwnSharedRoutesPermission = ensurePermission(
+                                VIEW_OWN_SHARED_ROUTES_PERMISSION,
+                                "Xem lộ trình chia sẻ của mình",
+                                "Cho phép tài xế xem danh sách và chi tiết lộ trình chia sẻ do chính mình đăng.");
+                QuyenHan lockOwnSharedRoutePermission = ensurePermission(
+                                LOCK_OWN_SHARED_ROUTE_PERMISSION,
+                                "Khóa danh sách và hình thành chuyến đi",
+                                "Cho phép tài xế khóa lộ trình OPEN của mình và hình thành chuyến đi thực tế.");
 
                 NhomQuyen driverGroup = ensureDriverGroup(
                                 createPermission,
                                 viewRouteRideRequestsPermission,
                                 respondRideRequestPermission,
-                                cancelOwnSharedRoutePermission);
+                                cancelOwnSharedRoutePermission,
+                                viewOwnSharedRoutesPermission,
+                                lockOwnSharedRoutePermission);
                 retireLegacyPermission(driverGroup, LEGACY_CANCEL_ROUTE_RIDE_REQUEST_PERMISSION);
                 NguoiDung driver = ensureDriverUser(driverGroup, now);
                 HoSoTaiXe driverProfile = ensureDriverProfile(driver, now);
@@ -131,6 +148,7 @@ public class DevSeedDataService {
                                 searchPermission,
                                 createRideRequestPermission,
                                 cancelOwnRideRequestPermission,
+                                viewOwnRideRequestsPermission,
                                 now);
 
                 HoSoSinhVien passengerMembership = ensureMembership(
@@ -261,6 +279,7 @@ public class DevSeedDataService {
                         QuyenHan searchPermission,
                         QuyenHan createRideRequestPermission,
                         QuyenHan cancelOwnRideRequestPermission,
+                        QuyenHan viewOwnRideRequestsPermission,
                         Instant now) {
                 NguoiDung user = userRepository.findByEmailTruongIgnoreCase(PASSENGER_EMAIL)
                                 .orElseGet(() -> NguoiDung.builder()
@@ -283,6 +302,11 @@ public class DevSeedDataService {
                                 .noneMatch(item -> item.getMaQuyen()
                                                 .equalsIgnoreCase(cancelOwnRideRequestPermission.getMaQuyen()))) {
                         user.getDanhSachQuyenTrucTiep().add(cancelOwnRideRequestPermission);
+                }
+                if (user.getDanhSachQuyenTrucTiep().stream()
+                                .noneMatch(item -> item.getMaQuyen()
+                                                .equalsIgnoreCase(viewOwnRideRequestsPermission.getMaQuyen()))) {
+                        user.getDanhSachQuyenTrucTiep().add(viewOwnRideRequestsPermission);
                 }
                 return userRepository.save(user);
         }

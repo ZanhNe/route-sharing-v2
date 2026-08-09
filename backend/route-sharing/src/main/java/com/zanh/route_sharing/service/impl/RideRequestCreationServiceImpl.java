@@ -18,6 +18,8 @@ import com.zanh.route_sharing.security.AuthenticatedPrincipalValidator;
 import com.zanh.route_sharing.service.LocationLabelResolver;
 import com.zanh.route_sharing.service.RideRequestCreationService;
 import com.zanh.route_sharing.service.riderequest.RideRequestResponseMapper;
+import com.zanh.route_sharing.service.realtime.RealtimeNotificationEventFactory;
+import com.zanh.route_sharing.service.realtime.UserRealtimeEventPublisher;
 import com.zanh.route_sharing.service.riderequest.RideRequestSnapshotCalculator;
 import com.zanh.route_sharing.service.riderequest.model.PickupDeviation;
 import com.zanh.route_sharing.service.routing.RoutePlanner;
@@ -47,6 +49,7 @@ public class RideRequestCreationServiceImpl implements RideRequestCreationServic
     private final RideRequestResponseMapper responseMapper;
     private final GoongProperties routePlanningProperties;
     private final Clock clock;
+    private final UserRealtimeEventPublisher realtimeEventPublisher;
 
     public RideRequestCreationServiceImpl(
             RideRequestCreationRepository repository,
@@ -55,7 +58,8 @@ public class RideRequestCreationServiceImpl implements RideRequestCreationServic
             RideRequestSnapshotCalculator snapshotCalculator,
             RideRequestResponseMapper responseMapper,
             GoongProperties routePlanningProperties,
-            Clock clock) {
+            Clock clock,
+            UserRealtimeEventPublisher realtimeEventPublisher) {
         this.repository = repository;
         this.routePlanner = routePlanner;
         this.locationLabelResolver = locationLabelResolver;
@@ -63,6 +67,7 @@ public class RideRequestCreationServiceImpl implements RideRequestCreationServic
         this.responseMapper = responseMapper;
         this.routePlanningProperties = routePlanningProperties;
         this.clock = clock;
+        this.realtimeEventPublisher = realtimeEventPublisher;
     }
 
     @Override
@@ -114,14 +119,23 @@ public class RideRequestCreationServiceImpl implements RideRequestCreationServic
                 proposedDropoffAddress,
                 request.proposedSupportAmount());
 
-        return responseMapper.toResponse(repository.commit(
+        var persisted = repository.commit(
                 new RideRequestCommitCommand(
                         actorUserId,
                         routeId,
                         sentAt,
                         snapshot,
                         request.note(),
-                        preparation.consistencyToken())));
+                        preparation.consistencyToken()));
+
+        realtimeEventPublisher.publish(
+                preparation.driverId(),
+                RealtimeNotificationEventFactory.bookingRequest(
+                        persisted.rideRequestId(),
+                        persisted.routeId(),
+                        persisted.sentAt()));
+
+        return responseMapper.toResponse(persisted);
     }
 
     private RoutePlanRequest passengerPlanRequest(

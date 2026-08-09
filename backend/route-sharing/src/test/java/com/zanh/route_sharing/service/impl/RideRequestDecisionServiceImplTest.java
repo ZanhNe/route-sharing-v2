@@ -9,6 +9,10 @@ import com.zanh.route_sharing.repository.sharedroute.riderequest.decision.RideRe
 import com.zanh.route_sharing.repository.sharedroute.riderequest.decision.model.CurrentAcceptEligibility;
 import com.zanh.route_sharing.service.riderequest.decision.RideRequestActionabilityPolicy;
 import com.zanh.route_sharing.service.riderequest.decision.RideRequestDecisionResponseMapper;
+import com.zanh.route_sharing.service.realtime.UserRealtimeEventPublisher;
+import com.zanh.route_sharing.service.realtime.model.BookingAcceptedRealtimeData;
+import com.zanh.route_sharing.service.realtime.model.BookingRejectedRealtimeData;
+import com.zanh.route_sharing.service.realtime.model.RealtimeEventEnvelope;
 import com.zanh.route_sharing.testsupport.riderequest.decision.RideRequestDecisionMother;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -35,6 +39,8 @@ class RideRequestDecisionServiceImplTest {
 
     @Mock
     private RideRequestDecisionRepository repository;
+    @Mock
+    private UserRealtimeEventPublisher realtimeEventPublisher;
 
     private RideRequestDecisionServiceImpl sut;
 
@@ -44,7 +50,8 @@ class RideRequestDecisionServiceImplTest {
                 repository,
                 new RideRequestActionabilityPolicy(),
                 Clock.fixed(RideRequestDecisionMother.DECISION_AT, ZoneOffset.UTC),
-                new RideRequestDecisionResponseMapper());
+                new RideRequestDecisionResponseMapper(),
+                realtimeEventPublisher);
     }
 
     @Test
@@ -79,6 +86,20 @@ class RideRequestDecisionServiceImplTest {
         verify(repository).flush();
         assertThat(event.getValue().getTrangThaiSau()).isEqualTo(TrangThaiYeuCau.ACCEPTED);
         assertThat(notification.getValue().getNguoiNhan()).isSameAs(aggregate.passenger());
+
+        @SuppressWarnings("rawtypes")
+        ArgumentCaptor<RealtimeEventEnvelope> realtimeCaptor =
+                ArgumentCaptor.forClass(RealtimeEventEnvelope.class);
+        verify(realtimeEventPublisher).publish(
+                org.mockito.ArgumentMatchers.eq(RideRequestDecisionMother.PASSENGER_ID),
+                realtimeCaptor.capture());
+        assertThat(realtimeCaptor.getValue().eventType()).isEqualTo("BOOKING_ACCEPTED");
+        assertThat(realtimeCaptor.getValue().eventVersion()).isEqualTo(1);
+        assertThat(realtimeCaptor.getValue().data()).isInstanceOf(BookingAcceptedRealtimeData.class);
+        BookingAcceptedRealtimeData acceptedData =
+                (BookingAcceptedRealtimeData) realtimeCaptor.getValue().data();
+        assertThat(acceptedData.agreedSupportAmount())
+                .isEqualByComparingTo(RideRequestDecisionMother.PROPOSED_SUPPORT);
     }
 
     @Test
@@ -104,6 +125,19 @@ class RideRequestDecisionServiceImplTest {
                 org.mockito.ArgumentMatchers.anyLong(),
                 org.mockito.ArgumentMatchers.anyLong(),
                 org.mockito.ArgumentMatchers.any());
+
+        @SuppressWarnings("rawtypes")
+        ArgumentCaptor<RealtimeEventEnvelope> realtimeCaptor =
+                ArgumentCaptor.forClass(RealtimeEventEnvelope.class);
+        verify(realtimeEventPublisher).publish(
+                org.mockito.ArgumentMatchers.eq(RideRequestDecisionMother.PASSENGER_ID),
+                realtimeCaptor.capture());
+        assertThat(realtimeCaptor.getValue().eventType()).isEqualTo("BOOKING_REJECTED");
+        assertThat(realtimeCaptor.getValue().data()).isInstanceOf(BookingRejectedRealtimeData.class);
+        BookingRejectedRealtimeData rejectedData =
+                (BookingRejectedRealtimeData) realtimeCaptor.getValue().data();
+        assertThat(rejectedData.cooldownUntil())
+                .isEqualTo(RideRequestDecisionMother.DECISION_AT.plusSeconds(3600));
     }
 
     @Test
@@ -227,7 +261,8 @@ class RideRequestDecisionServiceImplTest {
                 repository,
                 new RideRequestActionabilityPolicy(),
                 Clock.fixed(RideRequestDecisionMother.DECISION_AT, ZoneOffset.UTC),
-                new RideRequestDecisionResponseMapper());
+                new RideRequestDecisionResponseMapper(),
+                realtimeEventPublisher);
 
         assertBusinessCode(() -> atCutoff.accept(
                 RideRequestDecisionMother.ACTOR_ID,

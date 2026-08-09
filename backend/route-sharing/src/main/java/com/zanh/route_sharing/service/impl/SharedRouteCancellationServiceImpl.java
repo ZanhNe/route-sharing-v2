@@ -13,6 +13,8 @@ import com.zanh.route_sharing.repository.sharedroute.cancellation.SharedRouteCan
 import com.zanh.route_sharing.security.AuthenticatedPrincipalValidator;
 import com.zanh.route_sharing.service.SharedRouteCancellationService;
 import com.zanh.route_sharing.service.sharedroute.cancellation.SharedRouteCancellationResponseMapper;
+import com.zanh.route_sharing.service.realtime.RealtimeNotificationEventFactory;
+import com.zanh.route_sharing.service.realtime.UserRealtimeEventPublisher;
 import com.zanh.route_sharing.service.sharedroute.cancellation.model.SharedRouteCancellationResult;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
@@ -27,14 +29,17 @@ public class SharedRouteCancellationServiceImpl implements SharedRouteCancellati
     private final SharedRouteCancellationRepository repository;
     private final SharedRouteCancellationResponseMapper mapper;
     private final Clock clock;
+    private final UserRealtimeEventPublisher realtimeEventPublisher;
 
     public SharedRouteCancellationServiceImpl(
             SharedRouteCancellationRepository repository,
             SharedRouteCancellationResponseMapper mapper,
-            Clock clock) {
+            Clock clock,
+            UserRealtimeEventPublisher realtimeEventPublisher) {
         this.repository = repository;
         this.mapper = mapper;
         this.clock = clock;
+        this.realtimeEventPublisher = realtimeEventPublisher;
     }
 
     @Override
@@ -91,6 +96,15 @@ public class SharedRouteCancellationServiceImpl implements SharedRouteCancellati
             repository.appendRouteStateLog(NhatKyTrangThaiLoTrinh.driverCancelled(
                     route, route.getTaiXe(), cancelledAt, routeSequence));
             repository.flush();
+
+            for (YeuCauDiChung request : activeRequests) {
+                realtimeEventPublisher.publish(
+                        request.getHanhKhach().getId(),
+                        RealtimeNotificationEventFactory.routeCancelledByDriver(
+                                route.getId(),
+                                request.getId(),
+                                cancelledAt));
+            }
 
             SharedRouteCancellationResult result = new SharedRouteCancellationResult(
                     route.getId(),

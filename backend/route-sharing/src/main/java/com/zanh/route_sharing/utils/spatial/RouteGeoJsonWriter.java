@@ -34,29 +34,43 @@ public class RouteGeoJsonWriter {
             throw new BusinessException(
                     HttpStatus.INTERNAL_SERVER_ERROR,
                     "INVALID_STORED_ROUTE_GEOMETRY",
-                    "Tuyến gốc đang lưu không thể dùng để tạo preview.");
+                    "Tuyến đường đang lưu không hợp lệ.");
         }
     }
 
     public GeoJsonLineStringResponse writePreviewLineString(LineString lineString) {
-        if (lineString == null || lineString.isEmpty() || lineString.getNumPoints() < 2) {
-            throw invalidProviderGeometry();
-        }
+        return writeLineString(lineString);
+    }
 
-        List<List<BigDecimal>> coordinates = Arrays.stream(lineString.getCoordinates())
-                .map(RouteGeoJsonWriter::coordinate)
-                .toList();
-
-        GeoJsonLineStringResponse geometry = new GeoJsonLineStringResponse(
-                LINE_STRING,
-                coordinates);
-
+    public GeoJsonLineStringResponse writeStoredLineString(LineString lineString) {
         try {
-            validate(geometry);
-            return geometry;
+            return toGeoJson(lineString);
+        } catch (RuntimeException exception) {
+            throw new BusinessException(
+                    HttpStatus.INTERNAL_SERVER_ERROR,
+                    "INVALID_STORED_ROUTE_GEOMETRY",
+                    "Tuyến đường đang lưu không hợp lệ.");
+        }
+    }
+
+    public GeoJsonLineStringResponse writeLineString(LineString lineString) {
+        try {
+            return toGeoJson(lineString);
         } catch (RuntimeException exception) {
             throw invalidProviderGeometry();
         }
+    }
+
+    private static GeoJsonLineStringResponse toGeoJson(LineString lineString) {
+        if (lineString == null || lineString.isEmpty() || lineString.getNumPoints() < 2) {
+            throw new IllegalArgumentException("LineString không hợp lệ");
+        }
+        List<List<BigDecimal>> coordinates = Arrays.stream(lineString.getCoordinates())
+                .map(RouteGeoJsonWriter::coordinate)
+                .toList();
+        GeoJsonLineStringResponse geometry = new GeoJsonLineStringResponse(LINE_STRING, coordinates);
+        validate(geometry);
+        return geometry;
     }
 
     private static List<BigDecimal> coordinate(Coordinate coordinate) {

@@ -43,6 +43,7 @@ dev-env.ps1
 application-dev.yml
 application-prod.yml
 application.yml
+application-test.yml
 
 
 target/
@@ -51,3 +52,12 @@ target/
 .env
 *.log
 .DS_Store
+
+# Maven build output
+target/
+
+# UC-E1 local smoke-test output
+tools/
+
+# Local development secrets
+dev-env.ps1

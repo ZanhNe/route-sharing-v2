@@ -62,4 +62,54 @@ public class DiemDungHanhTrinh extends Base {
         @ManyToOne(fetch = FetchType.LAZY)
         @JoinColumn(name = "yeu_cau_di_chung_id")
         private YeuCauDiChung yeuCauDiChung;
+        public static DiemDungHanhTrinh planned(
+                        ChuyenDi trip,
+                        YeuCauDiChung rideRequest,
+                        int order,
+                        Point plannedPoint,
+                        String address,
+                        LoaiDiemDung type,
+                        BigDecimal arrivalRadiusMeters) {
+                if (trip == null) {
+                        throw new IllegalArgumentException("trip không được trống");
+                }
+                if (order <= 0) {
+                        throw new IllegalArgumentException("Thứ tự điểm dừng phải là số dương.");
+                }
+                if (plannedPoint == null || plannedPoint.isEmpty() || plannedPoint.getSRID() != 4326) {
+                        throw new IllegalArgumentException("Điểm dừng phải là Point SRID 4326 hợp lệ.");
+                }
+                if (address == null || address.isBlank() || address.trim().length() > 500) {
+                        throw new IllegalArgumentException("Địa chỉ điểm dừng không hợp lệ.");
+                }
+                if (type == null) {
+                        throw new IllegalArgumentException("Loại điểm dừng không được trống.");
+                }
+                boolean driverBoundary = type == LoaiDiemDung.DRIVER_START || type == LoaiDiemDung.DRIVER_END;
+                if (driverBoundary && rideRequest != null) {
+                        throw new IllegalArgumentException("Điểm đầu/cuối tài xế không được gắn booking.");
+                }
+                if (!driverBoundary && rideRequest == null) {
+                        throw new IllegalArgumentException("PICKUP/DROPOFF phải gắn booking.");
+                }
+                if (rideRequest != null && rideRequest.getChuyenDi() != trip) {
+                        throw new IllegalArgumentException("Booking phải được gắn vào cùng chuyến đi trước khi tạo điểm dừng.");
+                }
+                if (arrivalRadiusMeters == null || arrivalRadiusMeters.signum() <= 0) {
+                        throw new IllegalArgumentException("Bán kính xác định đã đến phải lớn hơn 0.");
+                }
+                Point pointCopy = (Point) plannedPoint.copy();
+                pointCopy.setSRID(4326);
+                DiemDungHanhTrinh stop = new DiemDungHanhTrinh();
+                stop.chuyenDi = trip;
+                stop.yeuCauDiChung = rideRequest;
+                stop.thuTu = order;
+                stop.toaDoKeHoach = pointCopy;
+                stop.diaChi = address.trim();
+                stop.loaiDiemDung = type;
+                stop.trangThaiDiemDung = TrangThaiDiemDung.PENDING;
+                stop.banKinhXacDinhDaDenMet = arrivalRadiusMeters;
+                return stop;
+        }
+
 }

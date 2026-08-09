@@ -15,6 +15,8 @@ import com.zanh.route_sharing.security.AuthenticatedPrincipalValidator;
 import com.zanh.route_sharing.service.RideRequestDecisionService;
 import com.zanh.route_sharing.service.riderequest.decision.RideRequestActionabilityPolicy;
 import com.zanh.route_sharing.service.riderequest.decision.RideRequestDecisionResponseMapper;
+import com.zanh.route_sharing.service.realtime.RealtimeNotificationEventFactory;
+import com.zanh.route_sharing.service.realtime.UserRealtimeEventPublisher;
 import com.zanh.route_sharing.service.riderequest.decision.model.RideRequestDecisionResult;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
@@ -34,16 +36,19 @@ public class RideRequestDecisionServiceImpl implements RideRequestDecisionServic
     private final RideRequestActionabilityPolicy actionabilityPolicy;
     private final Clock clock;
     private final RideRequestDecisionResponseMapper responseMapper;
+    private final UserRealtimeEventPublisher realtimeEventPublisher;
 
     public RideRequestDecisionServiceImpl(
             RideRequestDecisionRepository repository,
             RideRequestActionabilityPolicy actionabilityPolicy,
             Clock clock,
-            RideRequestDecisionResponseMapper responseMapper) {
+            RideRequestDecisionResponseMapper responseMapper,
+            UserRealtimeEventPublisher realtimeEventPublisher) {
         this.repository = repository;
         this.actionabilityPolicy = actionabilityPolicy;
         this.clock = clock;
         this.responseMapper = responseMapper;
+        this.realtimeEventPublisher = realtimeEventPublisher;
     }
 
     @Override
@@ -87,6 +92,13 @@ public class RideRequestDecisionServiceImpl implements RideRequestDecisionServic
                 decisionAt));
         repository.persistNotification(ThongBao.bookingAccepted(request));
         repository.flush();
+        realtimeEventPublisher.publish(
+                request.getHanhKhach().getId(),
+                RealtimeNotificationEventFactory.bookingAccepted(
+                        request.getId(),
+                        route.getId(),
+                        decisionAt,
+                        request.getMucHoTroDaThoaThuan()));
 
         return responseMapper.toResponse(result(route, request, decisionAt));
     }
@@ -114,6 +126,13 @@ public class RideRequestDecisionServiceImpl implements RideRequestDecisionServic
                 decisionAt));
         repository.persistNotification(ThongBao.bookingRejected(request));
         repository.flush();
+        realtimeEventPublisher.publish(
+                request.getHanhKhach().getId(),
+                RealtimeNotificationEventFactory.bookingRejected(
+                        request.getId(),
+                        route.getId(),
+                        decisionAt,
+                        request.getCooldownUntil()));
 
         return responseMapper.toResponse(result(route, request, decisionAt));
     }

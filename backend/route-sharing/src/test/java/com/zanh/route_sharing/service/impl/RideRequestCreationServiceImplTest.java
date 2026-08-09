@@ -17,6 +17,8 @@ import com.zanh.route_sharing.repository.sharedroute.riderequest.model.RideReque
 import com.zanh.route_sharing.repository.sharedroute.riderequest.model.RideRequestPreparation;
 import com.zanh.route_sharing.service.LocationLabelResolver;
 import com.zanh.route_sharing.service.riderequest.RideRequestResponseMapper;
+import com.zanh.route_sharing.service.realtime.UserRealtimeEventPublisher;
+import com.zanh.route_sharing.service.realtime.model.RealtimeEventEnvelope;
 import com.zanh.route_sharing.service.riderequest.RideRequestSnapshotCalculator;
 import com.zanh.route_sharing.service.riderequest.model.LocationLabel;
 import com.zanh.route_sharing.service.routing.RoutePlanSegmentExtractor;
@@ -72,6 +74,8 @@ class RideRequestCreationServiceImplTest {
     private RoutePlanner routePlanner;
     @Mock
     private LocationLabelResolver locationLabelResolver;
+    @Mock
+    private UserRealtimeEventPublisher realtimeEventPublisher;
 
     private RideRequestCreationServiceImpl sut;
     private CreateRideRequestRequest request;
@@ -89,7 +93,8 @@ class RideRequestCreationServiceImplTest {
                         GEOMETRY_FACTORY),
                 new RideRequestResponseMapper(),
                 properties,
-                Clock.fixed(RideRequestMother.NOW, ZoneOffset.UTC));
+                Clock.fixed(RideRequestMother.NOW, ZoneOffset.UTC),
+                realtimeEventPublisher);
         request = new CreateRideRequestRequestBuilder().build();
     }
 
@@ -137,6 +142,17 @@ class RideRequestCreationServiceImplTest {
         assertThat(command.snapshot().proposedDropoff().address())
                 .isEqualTo("Địa chỉ điểm thả");
         assertThat(command.snapshot().agreedSupportAmount()).isNull();
+
+        @SuppressWarnings("rawtypes")
+        ArgumentCaptor<RealtimeEventEnvelope> realtimeCaptor =
+                ArgumentCaptor.forClass(RealtimeEventEnvelope.class);
+        verify(realtimeEventPublisher).publish(
+                org.mockito.ArgumentMatchers.eq(RideRequestMother.DRIVER_ID),
+                realtimeCaptor.capture());
+        assertThat(realtimeCaptor.getValue().eventType()).isEqualTo("BOOKING_REQUEST");
+        assertThat(realtimeCaptor.getValue().eventVersion()).isEqualTo(1);
+        assertThat(realtimeCaptor.getValue().resource().type()).isEqualTo("RIDE_REQUEST");
+        assertThat(realtimeCaptor.getValue().resource().id()).isEqualTo(501L);
     }
 
     @Test

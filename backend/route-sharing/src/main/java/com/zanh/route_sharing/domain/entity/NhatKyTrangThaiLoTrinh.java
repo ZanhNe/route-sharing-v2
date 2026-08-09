@@ -67,6 +67,35 @@ public class NhatKyTrangThaiLoTrinh {
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt;
 
+    public static NhatKyTrangThaiLoTrinh tripFormed(
+            LoTrinhChiaSe route,
+            NguoiDung driver,
+            Instant occurredAt,
+            long sequence) {
+        if (route == null || route.getId() == null) {
+            throw new IllegalArgumentException("Lộ trình phải được lưu trước khi tạo nhật ký.");
+        }
+        if (route.getTrangThaiLoTrinh() != TrangThaiLoTrinh.LOCKED || route.getChuyenDi() == null) {
+            throw new IllegalArgumentException("Trạng thái lộ trình không khớp sự kiện hình thành chuyến đi.");
+        }
+        if (sequence <= 0) {
+            throw new IllegalArgumentException("sequence phải là số dương.");
+        }
+        if (driver == null || route.getTaiXe() == null
+                || !Objects.equals(driver.getId(), route.getTaiXe().getId())) {
+            throw new IllegalArgumentException("Actor phải là tài xế sở hữu lộ trình.");
+        }
+        NhatKyTrangThaiLoTrinh event = new NhatKyTrangThaiLoTrinh();
+        event.loTrinhChiaSe = route;
+        event.sequence = sequence;
+        event.trangThaiTruoc = TrangThaiLoTrinh.OPEN;
+        event.trangThaiSau = TrangThaiLoTrinh.LOCKED;
+        event.actor = driver;
+        event.occurredAt = Objects.requireNonNull(occurredAt, "occurredAt không được trống");
+        event.reasonCode = "DRIVER_LOCKED_ROUTE_FOR_TRIP";
+        return event;
+    }
+
     public static NhatKyTrangThaiLoTrinh driverCancelled(
             LoTrinhChiaSe route,
             NguoiDung driver,

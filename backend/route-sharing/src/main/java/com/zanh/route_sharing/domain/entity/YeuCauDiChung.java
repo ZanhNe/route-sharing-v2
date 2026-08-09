@@ -18,6 +18,8 @@ import jakarta.persistence.Table;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import lombok.Setter;
+
 import org.locationtech.jts.geom.LineString;
 import org.locationtech.jts.geom.Point;
 
@@ -76,6 +78,7 @@ import java.util.Objects;
                 + "AND trang_thai_yeu_cau IN ('CANCELLED_BY_PASSENGER', 'CANCELLED_BY_DRIVER'))")
 })
 @Getter
+@Setter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class YeuCauDiChung extends Base {
 
@@ -283,6 +286,21 @@ public class YeuCauDiChung extends Base {
         this.cauHinhLucTuChoi = currentConfiguration;
         this.cauHinhVersionLucTuChoi = currentConfiguration.getVersion();
         this.mucHoTroDaThoaThuan = null;
+    }
+
+    public void assignToTrip(ChuyenDi trip) {
+        Objects.requireNonNull(trip, "trip không được trống");
+        if (this.trangThaiYeuCau != TrangThaiYeuCau.ACCEPTED) {
+            throw new IllegalStateException("Chỉ booking ACCEPTED mới được gắn vào chuyến đi.");
+        }
+        if (this.chuyenDi != null) {
+            throw new IllegalStateException("Booking đã thuộc một chuyến đi thực tế.");
+        }
+        if (trip.getLoTrinhChiaSe() == null || this.loTrinhChiaSe == null
+                || !Objects.equals(trip.getLoTrinhChiaSe().getId(), this.loTrinhChiaSe.getId())) {
+            throw new IllegalArgumentException("Booking và chuyến đi phải thuộc cùng lộ trình chia sẻ.");
+        }
+        this.chuyenDi = trip;
     }
 
     public TrangThaiYeuCau cancelByPassenger(Instant cancelledAt, String reason) {

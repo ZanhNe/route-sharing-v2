@@ -147,10 +147,16 @@ public class RideRequestSnapshotCalculator {
             RoutePlan plan,
             RouteWaypointRole from,
             RouteWaypointRole to) {
-        return plan.legs().stream()
+        java.util.List<RoutePlanLeg> matches = plan.legs().stream()
                 .filter(candidate -> candidate.fromRole() == from && candidate.toRole() == to)
-                .findFirst()
-                .orElseThrow(() -> notComputable("Dịch vụ bản đồ không trả đủ chặng nghiệp vụ."));
+                .limit(2)
+                .toList();
+        if (matches.size() != 1) {
+            throw notComputable(matches.isEmpty()
+                    ? "Dịch vụ bản đồ không trả đủ chặng nghiệp vụ."
+                    : "Chặng nghiệp vụ bị mơ hồ do role xuất hiện nhiều lần.");
+        }
+        return matches.get(0);
     }
 
     private static LineString copy(LineString source) {

@@ -12,6 +12,8 @@ import com.zanh.route_sharing.repository.sharedroute.riderequest.cancellation.Ri
 import com.zanh.route_sharing.security.AuthenticatedPrincipalValidator;
 import com.zanh.route_sharing.service.RideRequestCancellationService;
 import com.zanh.route_sharing.service.riderequest.cancellation.RideRequestCancellationResponseMapper;
+import com.zanh.route_sharing.service.realtime.RealtimeNotificationEventFactory;
+import com.zanh.route_sharing.service.realtime.UserRealtimeEventPublisher;
 import com.zanh.route_sharing.service.riderequest.cancellation.model.RideRequestCancellationResult;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
@@ -25,14 +27,17 @@ public class RideRequestCancellationServiceImpl implements RideRequestCancellati
     private final RideRequestCancellationRepository repository;
     private final Clock clock;
     private final RideRequestCancellationResponseMapper responseMapper;
+    private final UserRealtimeEventPublisher realtimeEventPublisher;
 
     public RideRequestCancellationServiceImpl(
             RideRequestCancellationRepository repository,
             Clock clock,
-            RideRequestCancellationResponseMapper responseMapper) {
+            RideRequestCancellationResponseMapper responseMapper,
+            UserRealtimeEventPublisher realtimeEventPublisher) {
         this.repository = repository;
         this.clock = clock;
         this.responseMapper = responseMapper;
+        this.realtimeEventPublisher = realtimeEventPublisher;
     }
 
     @Override
@@ -60,6 +65,14 @@ public class RideRequestCancellationServiceImpl implements RideRequestCancellati
                 request, request.getHanhKhach(), cancelledAt, previous));
         repository.persistNotification(ThongBao.bookingCancelledByPassenger(request));
         repository.flush();
+        realtimeEventPublisher.publish(
+                route.getTaiXe().getId(),
+                RealtimeNotificationEventFactory.bookingCancelledByPassenger(
+                        request.getId(),
+                        route.getId(),
+                        previous,
+                        cancelledAt,
+                        route.getSoGheConLai()));
         return responseMapper.toResponse(result(route, request, previous, cancelledAt));
     }
 

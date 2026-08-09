@@ -29,7 +29,7 @@ class PostgreSqlSchemaCreationIntegrationTest {
         List<String> indexes = jdbc.queryForList(
                 "select indexname from pg_indexes "
                         + "where schemaname = current_schema() "
-                        + "and tablename in ('yeu_cau_di_chung', 'thong_bao')",
+                        + "and tablename in ('yeu_cau_di_chung', 'thong_bao', 'lo_trinh_chia_se')",
                 String.class);
 
         assertThat(columns).contains(
@@ -50,6 +50,8 @@ class PostgreSqlSchemaCreationIntegrationTest {
                 "uk_yeu_cau_hanh_khach_blocking",
                 "idx_yeu_cau_cooldown_lookup",
                 "idx_yeu_cau_route_queue",
+                "idx_yeu_cau_passenger_history",
+                "idx_lo_trinh_driver_history",
                 "uk_thong_bao_deduplication_key");
         String cooldownIndexDefinition = jdbc.queryForObject(
                 "select indexdef from pg_indexes "
@@ -60,5 +62,23 @@ class PostgreSqlSchemaCreationIntegrationTest {
         assertThat(cooldownIndexDefinition)
                 .contains("hanh_khach_id", "lo_trinh_chia_se_id", "cooldown_until")
                 .doesNotContain("tai_xe_id_luc_gui");
+
+        String passengerHistoryIndexDefinition = jdbc.queryForObject(
+                "select indexdef from pg_indexes "
+                        + "where schemaname = current_schema() "
+                        + "and tablename = 'yeu_cau_di_chung' "
+                        + "and indexname = 'idx_yeu_cau_passenger_history'",
+                String.class);
+        assertThat(passengerHistoryIndexDefinition)
+                .contains("hanh_khach_id", "gui_luc DESC", "id DESC");
+
+        String driverHistoryIndexDefinition = jdbc.queryForObject(
+                "select indexdef from pg_indexes "
+                        + "where schemaname = current_schema() "
+                        + "and tablename = 'lo_trinh_chia_se' "
+                        + "and indexname = 'idx_lo_trinh_driver_history'",
+                String.class);
+        assertThat(driverHistoryIndexDefinition)
+                .contains("tai_xe_id", "created_at DESC", "id DESC");
     }
 }

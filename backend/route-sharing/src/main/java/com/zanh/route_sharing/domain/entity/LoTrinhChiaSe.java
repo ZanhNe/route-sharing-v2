@@ -126,6 +126,23 @@ public class LoTrinhChiaSe extends Base {
                 this.soGheConLai = this.soGheConLai + 1;
         }
 
+        public void lockForTripFormation(ChuyenDi trip, Instant lockedAt) {
+                Objects.requireNonNull(trip, "trip không được trống");
+                Objects.requireNonNull(lockedAt, "lockedAt không được trống");
+                if (this.trangThaiLoTrinh != TrangThaiLoTrinh.OPEN) {
+                        throw new IllegalStateException("Chỉ lộ trình OPEN mới có thể khóa danh sách.");
+                }
+                if (this.chuyenDi != null) {
+                        throw new IllegalStateException("Lộ trình đã hình thành chuyến đi thực tế.");
+                }
+                if (trip.getLoTrinhChiaSe() != this) {
+                        throw new IllegalArgumentException("Chuyến đi phải được hình thành từ chính lộ trình này.");
+                }
+                this.trangThaiLoTrinh = TrangThaiLoTrinh.LOCKED;
+                this.chotDanhSachLuc = lockedAt;
+                this.chuyenDi = trip;
+        }
+
         public void cancelByDriver(Instant cancelledAt, String reason) {
                 Objects.requireNonNull(cancelledAt, "cancelledAt không được trống");
                 if (this.trangThaiLoTrinh != TrangThaiLoTrinh.OPEN) {

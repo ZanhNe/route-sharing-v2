@@ -79,6 +79,95 @@ class GoongRouteServiceImplMultiStopTest {
                 assertThat(result.geometry().getSRID()).isEqualTo(4326);
         }
 
+
+        @SuppressWarnings("unchecked")
+        @Test
+        void givenE4MultiPassengerRequest_whenPlanning_thenRepeatedRolesPreserveGlobalWaypointOrder() {
+                List<GeoCoordinate> points = List.of(
+                                coordinate("10.7700", "106.6800"),
+                                coordinate("10.7700", "106.6900"),
+                                coordinate("10.7700", "106.6950"),
+                                coordinate("10.7700", "106.7050"),
+                                coordinate("10.7700", "106.7150"),
+                                coordinate("10.7700", "106.7200"));
+                when(gateway.get(
+                                eq("/v2/direction"),
+                                any(),
+                                eq(GoongDirectionsResponse.class)))
+                                .thenReturn(response(points, List.of(
+                                                leg(100L, 10L),
+                                                leg(120L, 12L),
+                                                leg(140L, 14L),
+                                                leg(160L, 16L),
+                                                leg(180L, 18L))));
+                ArgumentCaptor<MultiValueMap<String, String>> queryCaptor = ArgumentCaptor
+                                .forClass(MultiValueMap.class);
+
+                var result = sut.plan(multiPassengerRequest(points));
+
+                org.mockito.Mockito.verify(gateway).get(
+                                eq("/v2/direction"),
+                                queryCaptor.capture(),
+                                eq(GoongDirectionsResponse.class));
+                assertThat(queryCaptor.getValue().getFirst("origin"))
+                                .isEqualTo("10.7700,106.6800");
+                assertThat(queryCaptor.getValue().getFirst("destination"))
+                                .isEqualTo("10.7700,106.6900;10.7700,106.6950;10.7700,106.7050;10.7700,106.7150;10.7700,106.7200");
+                assertThat(result.legs()).hasSize(5);
+                assertThat(result.legs()).extracting(leg -> leg.fromRole()).containsExactly(
+                                RouteWaypointRole.DRIVER_ORIGIN,
+                                RouteWaypointRole.PASSENGER_PICKUP,
+                                RouteWaypointRole.PASSENGER_PICKUP,
+                                RouteWaypointRole.PROPOSED_DROPOFF,
+                                RouteWaypointRole.PROPOSED_DROPOFF);
+                assertThat(result.legs()).extracting(leg -> leg.toRole()).containsExactly(
+                                RouteWaypointRole.PASSENGER_PICKUP,
+                                RouteWaypointRole.PASSENGER_PICKUP,
+                                RouteWaypointRole.PROPOSED_DROPOFF,
+                                RouteWaypointRole.PROPOSED_DROPOFF,
+                                RouteWaypointRole.DRIVER_DESTINATION);
+                assertThat(result.distanceMeters()).isEqualByComparingTo("700");
+                assertThat(result.durationSeconds()).isEqualTo(70L);
+        }
+
+
+        @Test
+        void givenTwoPassengerPickupsShareCoordinate_whenPlanning_thenProviderCollapsesPhysicalPointButSemanticStopsRemainSeparate() {
+                List<GeoCoordinate> semanticPoints = List.of(
+                                coordinate("10.7700", "106.6800"),
+                                coordinate("10.7700", "106.6900"),
+                                coordinate("10.7700", "106.6900"),
+                                coordinate("10.7700", "106.7050"),
+                                coordinate("10.7700", "106.7150"),
+                                coordinate("10.7700", "106.7200"));
+                List<GeoCoordinate> physicalPath = List.of(
+                                semanticPoints.get(0),
+                                semanticPoints.get(1),
+                                semanticPoints.get(3),
+                                semanticPoints.get(4),
+                                semanticPoints.get(5));
+                when(gateway.get(
+                                eq("/v2/direction"),
+                                any(),
+                                eq(GoongDirectionsResponse.class)))
+                                .thenReturn(response(physicalPath, List.of(
+                                                leg(100L, 10L),
+                                                leg(200L, 20L),
+                                                leg(300L, 30L),
+                                                leg(400L, 40L))));
+
+                var result = sut.plan(multiPassengerRequest(semanticPoints));
+
+                assertThat(result.legs()).hasSize(5);
+                assertThat(result.legs().get(1).fromRole()).isEqualTo(RouteWaypointRole.PASSENGER_PICKUP);
+                assertThat(result.legs().get(1).toRole()).isEqualTo(RouteWaypointRole.PASSENGER_PICKUP);
+                assertThat(result.legs().get(1).collapsed()).isTrue();
+                assertThat(result.legs().get(1).distanceMeters()).isEqualByComparingTo("0");
+                assertThat(result.legs().get(1).durationSeconds()).isZero();
+                assertThat(result.distanceMeters()).isEqualByComparingTo("1000");
+                assertThat(result.durationSeconds()).isEqualTo(100L);
+        }
+
         @Test
         void givenDropoffAndDriverDestinationAreSame_whenPlanning_thenFinalSemanticLegIsCollapsed() {
                 List<GeoCoordinate> points = List.of(
@@ -146,6 +235,20 @@ class GoongRouteServiceImplMultiStopTest {
                                 .isInstanceOf(BusinessException.class)
                                 .satisfies(error -> assertThat(((BusinessException) error).getCode())
                                                 .isEqualTo("MAP_PROVIDER_INVALID_RESPONSE"));
+        }
+
+
+        private static RoutePlanRequest multiPassengerRequest(List<GeoCoordinate> points) {
+                return RoutePlanRequest.multiPassenger(
+                                List.of(
+                                                new RouteWaypoint(RouteWaypointRole.DRIVER_ORIGIN, points.get(0)),
+                                                new RouteWaypoint(RouteWaypointRole.PASSENGER_PICKUP, points.get(1)),
+                                                new RouteWaypoint(RouteWaypointRole.PASSENGER_PICKUP, points.get(2)),
+                                                new RouteWaypoint(RouteWaypointRole.PROPOSED_DROPOFF, points.get(3)),
+                                                new RouteWaypoint(RouteWaypointRole.PROPOSED_DROPOFF, points.get(4)),
+                                                new RouteWaypoint(RouteWaypointRole.DRIVER_DESTINATION, points.get(5))),
+                                LoaiPhuongTien.XE_MAY,
+                                false);
         }
 
         private static RoutePlanRequest request(List<GeoCoordinate> points) {

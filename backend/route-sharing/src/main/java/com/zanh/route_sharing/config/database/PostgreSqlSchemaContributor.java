@@ -54,6 +54,12 @@ public final class PostgreSqlSchemaContributor implements AdditionalMappingContr
                 "CREATE INDEX IF NOT EXISTS idx_yeu_cau_route_queue "
                         + "ON yeu_cau_di_chung "
                         + "(lo_trinh_chia_se_id, trang_thai_yeu_cau, gui_luc, id)",
+                "CREATE INDEX IF NOT EXISTS idx_yeu_cau_passenger_history "
+                        + "ON yeu_cau_di_chung "
+                        + "(hanh_khach_id, gui_luc DESC, id DESC)",
+                "CREATE INDEX IF NOT EXISTS idx_lo_trinh_driver_history "
+                        + "ON lo_trinh_chia_se "
+                        + "(tai_xe_id, created_at DESC, id DESC)",
                 "CREATE UNIQUE INDEX IF NOT EXISTS uk_thong_bao_deduplication_key "
                         + "ON thong_bao (deduplication_key) "
                         + "WHERE deduplication_key IS NOT NULL",
@@ -177,6 +183,8 @@ public final class PostgreSqlSchemaContributor implements AdditionalMappingContr
                 "DROP INDEX IF EXISTS uk_diem_dung_driver_end_moi_chuyen",
                 "DROP INDEX IF EXISTS uk_diem_dung_driver_start_moi_chuyen",
                 "DROP INDEX IF EXISTS uk_thong_bao_deduplication_key",
+                "DROP INDEX IF EXISTS idx_lo_trinh_driver_history",
+                "DROP INDEX IF EXISTS idx_yeu_cau_passenger_history",
                 "DROP INDEX IF EXISTS idx_yeu_cau_route_queue",
                 "DROP INDEX IF EXISTS idx_yeu_cau_cooldown_lookup",
                 "DROP INDEX IF EXISTS uk_yeu_cau_hanh_khach_blocking",

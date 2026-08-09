@@ -158,6 +158,19 @@ class RideRequestSnapshotCalculatorTest {
                         new PickupDeviation(BigDecimal.ZERO, 0L),
                         "RIDE_REQUEST_ROUTE_NOT_COMPUTABLE"),
                 Arguments.of(
+                        "ambiguous duplicate semantic leg",
+                        segment,
+                        PassengerRoutePlanMother.request(),
+                        planWithLegs(new BigDecimal("4200.00"), List.of(
+                                leg(RouteWaypointRole.PASSENGER_PICKUP,
+                                        RouteWaypointRole.PROPOSED_DROPOFF, "1950", 250),
+                                leg(RouteWaypointRole.PASSENGER_PICKUP,
+                                        RouteWaypointRole.PROPOSED_DROPOFF, "1950", 250),
+                                leg(RouteWaypointRole.PROPOSED_DROPOFF,
+                                        RouteWaypointRole.PASSENGER_DESTINATION, "300", 100))),
+                        new PickupDeviation(BigDecimal.ZERO, 0L),
+                        "RIDE_REQUEST_ROUTE_NOT_COMPUTABLE"),
+                Arguments.of(
                         "leg totals differ from provider total",
                         segment,
                         PassengerRoutePlanMother.request(),

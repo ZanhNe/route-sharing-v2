@@ -60,4 +60,32 @@ public class ChuyenDi extends Base {
         @OneToMany(mappedBy = "chuyenDi", cascade = CascadeType.ALL, orphanRemoval = true)
         @OrderBy("thuTu ASC")
         private List<DiemDungHanhTrinh> danhSachDiemDung = new ArrayList<>();
+        public static ChuyenDi preparing(
+                        LoTrinhChiaSe route,
+                        int plannedPassengerCount,
+                        LineString operationalRoute) {
+                if (route == null || route.getId() == null) {
+                        throw new IllegalArgumentException("Lộ trình phải được lưu trước khi hình thành chuyến đi.");
+                }
+                if (plannedPassengerCount <= 0) {
+                        throw new IllegalArgumentException("Chuyến đi chia sẻ phải có ít nhất một hành khách kế hoạch.");
+                }
+                if (operationalRoute == null || operationalRoute.isEmpty()
+                                || operationalRoute.getNumPoints() < 2
+                                || operationalRoute.getLength() <= 0.0d
+                                || operationalRoute.getSRID() != 4326) {
+                        throw new IllegalArgumentException("Tuyến vận hành phải là LineString SRID 4326 hợp lệ.");
+                }
+                LineString routeCopy = (LineString) operationalRoute.copy();
+                routeCopy.setSRID(4326);
+                ChuyenDi trip = new ChuyenDi();
+                trip.loTrinhChiaSe = route;
+                trip.trangThaiVanHanh = TrangThaiVanHanhChuyenDi.PREPARING;
+                trip.trangThaiGiamSat = TrangThaiGiamSatChuyenDi.NORMAL;
+                trip.soKhachKeHoach = plannedPassengerCount;
+                trip.soKhachThucTe = 0;
+                trip.tuyenDuongVanHanh = routeCopy;
+                return trip;
+        }
+
 }

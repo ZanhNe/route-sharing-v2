@@ -50,12 +50,21 @@ public class RoutePlanSegmentExtractor {
     }
 
     private static int positionOf(List<RouteWaypoint> waypoints, RouteWaypointRole role) {
+        int found = -1;
         for (int index = 0; index < waypoints.size(); index++) {
-            if (waypoints.get(index).role() == role) {
-                return index;
+            if (waypoints.get(index).role() != role) {
+                continue;
             }
+            if (found >= 0) {
+                throw new IllegalArgumentException(
+                        "Route plan chứa nhiều waypoint cùng role " + role + "; lookup theo role bị mơ hồ");
+            }
+            found = index;
         }
-        throw new IllegalArgumentException("Route plan không chứa waypoint " + role);
+        if (found < 0) {
+            throw new IllegalArgumentException("Route plan không chứa waypoint " + role);
+        }
+        return found;
     }
 
     private static double[] orderedWaypointIndices(

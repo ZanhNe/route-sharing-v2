@@ -123,6 +123,30 @@ public class ThongBao extends Base {
                 .build();
     }
 
+    public static ThongBao routeLockedForTrip(
+            YeuCauDiChung rideRequest,
+            ChuyenDi trip) {
+        if (rideRequest == null || rideRequest.getId() == null
+                || rideRequest.getHanhKhach() == null
+                || rideRequest.getLoTrinhChiaSe() == null
+                || rideRequest.getLoTrinhChiaSe().getId() == null
+                || trip == null || trip.getId() == null) {
+            throw new IllegalArgumentException("Không xác định được booking/trip để tạo thông báo khóa lộ trình.");
+        }
+        return ThongBao.builder()
+                .loaiThongBao(LoaiThongBao.ROUTE_LOCKED)
+                .tieuDe("Lộ trình đã được khóa và hình thành chuyến đi")
+                .noiDung("Tài xế đã khóa danh sách; booking của bạn đã được đưa vào chuyến đi thực tế.")
+                .kenhGui(KenhThongBao.IN_APP)
+                .trangThaiThongBao(TrangThaiThongBao.PENDING)
+                .loaiDoiTuongLienQuan("CHUYEN_DI")
+                .doiTuongLienQuanId(trip.getId())
+                .deduplicationKey("E4-01:ROUTE:" + rideRequest.getLoTrinhChiaSe().getId()
+                        + ":REQUEST:" + rideRequest.getId() + ":LOCKED")
+                .nguoiNhan(rideRequest.getHanhKhach())
+                .build();
+    }
+
     private static ThongBao bookingCancellation(
             YeuCauDiChung rideRequest,
             NguoiDung recipient,
