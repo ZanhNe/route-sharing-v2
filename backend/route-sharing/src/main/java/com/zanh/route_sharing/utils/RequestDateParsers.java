@@ -1,5 +1,6 @@
 package com.zanh.route_sharing.utils;
 
+import com.zanh.route_sharing.utils.time.TimePolicy;
 import com.zanh.route_sharing.exception.BusinessException;
 import org.springframework.http.HttpStatus;
 
@@ -11,7 +12,7 @@ import java.time.OffsetDateTime;
 import java.time.ZoneId;
 
 public final class RequestDateParsers {
-    public static final ZoneId VIETNAM_ZONE = ZoneId.of("Asia/Ho_Chi_Minh");
+    public static final ZoneId VIETNAM_ZONE = TimePolicy.BUSINESS_ZONE;
 
     private RequestDateParsers() {
     }
@@ -49,7 +50,8 @@ public final class RequestDateParsers {
 
     private static boolean hasExplicitOffset(String value) {
         int t = value.indexOf('T');
-        if (t < 0) return false;
+        if (t < 0)
+            return false;
         return value.indexOf('+', t) >= 0 || value.indexOf('-', t + 1) >= 0;
     }
 }

@@ -2,8 +2,8 @@ package com.zanh.route_sharing.security;
 
 import com.zanh.route_sharing.domain.entity.RefreshTokenSession;
 import com.zanh.route_sharing.exception.BusinessException;
+import com.zanh.route_sharing.repository.NguoiDungRepository;
 import com.zanh.route_sharing.repository.RefreshTokenSessionRepository;
-import jakarta.persistence.EntityManager;
 import org.junit.jupiter.api.Test;
 import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.TransactionDefinition;
@@ -30,7 +30,7 @@ class AuthTokenServiceTest {
         JwtUtil jwtUtil = mock(JwtUtil.class);
         CustomUserDetailsService userDetailsService = mock(CustomUserDetailsService.class);
         RefreshTokenSessionRepository repository = mock(RefreshTokenSessionRepository.class);
-        EntityManager entityManager = mock(EntityManager.class);
+        NguoiDungRepository nguoiDungRepository = mock(NguoiDungRepository.class);
         RecordingTransactionManager transactionManager = new RecordingTransactionManager();
         TransactionTemplate transactionTemplate = new TransactionTemplate(transactionManager);
 
@@ -56,7 +56,7 @@ class AuthTokenServiceTest {
                 jwtUtil,
                 userDetailsService,
                 repository,
-                entityManager,
+                nguoiDungRepository,
                 clock,
                 transactionTemplate
         );

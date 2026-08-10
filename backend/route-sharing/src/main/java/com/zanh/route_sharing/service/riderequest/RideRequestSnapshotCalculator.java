@@ -1,5 +1,6 @@
 package com.zanh.route_sharing.service.riderequest;
 
+import com.zanh.route_sharing.utils.spatial.Wgs84Coordinates;
 import com.zanh.route_sharing.domain.enums.LoaiGhepTuyen;
 import com.zanh.route_sharing.domain.riderequest.RideRequestPointSnapshot;
 import com.zanh.route_sharing.domain.riderequest.RideRequestSnapshot;
@@ -139,7 +140,7 @@ public class RideRequestSnapshotCalculator {
             String address) {
         Point point = geometryFactory.createPoint(
                 new Coordinate(longitude.doubleValue(), latitude.doubleValue()));
-        point.setSRID(4326);
+        point.setSRID(Wgs84Coordinates.SRID);
         return new RideRequestPointSnapshot(point, address);
     }
 
@@ -161,7 +162,7 @@ public class RideRequestSnapshotCalculator {
 
     private static LineString copy(LineString source) {
         LineString result = (LineString) source.copy();
-        result.setSRID(4326);
+        result.setSRID(Wgs84Coordinates.SRID);
         return result;
     }
 

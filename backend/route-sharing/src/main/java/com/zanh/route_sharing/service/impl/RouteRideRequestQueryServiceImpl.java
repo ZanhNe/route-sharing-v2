@@ -1,5 +1,7 @@
 package com.zanh.route_sharing.service.impl;
 
+import com.zanh.route_sharing.utils.PaginationPolicy;
+import com.zanh.route_sharing.utils.time.TimePolicy;
 import com.zanh.route_sharing.dto.riderequest.query.RouteRideRequestDetailResponse;
 import com.zanh.route_sharing.exception.BusinessException;
 import com.zanh.route_sharing.repository.sharedroute.riderequest.query.RouteRideRequestQueryRepository;
@@ -16,8 +18,6 @@ import java.time.Instant;
 
 @Service
 public class RouteRideRequestQueryServiceImpl implements RouteRideRequestQueryService {
-
-    private static final int MAX_PAGE_SIZE = 50;
 
     private final RouteRideRequestQueryRepository repository;
     private final RouteRideRequestResponseMapper responseMapper;
@@ -48,7 +48,7 @@ public class RouteRideRequestQueryServiceImpl implements RouteRideRequestQuerySe
                         page,
                         size)
                 .orElseThrow(RouteRideRequestQueryServiceImpl::routeNotFound);
-        Instant readAt = clock.instant();
+        Instant readAt = TimePolicy.now(clock);
         return responseMapper.toPage(snapshot, readAt);
     }
 
@@ -74,7 +74,7 @@ public class RouteRideRequestQueryServiceImpl implements RouteRideRequestQuerySe
                     "RIDE_REQUEST_NOT_FOUND",
                     "Không tìm thấy yêu cầu đi chung đang chờ xử lý trong lộ trình này.");
         }
-        return responseMapper.toDetail(lookup, clock.instant());
+        return responseMapper.toDetail(lookup, TimePolicy.now(clock));
     }
 
     private static void requirePositive(Long value, String fieldName) {
@@ -87,8 +87,8 @@ public class RouteRideRequestQueryServiceImpl implements RouteRideRequestQuerySe
         if (page < 0) {
             throw invalidQuery("page phải lớn hơn hoặc bằng 0.");
         }
-        if (size < 1 || size > MAX_PAGE_SIZE) {
-            throw invalidQuery("size phải nằm trong khoảng từ 1 đến 50.");
+        if (size < 1 || size > PaginationPolicy.MAX_SIZE) {
+            throw invalidQuery("size phải nằm trong khoảng từ 1 đến " + PaginationPolicy.MAX_SIZE + ".");
         }
     }
 

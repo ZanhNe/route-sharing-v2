@@ -9,8 +9,6 @@ import org.locationtech.jts.geom.Point;
 import org.springframework.http.HttpStatus;
 
 public final class SpatialValidator {
-    private static final int WGS84_SRID = 4326;
-
     private SpatialValidator() {
     }
 
@@ -23,7 +21,8 @@ public final class SpatialValidator {
     }
 
     public static void validateWgs84LineString(LineString lineString, String name) {
-        if (lineString == null || lineString.isEmpty() || lineString.getNumPoints() < 2 || lineString.getLength() == 0.0) {
+        if (lineString == null || lineString.isEmpty() || lineString.getNumPoints() < 2
+                || lineString.getLength() == 0.0) {
             throw invalid(name + " phải chứa ít nhất hai điểm.");
         }
         validateSrid(lineString, name);
@@ -39,7 +38,7 @@ public final class SpatialValidator {
     }
 
     private static void validateSrid(Geometry geometry, String name) {
-        if (geometry.getSRID() != WGS84_SRID) {
+        if (geometry.getSRID() != Wgs84Coordinates.SRID) {
             throw invalid(name + " phải dùng SRID 4326.");
         }
     }

@@ -2,7 +2,7 @@ package com.zanh.route_sharing.repository.sharedroute.tripformation.model;
 
 import com.zanh.route_sharing.domain.enums.LoaiPhuongTien;
 import com.zanh.route_sharing.domain.enums.TrangThaiLoTrinh;
-import com.zanh.route_sharing.repository.sharedroute.riderequest.decision.model.CurrentAcceptEligibility;
+import com.zanh.route_sharing.repository.sharedroute.eligibility.model.CurrentOperationalEligibility;
 import com.zanh.route_sharing.service.tripformation.model.TripFormationBookingSnapshot;
 import org.locationtech.jts.geom.LineString;
 import org.locationtech.jts.geom.Point;
@@ -30,7 +30,7 @@ public record TripFormationPreparation(
         Long configurationId,
         Long configurationVersion,
         BigDecimal arrivalRadiusMeters,
-        CurrentAcceptEligibility eligibility,
+        CurrentOperationalEligibility eligibility,
         List<TripFormationBookingSnapshot> activeRequests,
         TripFormationPersistedView existingFormation) {
 

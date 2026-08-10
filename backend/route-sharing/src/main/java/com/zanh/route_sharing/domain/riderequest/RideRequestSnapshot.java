@@ -1,5 +1,6 @@
 package com.zanh.route_sharing.domain.riderequest;
 
+import com.zanh.route_sharing.utils.spatial.Wgs84Coordinates;
 import com.zanh.route_sharing.domain.enums.LoaiDiemTha;
 import com.zanh.route_sharing.domain.enums.LoaiGhepTuyen;
 import org.locationtech.jts.geom.LineString;
@@ -106,7 +107,7 @@ public record RideRequestSnapshot(
 
     private static void requireLineString(LineString value, String name) {
         if (value == null || value.isEmpty() || value.getNumPoints() < 2
-                || value.getLength() == 0.0d || value.getSRID() != 4326) {
+                || value.getLength() == 0.0d || value.getSRID() != Wgs84Coordinates.SRID) {
             throw new IllegalArgumentException(name + " phải là LineString WGS84 SRID 4326 hợp lệ");
         }
     }

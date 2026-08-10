@@ -1,5 +1,7 @@
 package com.zanh.route_sharing.devseed;
 
+import com.zanh.route_sharing.utils.spatial.Wgs84Coordinates;
+import com.zanh.route_sharing.utils.time.TimePolicy;
 import com.zanh.route_sharing.domain.entity.CauHinhNghiepVu;
 import com.zanh.route_sharing.domain.entity.DongXe;
 import com.zanh.route_sharing.domain.entity.HangXe;
@@ -48,6 +50,12 @@ public class DevSeedDataService {
         public static final String DRIVER_PASSWORD = "Dev123!";
         public static final String PASSENGER_EMAIL = "passenger1@university.test";
         public static final String PASSENGER_PASSWORD = "Dev123!";
+        public static final String PASSENGER2_EMAIL = "passenger2@university.test";
+        public static final String PASSENGER2_PASSWORD = "Dev123!";
+        public static final String PASSENGER3_EMAIL = "passenger3@university.test";
+        public static final String PASSENGER3_PASSWORD = "Dev123!";
+        public static final String NO_TRIP_VIEW_EMAIL = "member-no-trip-view@university.test";
+        public static final String NO_TRIP_VIEW_PASSWORD = "Dev123!";
         public static final String VEHICLE_PLATE = "59A1-SEED01";
         public static final String SCHOOL_CODE = "SEED-UNIVERSITY";
 
@@ -62,9 +70,12 @@ public class DevSeedDataService {
         private static final String LEGACY_CANCEL_ROUTE_RIDE_REQUEST_PERMISSION = "CANCEL_ROUTE_RIDE_REQUEST";
         private static final String CANCEL_OWN_SHARED_ROUTE_PERMISSION = "CANCEL_OWN_SHARED_ROUTE";
         private static final String LOCK_OWN_SHARED_ROUTE_PERMISSION = "LOCK_OWN_SHARED_ROUTE";
+        private static final String VIEW_OWN_TRIP_PERMISSION = "VIEW_OWN_TRIP";
+        private static final String START_OWN_TRIP_PERMISSION = "START_OWN_TRIP";
         private static final String DRIVER_GROUP = "DRIVER";
-        private static final ZoneId BUSINESS_ZONE = ZoneId.of("Asia/Ho_Chi_Minh");
-        private static final GeometryFactory GEOMETRY_FACTORY = new GeometryFactory(new PrecisionModel(), 4326);
+        private static final ZoneId BUSINESS_ZONE = TimePolicy.BUSINESS_ZONE;
+        private static final GeometryFactory GEOMETRY_FACTORY = new GeometryFactory(new PrecisionModel(),
+                        Wgs84Coordinates.SRID);
 
         private static final String SAME_DESTINATION_ORIGIN_ADDRESS = "E1-02 Seed - Cùng điểm đến - Xuất phát";
         private static final String SEGMENT_ORIGIN_ADDRESS = "E1-02 Seed - Trùng đoạn tuyến - Xuất phát";
@@ -85,7 +96,7 @@ public class DevSeedDataService {
 
         @Transactional
         public SeedSummary seedSharedRouteScenario() {
-                Instant now = clock.instant();
+                Instant now = TimePolicy.now(clock);
                 LocalDate currentBusinessDate = LocalDate.ofInstant(now, BUSINESS_ZONE);
 
                 QuyenHan createPermission = ensurePermission(
@@ -128,6 +139,14 @@ public class DevSeedDataService {
                                 LOCK_OWN_SHARED_ROUTE_PERMISSION,
                                 "Khóa danh sách và hình thành chuyến đi",
                                 "Cho phép tài xế khóa lộ trình OPEN của mình và hình thành chuyến đi thực tế.");
+                QuyenHan viewOwnTripPermission = ensurePermission(
+                                VIEW_OWN_TRIP_PERMISSION,
+                                "Xem chuyến đi mình tham gia",
+                                "Cho phép participant hợp lệ xem chi tiết kế hoạch chuyến đi của mình.");
+                QuyenHan startOwnTripPermission = ensurePermission(
+                                START_OWN_TRIP_PERMISSION,
+                                "Bắt đầu chuyến đi của mình",
+                                "Cho phép tài xế bắt đầu chuyến PREPARING do chính mình sở hữu khi ở đúng điểm DRIVER_START.");
 
                 NhomQuyen driverGroup = ensureDriverGroup(
                                 createPermission,
@@ -135,7 +154,9 @@ public class DevSeedDataService {
                                 respondRideRequestPermission,
                                 cancelOwnSharedRoutePermission,
                                 viewOwnSharedRoutesPermission,
-                                lockOwnSharedRoutePermission);
+                                lockOwnSharedRoutePermission,
+                                viewOwnTripPermission,
+                                startOwnTripPermission);
                 retireLegacyPermission(driverGroup, LEGACY_CANCEL_ROUTE_RIDE_REQUEST_PERMISSION);
                 NguoiDung driver = ensureDriverUser(driverGroup, now);
                 HoSoTaiXe driverProfile = ensureDriverProfile(driver, now);
@@ -149,6 +170,32 @@ public class DevSeedDataService {
                                 createRideRequestPermission,
                                 cancelOwnRideRequestPermission,
                                 viewOwnRideRequestsPermission,
+                                viewOwnTripPermission,
+                                now);
+                NguoiDung passenger2 = ensureAdditionalPassengerUser(
+                                PASSENGER2_EMAIL,
+                                PASSENGER2_PASSWORD,
+                                "Hành khách Seed E4-S01 B",
+                                searchPermission,
+                                createRideRequestPermission,
+                                cancelOwnRideRequestPermission,
+                                viewOwnRideRequestsPermission,
+                                viewOwnTripPermission,
+                                now);
+                NguoiDung passenger3 = ensureAdditionalPassengerUser(
+                                PASSENGER3_EMAIL,
+                                PASSENGER3_PASSWORD,
+                                "Hành khách Seed E4-S01 Foreign",
+                                searchPermission,
+                                createRideRequestPermission,
+                                cancelOwnRideRequestPermission,
+                                viewOwnRideRequestsPermission,
+                                viewOwnTripPermission,
+                                now);
+                ensureLoginOnlyUser(
+                                NO_TRIP_VIEW_EMAIL,
+                                NO_TRIP_VIEW_PASSWORD,
+                                "Thành viên Seed không có VIEW_OWN_TRIP",
                                 now);
 
                 HoSoSinhVien passengerMembership = ensureMembership(
@@ -161,6 +208,18 @@ public class DevSeedDataService {
                                 driver,
                                 school,
                                 "SEED-DRIVER-001",
+                                currentBusinessDate,
+                                now);
+                ensureMembership(
+                                passenger2,
+                                school,
+                                "SEED-PASSENGER-002",
+                                currentBusinessDate,
+                                now);
+                ensureMembership(
+                                passenger3,
+                                school,
+                                "SEED-PASSENGER-003",
                                 currentBusinessDate,
                                 now);
 
@@ -242,8 +301,8 @@ public class DevSeedDataService {
         }
 
         private void retireLegacyPermission(NhomQuyen group, String permissionCode) {
-                boolean removed = group.getDanhSachQuyenHan().removeIf(permission ->
-                                permission.getMaQuyen().equalsIgnoreCase(permissionCode));
+                boolean removed = group.getDanhSachQuyenHan()
+                                .removeIf(permission -> permission.getMaQuyen().equalsIgnoreCase(permissionCode));
                 if (removed) {
                         groupRepository.save(group);
                 }
@@ -280,6 +339,7 @@ public class DevSeedDataService {
                         QuyenHan createRideRequestPermission,
                         QuyenHan cancelOwnRideRequestPermission,
                         QuyenHan viewOwnRideRequestsPermission,
+                        QuyenHan viewOwnTripPermission,
                         Instant now) {
                 NguoiDung user = userRepository.findByEmailTruongIgnoreCase(PASSENGER_EMAIL)
                                 .orElseGet(() -> NguoiDung.builder()
@@ -308,7 +368,59 @@ public class DevSeedDataService {
                                                 .equalsIgnoreCase(viewOwnRideRequestsPermission.getMaQuyen()))) {
                         user.getDanhSachQuyenTrucTiep().add(viewOwnRideRequestsPermission);
                 }
+                if (user.getDanhSachQuyenTrucTiep().stream()
+                                .noneMatch(item -> item.getMaQuyen()
+                                                .equalsIgnoreCase(viewOwnTripPermission.getMaQuyen()))) {
+                        user.getDanhSachQuyenTrucTiep().add(viewOwnTripPermission);
+                }
                 return userRepository.save(user);
+        }
+
+        private NguoiDung ensureAdditionalPassengerUser(
+                        String email,
+                        String password,
+                        String fullName,
+                        QuyenHan searchPermission,
+                        QuyenHan createRideRequestPermission,
+                        QuyenHan cancelOwnRideRequestPermission,
+                        QuyenHan viewOwnRideRequestsPermission,
+                        QuyenHan viewOwnTripPermission,
+                        Instant now) {
+                NguoiDung user = userRepository.findByEmailTruongIgnoreCase(email)
+                                .orElseGet(() -> NguoiDung.builder()
+                                                .hoTen(fullName)
+                                                .emailTruong(email)
+                                                .build());
+
+                normalizeSeedUser(user, password, now);
+                grantDirectPermission(user, searchPermission);
+                grantDirectPermission(user, createRideRequestPermission);
+                grantDirectPermission(user, cancelOwnRideRequestPermission);
+                grantDirectPermission(user, viewOwnRideRequestsPermission);
+                grantDirectPermission(user, viewOwnTripPermission);
+                return userRepository.save(user);
+        }
+
+        private NguoiDung ensureLoginOnlyUser(
+                        String email,
+                        String password,
+                        String fullName,
+                        Instant now) {
+                NguoiDung user = userRepository.findByEmailTruongIgnoreCase(email)
+                                .orElseGet(() -> NguoiDung.builder()
+                                                .hoTen(fullName)
+                                                .emailTruong(email)
+                                                .build());
+                normalizeSeedUser(user, password, now);
+                return userRepository.save(user);
+        }
+
+        private void grantDirectPermission(NguoiDung user, QuyenHan permission) {
+                if (user.getDanhSachQuyenTrucTiep().stream()
+                                .noneMatch(item -> item.getMaQuyen()
+                                                .equalsIgnoreCase(permission.getMaQuyen()))) {
+                        user.getDanhSachQuyenTrucTiep().add(permission);
+                }
         }
 
         private void normalizeSeedUser(

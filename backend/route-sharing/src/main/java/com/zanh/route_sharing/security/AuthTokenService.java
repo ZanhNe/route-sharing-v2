@@ -1,12 +1,13 @@
 package com.zanh.route_sharing.security;
 
+import com.zanh.route_sharing.utils.time.TimePolicy;
 import com.zanh.route_sharing.domain.entity.NguoiDung;
 import com.zanh.route_sharing.domain.entity.RefreshTokenSession;
 import com.zanh.route_sharing.domain.enums.TrangThaiTaiKhoan;
 import com.zanh.route_sharing.exception.BusinessException;
+import com.zanh.route_sharing.repository.NguoiDungRepository;
 import com.zanh.route_sharing.repository.RefreshTokenSessionRepository;
 import io.jsonwebtoken.JwtException;
-import jakarta.persistence.EntityManager;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.authentication.DisabledException;
@@ -25,7 +26,7 @@ public class AuthTokenService {
     private final JwtUtil jwtUtil;
     private final CustomUserDetailsService userDetailsService;
     private final RefreshTokenSessionRepository refreshTokenRepository;
-    private final EntityManager entityManager;
+    private final NguoiDungRepository nguoiDungRepository;
     private final Clock clock;
     private final TransactionTemplate transactionTemplate;
 
@@ -44,7 +45,7 @@ public class AuthTokenService {
             return Objects.requireNonNull(
                     transactionTemplate.execute(status -> rotateInTransaction(rawRefreshToken, claims, clientInfo)));
         } catch (RefreshTokenReuseDetectedException reuse) {
-            Instant compromisedAt = clock.instant();
+            Instant compromisedAt = TimePolicy.now(clock);
             transactionTemplate.executeWithoutResult(
                     status -> refreshTokenRepository.revokeAllActiveByUserId(reuse.userId(), compromisedAt));
             throw invalidRefreshToken();
@@ -58,7 +59,7 @@ public class AuthTokenService {
             refreshTokenRepository.findForUpdateByJti(claims.jwtId()).ifPresent(session -> {
                 if (session.getRevokedAt() == null
                         && RefreshTokenHasher.matches(rawRefreshToken, session.getTokenHash())) {
-                    session.setRevokedAt(clock.instant());
+                    session.setRevokedAt(TimePolicy.now(clock));
                 }
             });
         } catch (JwtException ignored) {
@@ -68,7 +69,7 @@ public class AuthTokenService {
 
     @Transactional
     public int revokeAllForUser(Long userId) {
-        return refreshTokenRepository.revokeAllActiveByUserId(userId, clock.instant());
+        return refreshTokenRepository.revokeAllActiveByUserId(userId, TimePolicy.now(clock));
     }
 
     private TokenPair rotateInTransaction(String rawRefreshToken,
@@ -76,7 +77,7 @@ public class AuthTokenService {
             ClientRequestInfo clientInfo) {
         RefreshTokenSession current = refreshTokenRepository.findForUpdateByJti(claims.jwtId())
                 .orElseThrow(AuthTokenService::invalidRefreshToken);
-        Instant now = clock.instant();
+        Instant now = TimePolicy.now(clock);
         boolean tokenHashMatches = RefreshTokenHasher.matches(rawRefreshToken, current.getTokenHash());
 
         if (current.getRevokedAt() != null) {
@@ -114,7 +115,7 @@ public class AuthTokenService {
                 .expiresAt(refresh.expiresAt())
                 .ipAddress(clientInfo == null ? null : clientInfo.ipAddress())
                 .userAgent(clientInfo == null ? null : clientInfo.userAgent())
-                .nguoiDung(entityManager.getReference(NguoiDung.class, principal.getId()))
+                .nguoiDung(nguoiDungRepository.getReferenceById(principal.getId()))
                 .build();
         refreshTokenRepository.save(session);
     }

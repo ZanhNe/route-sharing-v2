@@ -1,5 +1,6 @@
 package com.zanh.route_sharing.controller;
 
+import com.zanh.route_sharing.utils.PaginationPolicy;
 import com.zanh.route_sharing.domain.enums.TrangThaiYeuCau;
 import com.zanh.route_sharing.dto.response.ApiResponse;
 import com.zanh.route_sharing.dto.riderequest.passengerquery.PassengerRideRequestDetailResponse;
@@ -26,45 +27,42 @@ import org.springframework.web.bind.annotation.RestController;
 @Validated
 public class PassengerRideRequestQueryController {
 
-    private final PassengerRideRequestQueryService queryService;
+        private final PassengerRideRequestQueryService queryService;
 
-    public PassengerRideRequestQueryController(PassengerRideRequestQueryService queryService) {
-        this.queryService = queryService;
-    }
+        public PassengerRideRequestQueryController(PassengerRideRequestQueryService queryService) {
+                this.queryService = queryService;
+        }
 
-    @GetMapping
-    @PreAuthorize("hasAuthority('VIEW_OWN_RIDE_REQUESTS')")
-    public ResponseEntity<ApiResponse<PassengerRideRequestPageResponse>> listOwnRideRequests(
-            @AuthenticationPrincipal CustomUserDetails principal,
-            @RequestParam(required = false) TrangThaiYeuCau status,
-            @RequestParam(defaultValue = "0")
-            @Min(value = 0, message = "page phải lớn hơn hoặc bằng 0.") int page,
-            @RequestParam(defaultValue = "10")
-            @Min(value = 1, message = "size phải lớn hơn hoặc bằng 1.")
-            @Max(value = 50, message = "size không được vượt quá 50.") int size) {
-        PassengerRideRequestPageResult result = queryService.listOwnRideRequests(
-                principal.getId(),
-                status,
-                page,
-                size);
-        return ResponseEntity.ok(ApiResponse.of(
-                HttpStatus.OK.value(),
-                result.data(),
-                "Lấy danh sách yêu cầu đi chung của bạn thành công.",
-                result.meta()));
-    }
+        @GetMapping
+        @PreAuthorize("hasAuthority('VIEW_OWN_RIDE_REQUESTS')")
+        public ResponseEntity<ApiResponse<PassengerRideRequestPageResponse>> listOwnRideRequests(
+                        @AuthenticationPrincipal CustomUserDetails principal,
+                        @RequestParam(required = false) TrangThaiYeuCau status,
+                        @RequestParam(defaultValue = "0") @Min(value = 0, message = "page phải lớn hơn hoặc bằng 0.") int page,
+                        @RequestParam(defaultValue = "10") @Min(value = 1, message = "size phải lớn hơn hoặc bằng 1.") @Max(value = PaginationPolicy.MAX_SIZE, message = "size không được vượt quá 50.") int size) {
+                PassengerRideRequestPageResult result = queryService.listOwnRideRequests(
+                                principal.getId(),
+                                status,
+                                page,
+                                size);
+                return ResponseEntity.ok(ApiResponse.of(
+                                HttpStatus.OK.value(),
+                                result.data(),
+                                "Lấy danh sách yêu cầu đi chung của bạn thành công.",
+                                result.meta()));
+        }
 
-    @GetMapping("/{rideRequestId}")
-    @PreAuthorize("hasAuthority('VIEW_OWN_RIDE_REQUESTS')")
-    public ResponseEntity<ApiResponse<PassengerRideRequestDetailResponse>> getOwnRideRequestDetail(
-            @AuthenticationPrincipal CustomUserDetails principal,
-            @PathVariable @Positive(message = "rideRequestId phải là số dương.") Long rideRequestId) {
-        PassengerRideRequestDetailResponse data = queryService.getOwnRideRequestDetail(
-                principal.getId(),
-                rideRequestId);
-        return ResponseEntity.ok(ApiResponse.success(
-                HttpStatus.OK.value(),
-                data,
-                "Lấy chi tiết yêu cầu đi chung của bạn thành công."));
-    }
+        @GetMapping("/{rideRequestId}")
+        @PreAuthorize("hasAuthority('VIEW_OWN_RIDE_REQUESTS')")
+        public ResponseEntity<ApiResponse<PassengerRideRequestDetailResponse>> getOwnRideRequestDetail(
+                        @AuthenticationPrincipal CustomUserDetails principal,
+                        @PathVariable @Positive(message = "rideRequestId phải là số dương.") Long rideRequestId) {
+                PassengerRideRequestDetailResponse data = queryService.getOwnRideRequestDetail(
+                                principal.getId(),
+                                rideRequestId);
+                return ResponseEntity.ok(ApiResponse.success(
+                                HttpStatus.OK.value(),
+                                data,
+                                "Lấy chi tiết yêu cầu đi chung của bạn thành công."));
+        }
 }

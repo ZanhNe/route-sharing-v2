@@ -1,5 +1,7 @@
 package com.zanh.route_sharing.service.impl;
 
+import com.zanh.route_sharing.utils.PaginationPolicy;
+import com.zanh.route_sharing.utils.time.TimePolicy;
 import com.zanh.route_sharing.domain.enums.TrangThaiYeuCau;
 import com.zanh.route_sharing.dto.riderequest.passengerquery.PassengerRideRequestDetailResponse;
 import com.zanh.route_sharing.exception.BusinessException;
@@ -18,8 +20,6 @@ import java.time.Instant;
 
 @Service
 public class PassengerRideRequestQueryServiceImpl implements PassengerRideRequestQueryService {
-
-    private static final int MAX_PAGE_SIZE = 50;
 
     private final PassengerRideRequestQueryRepository repository;
     private final PassengerRideRequestResponseMapper responseMapper;
@@ -48,7 +48,7 @@ public class PassengerRideRequestQueryServiceImpl implements PassengerRideReques
                 status,
                 page,
                 size);
-        Instant readAt = clock.instant();
+        Instant readAt = TimePolicy.now(clock);
         PassengerRideRequestPageSnapshot snapshot = repository.findPage(criteria);
         return responseMapper.toPage(snapshot, readAt);
     }
@@ -60,7 +60,7 @@ public class PassengerRideRequestQueryServiceImpl implements PassengerRideReques
         requirePositive(actorUserId, "actorUserId");
         requirePositive(rideRequestId, "rideRequestId");
 
-        Instant readAt = clock.instant();
+        Instant readAt = TimePolicy.now(clock);
         PassengerRideRequestDetailRow row = repository.findDetail(actorUserId, rideRequestId)
                 .orElseThrow(PassengerRideRequestQueryServiceImpl::rideRequestNotFound);
         return responseMapper.toDetail(row, readAt);
@@ -76,8 +76,8 @@ public class PassengerRideRequestQueryServiceImpl implements PassengerRideReques
         if (page < 0) {
             throw invalidQuery("page phải lớn hơn hoặc bằng 0.");
         }
-        if (size < 1 || size > MAX_PAGE_SIZE) {
-            throw invalidQuery("size phải nằm trong khoảng từ 1 đến 50.");
+        if (size < 1 || size > PaginationPolicy.MAX_SIZE) {
+            throw invalidQuery("size phải nằm trong khoảng từ 1 đến " + PaginationPolicy.MAX_SIZE + ".");
         }
     }
 

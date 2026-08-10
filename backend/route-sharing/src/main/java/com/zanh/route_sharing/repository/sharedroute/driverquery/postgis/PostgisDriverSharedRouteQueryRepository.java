@@ -67,9 +67,9 @@ public class PostgisDriverSharedRouteQueryRepository implements DriverSharedRout
                 .addValue("routeId", routeId);
 
         return jdbcTemplate.query(
-                        PostgisDriverSharedRouteQuerySql.DETAIL,
-                        parameters,
-                        (resultSet, rowNumber) -> mapDetail(resultSet))
+                PostgisDriverSharedRouteQuerySql.DETAIL,
+                parameters,
+                (resultSet, rowNumber) -> mapDetail(resultSet))
                 .stream()
                 .findFirst();
     }
@@ -132,6 +132,7 @@ public class PostgisDriverSharedRouteQueryRepository implements DriverSharedRout
                 rs.getLong("cancelled_by_passenger"),
                 rs.getLong("cancelled_by_driver"),
                 rs.getBoolean("assigned_to_trip"),
+                PostgresJdbcValues.longObject(rs, "trip_id"),
                 PostgresJdbcValues.instant(rs, "cancelled_at"),
                 rs.getString("cancellation_reason"));
     }

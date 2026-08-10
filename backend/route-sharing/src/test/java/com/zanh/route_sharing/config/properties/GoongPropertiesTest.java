@@ -2,7 +2,6 @@ package com.zanh.route_sharing.config.properties;
 
 import org.junit.jupiter.api.Test;
 
-import java.math.BigDecimal;
 import java.net.URI;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -17,16 +16,6 @@ class GoongPropertiesTest {
                 .isEqualByComparingTo("100.00");
         assertThat(properties.getDuplicateWaypointToleranceMeters())
                 .isEqualByComparingTo("2.00");
-        assertThat(properties.isDuplicateToleranceWithinSnapTolerance()).isTrue();
-    }
-
-    @Test
-    void rejectsDuplicateToleranceGreaterThanSnapTolerance() {
-        GoongProperties properties = new GoongProperties();
-        properties.setWaypointSnapToleranceMeters(new BigDecimal("10"));
-        properties.setDuplicateWaypointToleranceMeters(new BigDecimal("11"));
-
-        assertThat(properties.isDuplicateToleranceWithinSnapTolerance()).isFalse();
     }
 
     @Test

@@ -1,5 +1,6 @@
 package com.zanh.route_sharing.service.impl;
 
+import com.zanh.route_sharing.utils.time.TimePolicy;
 import com.zanh.route_sharing.domain.entity.LoTrinhChiaSe;
 import com.zanh.route_sharing.domain.entity.NhatKyTrangThaiYeuCau;
 import com.zanh.route_sharing.domain.entity.ThongBao;
@@ -50,7 +51,7 @@ public class RideRequestCancellationServiceImpl implements RideRequestCancellati
                 .orElseThrow(RideRequestCancellationServiceImpl::requestNotFound);
         YeuCauDiChung request = repository.lockPassengerRequest(actorId, routeId, rideRequestId)
                 .orElseThrow(RideRequestCancellationServiceImpl::requestNotFound);
-        Instant cancelledAt = clock.instant();
+        Instant cancelledAt = TimePolicy.now(clock);
         requireRouteOpen(route);
         requireNotAssignedToTrip(request);
         TrangThaiYeuCau previous = request.getTrangThaiYeuCau();

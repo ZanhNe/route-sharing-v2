@@ -24,6 +24,7 @@ public record PassengerRideRequestDetailResponse(
         Instant cancelledAt,
         String cancellationReason,
         boolean assignedToTrip,
+        Long tripId,
         boolean canCancel,
         RouteContext route,
         Driver driver,
@@ -40,6 +41,15 @@ public record PassengerRideRequestDetailResponse(
         Objects.requireNonNull(vehicle, "vehicle không được trống.");
         Objects.requireNonNull(booking, "booking không được trống.");
         Objects.requireNonNull(map, "map không được trống.");
+    }
+
+    public PassengerRideRequestDetailResponse(
+            Long rideRequestId, TrangThaiYeuCau status, Instant sentAt, Instant acceptedAt, Instant rejectedAt,
+            Instant cooldownUntil, boolean cooldownActive, Instant cancelledAt, String cancellationReason,
+            boolean assignedToTrip, boolean canCancel, RouteContext route, Driver driver, Vehicle vehicle,
+            BookingSnapshot booking, StoredMap map) {
+        this(rideRequestId, status, sentAt, acceptedAt, rejectedAt, cooldownUntil, cooldownActive, cancelledAt,
+                cancellationReason, assignedToTrip, null, canCancel, route, driver, vehicle, booking, map);
     }
 
     public record RouteContext(

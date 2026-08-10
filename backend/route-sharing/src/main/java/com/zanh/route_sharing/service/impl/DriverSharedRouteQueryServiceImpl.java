@@ -1,5 +1,6 @@
 package com.zanh.route_sharing.service.impl;
 
+import com.zanh.route_sharing.utils.PaginationPolicy;
 import com.zanh.route_sharing.domain.enums.TrangThaiLoTrinh;
 import com.zanh.route_sharing.dto.sharedroute.driverquery.DriverSharedRouteDetailResponse;
 import com.zanh.route_sharing.exception.BusinessException;
@@ -14,8 +15,6 @@ import org.springframework.stereotype.Service;
 
 @Service
 public class DriverSharedRouteQueryServiceImpl implements DriverSharedRouteQueryService {
-
-    private static final int MAX_PAGE_SIZE = 50;
 
     private final DriverSharedRouteQueryRepository repository;
     private final DriverSharedRouteResponseMapper responseMapper;
@@ -61,8 +60,8 @@ public class DriverSharedRouteQueryServiceImpl implements DriverSharedRouteQuery
         if (page < 0) {
             throw invalidQuery("page phải lớn hơn hoặc bằng 0.");
         }
-        if (size < 1 || size > MAX_PAGE_SIZE) {
-            throw invalidQuery("size phải nằm trong khoảng từ 1 đến 50.");
+        if (size < 1 || size > PaginationPolicy.MAX_SIZE) {
+            throw invalidQuery("size phải nằm trong khoảng từ 1 đến " + PaginationPolicy.MAX_SIZE + ".");
         }
     }
 

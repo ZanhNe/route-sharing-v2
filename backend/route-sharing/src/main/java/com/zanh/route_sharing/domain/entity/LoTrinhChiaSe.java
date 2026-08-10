@@ -1,5 +1,6 @@
 package com.zanh.route_sharing.domain.entity;
 
+import com.zanh.route_sharing.utils.spatial.Wgs84Coordinates;
 import com.zanh.route_sharing.domain.enums.TrangThaiLoTrinh;
 import jakarta.persistence.*;
 import lombok.*;
@@ -104,7 +105,6 @@ public class LoTrinhChiaSe extends Base {
                 return entity;
         }
 
-
         public void allocateOneSeat() {
                 if (this.trangThaiLoTrinh != TrangThaiLoTrinh.OPEN) {
                         throw new IllegalStateException("Chỉ lộ trình OPEN mới được cấp ghế.");
@@ -164,7 +164,7 @@ public class LoTrinhChiaSe extends Base {
         }
 
         private static Point requirePoint(Point point, String fieldName) {
-                if (point == null || point.isEmpty() || point.getSRID() != 4326) {
+                if (point == null || point.isEmpty() || point.getSRID() != Wgs84Coordinates.SRID) {
                         throw new IllegalArgumentException(fieldName + " phải là Point WGS84 SRID 4326 hợp lệ.");
                 }
                 return point;
@@ -173,7 +173,7 @@ public class LoTrinhChiaSe extends Base {
         private static LineString requireLineString(LineString lineString) {
                 if (lineString == null || lineString.isEmpty()
                                 || lineString.getNumPoints() < 2 || lineString.getLength() == 0.0
-                                || lineString.getSRID() != 4326) {
+                                || lineString.getSRID() != Wgs84Coordinates.SRID) {
                         throw new IllegalArgumentException("Tuyến đường phải là LineString WGS84 SRID 4326 hợp lệ.");
                 }
                 return lineString;

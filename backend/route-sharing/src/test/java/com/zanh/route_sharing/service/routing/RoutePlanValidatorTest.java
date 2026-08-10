@@ -1,6 +1,5 @@
 package com.zanh.route_sharing.service.routing;
 
-import com.zanh.route_sharing.config.properties.GoongProperties;
 import com.zanh.route_sharing.domain.enums.LoaiPhuongTien;
 import com.zanh.route_sharing.exception.BusinessException;
 import com.zanh.route_sharing.service.routing.model.RouteBounds;
@@ -55,6 +54,41 @@ class RoutePlanValidatorTest {
 
                 assertThatCode(() -> validator().validate(request, plan))
                                 .doesNotThrowAnyException();
+        }
+
+
+        @Test
+        void givenProviderGeometryWithinSnapTolerance_whenValidating_thenExactCoordinateEqualityIsNotRequired() {
+                RoutePlanRequest request = request();
+                RoutePlan plan = plan(new Coordinate[] {
+                                new Coordinate(106.68, 10.77),
+                                new Coordinate(106.685, 10.7701),
+                                new Coordinate(106.695, 10.7701),
+                                new Coordinate(106.710, 10.7701),
+                                new Coordinate(106.715, 10.7701),
+                                new Coordinate(106.72, 10.77)
+                });
+
+                assertThatCode(() -> validator().validate(request, plan))
+                                .doesNotThrowAnyException();
+        }
+
+        @Test
+        void givenProviderGeometryOutsideSnapTolerance_whenValidating_thenPlanIsRejected() {
+                RoutePlanRequest request = request();
+                RoutePlan plan = plan(new Coordinate[] {
+                                new Coordinate(106.68, 10.77),
+                                new Coordinate(106.685, 10.7704),
+                                new Coordinate(106.695, 10.7704),
+                                new Coordinate(106.710, 10.7704),
+                                new Coordinate(106.715, 10.7704),
+                                new Coordinate(106.72, 10.77)
+                });
+
+                assertThatThrownBy(() -> validator().validate(request, plan))
+                                .isInstanceOf(BusinessException.class)
+                                .satisfies(error -> assertThat(((BusinessException) error).getCode())
+                                                .isEqualTo("MAP_PROVIDER_INVALID_RESPONSE"));
         }
 
         @Test
@@ -119,9 +153,9 @@ class RoutePlanValidatorTest {
         }
 
         private static RoutePlanValidator validator() {
-                GoongProperties properties = new GoongProperties();
-                properties.setWaypointSnapToleranceMeters(new BigDecimal("20"));
-                return new RoutePlanValidator(properties);
+                return new RoutePlanValidator(new RoutePlanningPolicy(
+                                new BigDecimal("2"),
+                                new BigDecimal("20")));
         }
 
         private static RoutePlanRequest request() {

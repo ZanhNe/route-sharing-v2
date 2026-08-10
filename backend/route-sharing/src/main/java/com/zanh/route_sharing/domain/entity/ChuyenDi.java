@@ -1,5 +1,6 @@
 package com.zanh.route_sharing.domain.entity;
 
+import com.zanh.route_sharing.utils.spatial.Wgs84Coordinates;
 import com.zanh.route_sharing.domain.enums.*;
 import jakarta.persistence.*;
 import lombok.*;
@@ -60,6 +61,7 @@ public class ChuyenDi extends Base {
         @OneToMany(mappedBy = "chuyenDi", cascade = CascadeType.ALL, orphanRemoval = true)
         @OrderBy("thuTu ASC")
         private List<DiemDungHanhTrinh> danhSachDiemDung = new ArrayList<>();
+
         public static ChuyenDi preparing(
                         LoTrinhChiaSe route,
                         int plannedPassengerCount,
@@ -68,16 +70,17 @@ public class ChuyenDi extends Base {
                         throw new IllegalArgumentException("Lộ trình phải được lưu trước khi hình thành chuyến đi.");
                 }
                 if (plannedPassengerCount <= 0) {
-                        throw new IllegalArgumentException("Chuyến đi chia sẻ phải có ít nhất một hành khách kế hoạch.");
+                        throw new IllegalArgumentException(
+                                        "Chuyến đi chia sẻ phải có ít nhất một hành khách kế hoạch.");
                 }
                 if (operationalRoute == null || operationalRoute.isEmpty()
                                 || operationalRoute.getNumPoints() < 2
                                 || operationalRoute.getLength() <= 0.0d
-                                || operationalRoute.getSRID() != 4326) {
+                                || operationalRoute.getSRID() != Wgs84Coordinates.SRID) {
                         throw new IllegalArgumentException("Tuyến vận hành phải là LineString SRID 4326 hợp lệ.");
                 }
                 LineString routeCopy = (LineString) operationalRoute.copy();
-                routeCopy.setSRID(4326);
+                routeCopy.setSRID(Wgs84Coordinates.SRID);
                 ChuyenDi trip = new ChuyenDi();
                 trip.loTrinhChiaSe = route;
                 trip.trangThaiVanHanh = TrangThaiVanHanhChuyenDi.PREPARING;
@@ -86,6 +89,28 @@ public class ChuyenDi extends Base {
                 trip.soKhachThucTe = 0;
                 trip.tuyenDuongVanHanh = routeCopy;
                 return trip;
+        }
+
+        public void start(Instant startedAt) {
+                if (startedAt == null) {
+                        throw new IllegalArgumentException("startedAt không được trống.");
+                }
+                if (this.batDauLuc != null) {
+                        throw new IllegalStateException("Chuyến đi đã được bắt đầu trước đó.");
+                }
+                if (this.trangThaiVanHanh != TrangThaiVanHanhChuyenDi.PREPARING) {
+                        throw new IllegalStateException("Chỉ chuyến PREPARING mới có thể bắt đầu.");
+                }
+                if (this.loTrinhChiaSe == null
+                                || this.loTrinhChiaSe.getTrangThaiLoTrinh() != TrangThaiLoTrinh.LOCKED
+                                || this.loTrinhChiaSe.getChuyenDi() != this) {
+                        throw new IllegalStateException("Chuyến PREPARING phải thuộc lộ trình LOCKED tương ứng.");
+                }
+                if (this.soKhachThucTe == null || this.soKhachThucTe != 0) {
+                        throw new IllegalStateException("Số khách thực tế trước Start phải bằng 0.");
+                }
+                this.trangThaiVanHanh = TrangThaiVanHanhChuyenDi.IN_PROGRESS;
+                this.batDauLuc = startedAt;
         }
 
 }

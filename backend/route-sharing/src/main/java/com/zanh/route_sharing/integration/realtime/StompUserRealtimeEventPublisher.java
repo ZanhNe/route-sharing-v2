@@ -52,6 +52,9 @@ public class StompUserRealtimeEventPublisher implements UserRealtimeEventPublish
             return;
         }
 
+        // Some use-cases (E2-01) deliberately commit in a short repository transaction
+        // after provider work. When control returns here, the business transaction is
+        // already committed, so immediate best-effort dispatch is still AFTER_COMMIT.
         dispatch.run();
     }
 
@@ -70,6 +73,9 @@ public class StompUserRealtimeEventPublisher implements UserRealtimeEventPublish
         try {
             messagingTemplate.convertAndSendToUser(username, NOTIFICATION_DESTINATION, event);
         } catch (RuntimeException exception) {
+            // Business state and durable ThongBao are already committed. Realtime is a
+            // best-effort signal; transport failure must never turn a committed command
+            // into an apparent business rollback to the REST caller.
             LOGGER.warn(
                     "Realtime delivery failed after commit: recipientUserId={}, eventType={}",
                     recipientUserId,

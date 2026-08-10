@@ -1,6 +1,5 @@
 package com.zanh.route_sharing.service.impl;
 
-import com.zanh.route_sharing.config.properties.GoongProperties;
 import com.zanh.route_sharing.domain.enums.LoaiDiemTha;
 import com.zanh.route_sharing.domain.enums.LoaiGhepTuyen;
 import com.zanh.route_sharing.domain.enums.TrangThaiYeuCau;
@@ -23,6 +22,7 @@ import com.zanh.route_sharing.service.riderequest.RideRequestSnapshotCalculator;
 import com.zanh.route_sharing.service.riderequest.model.LocationLabel;
 import com.zanh.route_sharing.service.routing.RoutePlanSegmentExtractor;
 import com.zanh.route_sharing.service.routing.RoutePlanner;
+import com.zanh.route_sharing.service.routing.RoutePlanningPolicy;
 import com.zanh.route_sharing.service.routing.model.RouteBounds;
 import com.zanh.route_sharing.service.routing.model.RoutePlan;
 import com.zanh.route_sharing.service.routing.model.RoutePlanLeg;
@@ -82,8 +82,9 @@ class RideRequestCreationServiceImplTest {
 
     @BeforeEach
     void setUp() {
-        GoongProperties properties = new GoongProperties();
-        properties.setDuplicateWaypointToleranceMeters(new BigDecimal("2.00"));
+        RoutePlanningPolicy routingPolicy = new RoutePlanningPolicy(
+                new BigDecimal("2.00"),
+                new BigDecimal("100.00"));
         sut = new RideRequestCreationServiceImpl(
                 repository,
                 routePlanner,
@@ -92,7 +93,7 @@ class RideRequestCreationServiceImplTest {
                         new RoutePlanSegmentExtractor(),
                         GEOMETRY_FACTORY),
                 new RideRequestResponseMapper(),
-                properties,
+                routingPolicy,
                 Clock.fixed(RideRequestMother.NOW, ZoneOffset.UTC),
                 realtimeEventPublisher);
         request = new CreateRideRequestRequestBuilder().build();

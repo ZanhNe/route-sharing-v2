@@ -1,5 +1,7 @@
 package com.zanh.route_sharing.repository.sharedroute.common;
 
+import com.zanh.route_sharing.utils.time.TimePolicy;
+
 public final class PostgisSharedRouteMatchingSql {
 
     public static final String SEARCH_ROUTE_SCOPE = """
@@ -11,7 +13,7 @@ public final class PostgisSharedRouteMatchingSql {
                   AND route.id = :sharedRouteId
             """;
 
-    public static final String TEMPLATE = """
+    public static final String TEMPLATE = withBusinessZone("""
             WITH input AS (
                 SELECT
                     ST_SetSRID(
@@ -34,7 +36,7 @@ public final class PostgisSharedRouteMatchingSql {
                     route.*,
                     (
                         route.thoi_gian_khoi_hanh_du_kien
-                        AT TIME ZONE 'Asia/Ho_Chi_Minh'
+                        AT TIME ZONE '@@BUSINESS_ZONE@@'
                     )::date AS route_travel_date
                 FROM lo_trinh_chia_se route
                 WHERE route.trang_thai_lo_trinh = 'OPEN'
@@ -235,7 +237,7 @@ public final class PostgisSharedRouteMatchingSql {
                 FROM classified
                 WHERE classified.match_type IS NOT NULL
             )
-            """;
+            """);
 
     public static String matchingCte(String routeScopePredicate) {
         if (!SEARCH_ROUTE_SCOPE.equals(routeScopePredicate)
@@ -243,6 +245,10 @@ public final class PostgisSharedRouteMatchingSql {
             throw new IllegalArgumentException("Không hỗ trợ loại route scope predicate");
         }
         return TEMPLATE.formatted(routeScopePredicate);
+    }
+
+    private static String withBusinessZone(String sql) {
+        return sql.replace("@@BUSINESS_ZONE@@", TimePolicy.BUSINESS_ZONE_ID);
     }
 
     private PostgisSharedRouteMatchingSql() {

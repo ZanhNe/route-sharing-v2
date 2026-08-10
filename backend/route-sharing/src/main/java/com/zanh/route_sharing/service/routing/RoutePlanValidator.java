@@ -1,6 +1,5 @@
 package com.zanh.route_sharing.service.routing;
 
-import com.zanh.route_sharing.config.properties.GoongProperties;
 import com.zanh.route_sharing.exception.BusinessException;
 import com.zanh.route_sharing.service.routing.model.RoutePlan;
 import com.zanh.route_sharing.service.routing.model.RoutePlanLeg;
@@ -22,10 +21,10 @@ public class RoutePlanValidator {
 
     private static final double INDEX_EPSILON = 1.0e-9d;
 
-    private final GoongProperties properties;
+    private final RoutePlanningPolicy routingPolicy;
 
-    public RoutePlanValidator(GoongProperties properties) {
-        this.properties = properties;
+    public RoutePlanValidator(RoutePlanningPolicy routingPolicy) {
+        this.routingPolicy = routingPolicy;
     }
 
     public void validate(RoutePlanRequest request, RoutePlan plan) {
@@ -43,7 +42,7 @@ public class RoutePlanValidator {
                 || geometry.isEmpty()
                 || geometry.getNumPoints() < 2
                 || geometry.getLength() == 0.0d
-                || geometry.getSRID() != 4326) {
+                || geometry.getSRID() != Wgs84Coordinates.SRID) {
             throw invalidProviderResponse("Dịch vụ bản đồ trả về LineString không hợp lệ.");
         }
 
@@ -77,7 +76,7 @@ public class RoutePlanValidator {
 
             if (leg.collapsed()
                     && GeoDistanceUtils.distanceMeters(from.coordinate(), to.coordinate())
-                            .compareTo(properties.getDuplicateWaypointToleranceMeters()) > 0) {
+                            .compareTo(routingPolicy.duplicateWaypointToleranceMeters()) > 0) {
                 throw invalidProviderResponse(
                         "Chặng đường bị co lại dù hai điểm dừng không trùng nhau.");
             }
@@ -99,7 +98,7 @@ public class RoutePlanValidator {
     private void validateWaypointSequence(
             List<RouteWaypoint> waypoints,
             LineString geometry) {
-        double tolerance = properties.getWaypointSnapToleranceMeters().doubleValue();
+        double tolerance = routingPolicy.waypointSnapToleranceMeters().doubleValue();
         Coordinate first = geometry.getCoordinateN(0);
         Coordinate last = geometry.getCoordinateN(geometry.getNumPoints() - 1);
         Coordinate expectedFirst = toJts(waypoints.get(0));

@@ -83,14 +83,6 @@ public class GoongProperties {
         this.duplicateWaypointToleranceMeters = duplicateWaypointToleranceMeters;
     }
 
-    @AssertTrue(message = "goong.duplicate-waypoint-tolerance-meters phải nhỏ hơn hoặc bằng waypoint snap tolerance")
-    public boolean isDuplicateToleranceWithinSnapTolerance() {
-        if (duplicateWaypointToleranceMeters == null || waypointSnapToleranceMeters == null) {
-            return true;
-        }
-        return duplicateWaypointToleranceMeters.compareTo(waypointSnapToleranceMeters) <= 0;
-    }
-
     @AssertTrue(message = "goong.base-url phải là một HTTPS origin không có thông tin xác thực, query hoặc fragment")
     public boolean isSecureBaseUrl() {
         if (baseUrl == null

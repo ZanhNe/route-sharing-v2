@@ -1,5 +1,6 @@
 package com.zanh.route_sharing.service.impl;
 
+import com.zanh.route_sharing.utils.time.TimePolicy;
 import com.zanh.route_sharing.domain.enums.LoaiDiemDung;
 import com.zanh.route_sharing.domain.enums.TrangThaiLoTrinh;
 import com.zanh.route_sharing.domain.enums.TrangThaiYeuCau;
@@ -120,7 +121,7 @@ public class TripFormationServiceImpl implements TripFormationService {
         }
 
         RoutePlan operationalPlan = planOperationalRoute(planRequest);
-        Instant formedAt = clock.instant();
+        Instant formedAt = TimePolicy.now(clock);
         TripFormationCommitResult committed = repository.commit(new TripFormationCommitCommand(
                 actorId,
                 routeId,
@@ -143,7 +144,7 @@ public class TripFormationServiceImpl implements TripFormationService {
         } catch (BusinessException exception) {
             if (exception.getStatus() == HttpStatus.BAD_REQUEST
                     && ("INVALID_ROUTE_WAYPOINTS".equals(exception.getCode())
-                    || "INVALID_ROUTE_PLAN_REQUEST".equals(exception.getCode()))) {
+                            || "INVALID_ROUTE_PLAN_REQUEST".equals(exception.getCode()))) {
                 throw planInconsistent(exception.getMessage());
             }
             throw exception;
@@ -191,27 +192,33 @@ public class TripFormationServiceImpl implements TripFormationService {
     }
 
     private static BusinessException notFound() {
-        return new BusinessException(HttpStatus.NOT_FOUND, "SHARED_ROUTE_NOT_FOUND", "Không tìm thấy lộ trình chia sẻ.");
+        return new BusinessException(HttpStatus.NOT_FOUND, "SHARED_ROUTE_NOT_FOUND",
+                "Không tìm thấy lộ trình chia sẻ.");
     }
 
     private static BusinessException notOpen() {
-        return new BusinessException(HttpStatus.CONFLICT, "SHARED_ROUTE_NOT_OPEN", "Lộ trình không còn mở để hình thành chuyến đi.");
+        return new BusinessException(HttpStatus.CONFLICT, "SHARED_ROUTE_NOT_OPEN",
+                "Lộ trình không còn mở để hình thành chuyến đi.");
     }
 
     private static BusinessException pendingRemains() {
-        return new BusinessException(HttpStatus.CONFLICT, "SHARED_ROUTE_PENDING_REQUESTS_REMAIN", "Lộ trình vẫn còn yêu cầu PENDING cần được xử lý.");
+        return new BusinessException(HttpStatus.CONFLICT, "SHARED_ROUTE_PENDING_REQUESTS_REMAIN",
+                "Lộ trình vẫn còn yêu cầu PENDING cần được xử lý.");
     }
 
     private static BusinessException noAcceptedBookings() {
-        return new BusinessException(HttpStatus.CONFLICT, "SHARED_ROUTE_NO_ACCEPTED_BOOKINGS", "Lộ trình chưa có booking ACCEPTED để hình thành chuyến đi.");
+        return new BusinessException(HttpStatus.CONFLICT, "SHARED_ROUTE_NO_ACCEPTED_BOOKINGS",
+                "Lộ trình chưa có booking ACCEPTED để hình thành chuyến đi.");
     }
 
     private static BusinessException ineligible() {
-        return new BusinessException(HttpStatus.CONFLICT, "DRIVER_OR_VEHICLE_INELIGIBLE", "Tài xế hoặc phương tiện không còn đủ điều kiện hình thành chuyến đi.");
+        return new BusinessException(HttpStatus.CONFLICT, "DRIVER_OR_VEHICLE_INELIGIBLE",
+                "Tài xế hoặc phương tiện không còn đủ điều kiện hình thành chuyến đi.");
     }
 
     private static BusinessException invariantViolation() {
-        return new BusinessException(HttpStatus.CONFLICT, "TRIP_FORMATION_INVARIANT_VIOLATION", "Trạng thái lộ trình và chuyến đi đang không nhất quán.");
+        return new BusinessException(HttpStatus.CONFLICT, "TRIP_FORMATION_INVARIANT_VIOLATION",
+                "Trạng thái lộ trình và chuyến đi đang không nhất quán.");
     }
 
     private static BusinessException planInconsistent(String detail) {

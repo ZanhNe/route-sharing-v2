@@ -1,5 +1,6 @@
 package com.zanh.route_sharing.domain.entity;
 
+import com.zanh.route_sharing.utils.spatial.Wgs84Coordinates;
 import com.zanh.route_sharing.domain.enums.*;
 import jakarta.persistence.*;
 import lombok.*;
@@ -62,6 +63,7 @@ public class DiemDungHanhTrinh extends Base {
         @ManyToOne(fetch = FetchType.LAZY)
         @JoinColumn(name = "yeu_cau_di_chung_id")
         private YeuCauDiChung yeuCauDiChung;
+
         public static DiemDungHanhTrinh planned(
                         ChuyenDi trip,
                         YeuCauDiChung rideRequest,
@@ -76,7 +78,7 @@ public class DiemDungHanhTrinh extends Base {
                 if (order <= 0) {
                         throw new IllegalArgumentException("Thứ tự điểm dừng phải là số dương.");
                 }
-                if (plannedPoint == null || plannedPoint.isEmpty() || plannedPoint.getSRID() != 4326) {
+                if (plannedPoint == null || plannedPoint.isEmpty() || plannedPoint.getSRID() != Wgs84Coordinates.SRID) {
                         throw new IllegalArgumentException("Điểm dừng phải là Point SRID 4326 hợp lệ.");
                 }
                 if (address == null || address.isBlank() || address.trim().length() > 500) {
@@ -93,13 +95,14 @@ public class DiemDungHanhTrinh extends Base {
                         throw new IllegalArgumentException("PICKUP/DROPOFF phải gắn booking.");
                 }
                 if (rideRequest != null && rideRequest.getChuyenDi() != trip) {
-                        throw new IllegalArgumentException("Booking phải được gắn vào cùng chuyến đi trước khi tạo điểm dừng.");
+                        throw new IllegalArgumentException(
+                                        "Booking phải được gắn vào cùng chuyến đi trước khi tạo điểm dừng.");
                 }
                 if (arrivalRadiusMeters == null || arrivalRadiusMeters.signum() <= 0) {
                         throw new IllegalArgumentException("Bán kính xác định đã đến phải lớn hơn 0.");
                 }
                 Point pointCopy = (Point) plannedPoint.copy();
-                pointCopy.setSRID(4326);
+                pointCopy.setSRID(Wgs84Coordinates.SRID);
                 DiemDungHanhTrinh stop = new DiemDungHanhTrinh();
                 stop.chuyenDi = trip;
                 stop.yeuCauDiChung = rideRequest;
@@ -110,6 +113,30 @@ public class DiemDungHanhTrinh extends Base {
                 stop.trangThaiDiemDung = TrangThaiDiemDung.PENDING;
                 stop.banKinhXacDinhDaDenMet = arrivalRadiusMeters;
                 return stop;
+        }
+
+        public void completeDriverStart(Point actualPoint, Instant completedAt) {
+                if (this.loaiDiemDung != LoaiDiemDung.DRIVER_START) {
+                        throw new IllegalStateException(
+                                        "Chỉ DRIVER_START mới được hoàn thành bởi thao tác bắt đầu chuyến.");
+                }
+                if (this.trangThaiDiemDung != TrangThaiDiemDung.PENDING) {
+                        throw new IllegalStateException("DRIVER_START phải đang PENDING trước khi bắt đầu chuyến.");
+                }
+                if (this.toaDoThucTe != null || this.hoanThanhLuc != null) {
+                        throw new IllegalStateException("DRIVER_START đã có bằng chứng hoàn thành trước đó.");
+                }
+                if (actualPoint == null || actualPoint.isEmpty() || actualPoint.getSRID() != Wgs84Coordinates.SRID) {
+                        throw new IllegalArgumentException("Vị trí thực tế phải là Point WGS84 SRID 4326 hợp lệ.");
+                }
+                if (completedAt == null) {
+                        throw new IllegalArgumentException("completedAt không được trống.");
+                }
+                Point pointCopy = (Point) actualPoint.copy();
+                pointCopy.setSRID(Wgs84Coordinates.SRID);
+                this.toaDoThucTe = pointCopy;
+                this.hoanThanhLuc = completedAt;
+                this.trangThaiDiemDung = TrangThaiDiemDung.COMPLETED;
         }
 
 }

@@ -1,5 +1,6 @@
 package com.zanh.route_sharing.service.impl;
 
+import com.zanh.route_sharing.utils.time.TimePolicy;
 import com.zanh.route_sharing.domain.entity.CauHinhNghiepVu;
 import com.zanh.route_sharing.domain.entity.LoTrinhChiaSe;
 import com.zanh.route_sharing.domain.entity.NhatKyTrangThaiYeuCau;
@@ -10,7 +11,8 @@ import com.zanh.route_sharing.domain.enums.TrangThaiYeuCau;
 import com.zanh.route_sharing.dto.riderequest.decision.RideRequestDecisionResponse;
 import com.zanh.route_sharing.exception.BusinessException;
 import com.zanh.route_sharing.repository.sharedroute.riderequest.decision.RideRequestDecisionRepository;
-import com.zanh.route_sharing.repository.sharedroute.riderequest.decision.model.CurrentAcceptEligibility;
+import com.zanh.route_sharing.repository.sharedroute.eligibility.OperationalEligibilityRepository;
+import com.zanh.route_sharing.repository.sharedroute.eligibility.model.CurrentOperationalEligibility;
 import com.zanh.route_sharing.security.AuthenticatedPrincipalValidator;
 import com.zanh.route_sharing.service.RideRequestDecisionService;
 import com.zanh.route_sharing.service.riderequest.decision.RideRequestActionabilityPolicy;
@@ -30,9 +32,10 @@ import java.time.ZoneId;
 @Service
 public class RideRequestDecisionServiceImpl implements RideRequestDecisionService {
 
-    private static final ZoneId BUSINESS_ZONE = ZoneId.of("Asia/Ho_Chi_Minh");
+    private static final ZoneId BUSINESS_ZONE = TimePolicy.BUSINESS_ZONE;
 
     private final RideRequestDecisionRepository repository;
+    private final OperationalEligibilityRepository eligibilityRepository;
     private final RideRequestActionabilityPolicy actionabilityPolicy;
     private final Clock clock;
     private final RideRequestDecisionResponseMapper responseMapper;
@@ -40,11 +43,13 @@ public class RideRequestDecisionServiceImpl implements RideRequestDecisionServic
 
     public RideRequestDecisionServiceImpl(
             RideRequestDecisionRepository repository,
+            OperationalEligibilityRepository eligibilityRepository,
             RideRequestActionabilityPolicy actionabilityPolicy,
             Clock clock,
             RideRequestDecisionResponseMapper responseMapper,
             UserRealtimeEventPublisher realtimeEventPublisher) {
         this.repository = repository;
+        this.eligibilityRepository = eligibilityRepository;
         this.actionabilityPolicy = actionabilityPolicy;
         this.clock = clock;
         this.responseMapper = responseMapper;
@@ -57,12 +62,12 @@ public class RideRequestDecisionServiceImpl implements RideRequestDecisionServic
         validateInput(actorId, routeId, rideRequestId);
         LoTrinhChiaSe route = ownedRoute(actorId, routeId);
         YeuCauDiChung request = rideRequest(routeId, rideRequestId);
-        Instant decisionAt = clock.instant();
+        Instant decisionAt = TimePolicy.now(clock);
         requirePending(request);
         requireOpenRoute(route);
 
         CauHinhNghiepVu configuration = currentConfiguration(request);
-        CurrentAcceptEligibility eligibility = repository.evaluateCurrentAcceptEligibility(
+        CurrentOperationalEligibility eligibility = eligibilityRepository.evaluate(
                 actorId,
                 routeId,
                 configuration.getNhaTruong().getId(),
@@ -109,7 +114,7 @@ public class RideRequestDecisionServiceImpl implements RideRequestDecisionServic
         validateInput(actorId, routeId, rideRequestId);
         LoTrinhChiaSe route = ownedRoute(actorId, routeId);
         YeuCauDiChung request = rideRequest(routeId, rideRequestId);
-        Instant decisionAt = clock.instant();
+        Instant decisionAt = TimePolicy.now(clock);
         requirePending(request);
         requireOpenRoute(route);
 

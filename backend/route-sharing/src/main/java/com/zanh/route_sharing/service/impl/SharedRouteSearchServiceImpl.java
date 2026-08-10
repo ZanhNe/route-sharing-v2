@@ -1,5 +1,7 @@
 package com.zanh.route_sharing.service.impl;
 
+import com.zanh.route_sharing.utils.PaginationPolicy;
+import com.zanh.route_sharing.utils.time.TimePolicy;
 import com.zanh.route_sharing.domain.enums.LoaiDiemTha;
 import com.zanh.route_sharing.dto.response.PageMeta;
 import com.zanh.route_sharing.dto.sharedroute.search.SearchPointRequest;
@@ -35,7 +37,7 @@ import java.util.List;
 @Transactional(readOnly = true)
 public class SharedRouteSearchServiceImpl implements SharedRouteSearchService {
 
-        private static final ZoneId BUSINESS_ZONE = ZoneId.of("Asia/Ho_Chi_Minh");
+        private static final ZoneId BUSINESS_ZONE = TimePolicy.BUSINESS_ZONE;
 
         private final SharedRouteSearchRepository repository;
         private final Clock clock;
@@ -52,7 +54,7 @@ public class SharedRouteSearchServiceImpl implements SharedRouteSearchService {
                 requireRequest(request);
                 requireDistinctEndpoints(request.pickup(), request.destination());
 
-                Instant now = clock.instant();
+                Instant now = TimePolicy.now(clock);
                 Instant desiredDepartureTime = request.desiredDepartureTime();
                 if (!desiredDepartureTime.isAfter(now)) {
                         throw error(
@@ -214,11 +216,11 @@ public class SharedRouteSearchServiceImpl implements SharedRouteSearchService {
                                         "INVALID_PAGE",
                                         "page phải lớn hơn hoặc bằng 0.");
                 }
-                if (size < 1 || size > 50) {
+                if (size < 1 || size > PaginationPolicy.MAX_SIZE) {
                         throw error(
                                         HttpStatus.BAD_REQUEST,
                                         "INVALID_PAGE_SIZE",
-                                        "size phải nằm trong khoảng từ 1 đến 50.");
+                                        "size phải nằm trong khoảng từ 1 đến " + PaginationPolicy.MAX_SIZE + ".");
                 }
         }
 

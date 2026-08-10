@@ -1,5 +1,7 @@
 package com.zanh.route_sharing.domain.enums;
 
+import java.util.Set;
+
 public enum TrangThaiYeuCau {
     PENDING,
     ACCEPTED,
@@ -13,11 +15,15 @@ public enum TrangThaiYeuCau {
     ABORTED,
     DISPUTED;
 
+    private static final Set<TrangThaiYeuCau> BLOCKING_NEW_REQUEST_STATES = Set.of(
+            PENDING, ACCEPTED, ON_BOARD, DISPUTED);
+
+    public static Set<TrangThaiYeuCau> blockingNewRequestStates() {
+        return BLOCKING_NEW_REQUEST_STATES;
+    }
+
     public boolean blocksNewRequest() {
-        return this == PENDING
-                || this == ACCEPTED
-                || this == ON_BOARD
-                || this == DISPUTED;
+        return BLOCKING_NEW_REQUEST_STATES.contains(this);
     }
 
     public boolean isTerminal() {

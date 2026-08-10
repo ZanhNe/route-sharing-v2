@@ -1,6 +1,7 @@
 package com.zanh.route_sharing.repository.sharedroute.search.model;
 
 import com.zanh.route_sharing.repository.sharedroute.common.model.SharedRouteMatchingContext;
+import com.zanh.route_sharing.utils.PaginationPolicy;
 
 import java.math.BigDecimal;
 import java.time.Instant;
@@ -47,9 +48,7 @@ public record SharedRouteSearchCriteria(
         if (context == null) {
             throw new IllegalArgumentException("Context là bắt buộc");
         }
-        if (page < 0 || size < 1 || size > 50) {
-            throw new IllegalArgumentException("Số trang hoặc số lượng bản ghi không hợp lệ");
-        }
+        PaginationPolicy.requireValid(page, size);
     }
 
     public long offset() {

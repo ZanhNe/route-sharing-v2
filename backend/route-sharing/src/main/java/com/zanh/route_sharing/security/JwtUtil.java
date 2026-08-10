@@ -1,6 +1,7 @@
 package com.zanh.route_sharing.security;
 
 import com.zanh.route_sharing.config.properties.JwtProperties;
+import com.zanh.route_sharing.utils.time.TimePolicy;
 import com.zanh.route_sharing.domain.enums.TrangThaiTaiKhoan;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.JwtException;
@@ -49,7 +50,7 @@ public class JwtUtil {
         this.parser = Jwts.parser()
                 .requireIssuer(properties.getIssuer())
                 .requireAudience(properties.getAudience())
-                .clock(() -> Date.from(clock.instant()))
+                .clock(() -> Date.from(TimePolicy.tokenNow(clock)))
                 .clockSkewSeconds(properties.getClockSkew().toSeconds())
                 .verifyWith(key)
                 .build();
@@ -115,7 +116,7 @@ public class JwtUtil {
         if (userId == null || email == null || email.isBlank()) {
             throw new IllegalArgumentException("JWT principal không hợp lệ");
         }
-        Instant issuedAt = clock.instant();
+        Instant issuedAt = TimePolicy.tokenNow(clock);
         Instant expiresAt = issuedAt.plus(ttl);
         String jti = UUID.randomUUID().toString();
 

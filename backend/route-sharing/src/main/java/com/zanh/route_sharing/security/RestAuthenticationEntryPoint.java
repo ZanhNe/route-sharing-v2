@@ -1,6 +1,7 @@
 package com.zanh.route_sharing.security;
 
 import com.zanh.route_sharing.dto.response.ApiErrorResponse;
+import com.zanh.route_sharing.utils.time.TimePolicy;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
@@ -15,16 +16,18 @@ import org.springframework.stereotype.Component;
 import tools.jackson.databind.json.JsonMapper;
 
 import java.io.IOException;
+import java.time.Clock;
 
 @Component
 @RequiredArgsConstructor
 public class RestAuthenticationEntryPoint implements AuthenticationEntryPoint {
     private final JsonMapper jsonMapper;
+    private final Clock clock;
 
     @Override
     public void commence(HttpServletRequest request,
-                         HttpServletResponse response,
-                         AuthenticationException authException) throws IOException {
+            HttpServletResponse response,
+            AuthenticationException authException) throws IOException {
         int status = HttpServletResponse.SC_UNAUTHORIZED;
         String code = "UNAUTHENTICATED";
         String message = "Phiên đăng nhập không hợp lệ hoặc đã hết hạn.";
@@ -42,7 +45,6 @@ public class RestAuthenticationEntryPoint implements AuthenticationEntryPoint {
         response.setHeader(HttpHeaders.CACHE_CONTROL, "no-store");
         response.setHeader(HttpHeaders.PRAGMA, "no-cache");
         jsonMapper.writeValue(response.getOutputStream(), ApiErrorResponse.of(
-                status, code, message, request.getRequestURI()
-        ));
+                TimePolicy.now(clock), status, code, message, request.getRequestURI()));
     }
 }

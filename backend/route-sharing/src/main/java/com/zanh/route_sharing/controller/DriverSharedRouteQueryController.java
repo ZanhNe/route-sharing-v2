@@ -1,5 +1,6 @@
 package com.zanh.route_sharing.controller;
 
+import com.zanh.route_sharing.utils.PaginationPolicy;
 import com.zanh.route_sharing.domain.enums.TrangThaiLoTrinh;
 import com.zanh.route_sharing.dto.response.ApiResponse;
 import com.zanh.route_sharing.dto.sharedroute.driverquery.DriverSharedRouteDetailResponse;
@@ -37,11 +38,8 @@ public class DriverSharedRouteQueryController {
     public ResponseEntity<ApiResponse<DriverSharedRoutePageResponse>> listOwnRoutes(
             @AuthenticationPrincipal CustomUserDetails principal,
             @RequestParam(required = false) TrangThaiLoTrinh status,
-            @RequestParam(defaultValue = "0")
-            @Min(value = 0, message = "page phải lớn hơn hoặc bằng 0.") int page,
-            @RequestParam(defaultValue = "10")
-            @Min(value = 1, message = "size phải lớn hơn hoặc bằng 1.")
-            @Max(value = 50, message = "size không được vượt quá 50.") int size) {
+            @RequestParam(defaultValue = "0") @Min(value = 0, message = "page phải lớn hơn hoặc bằng 0.") int page,
+            @RequestParam(defaultValue = "10") @Min(value = 1, message = "size phải lớn hơn hoặc bằng 1.") @Max(value = PaginationPolicy.MAX_SIZE, message = "size không được vượt quá 50.") int size) {
         DriverSharedRoutePageResult result = queryService.listOwnRoutes(
                 principal.getId(), status, page, size);
         return ResponseEntity.ok(ApiResponse.of(

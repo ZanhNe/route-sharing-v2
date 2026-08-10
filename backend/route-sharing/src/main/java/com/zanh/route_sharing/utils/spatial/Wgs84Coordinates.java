@@ -2,15 +2,9 @@ package com.zanh.route_sharing.utils.spatial;
 
 import java.math.BigDecimal;
 
-/**
- * Provider-neutral WGS84 range predicates.
- *
- * <p>The methods do not throw application exceptions. Each boundary keeps
- * responsibility for translating an invalid coordinate to its own error
- * contract (for example HTTP 400 for client input and HTTP 502 for provider
- * output).</p>
- */
 public final class Wgs84Coordinates {
+
+    public static final int SRID = 4326;
 
     private static final BigDecimal MIN_LATITUDE = BigDecimal.valueOf(-90);
     private static final BigDecimal MAX_LATITUDE = BigDecimal.valueOf(90);

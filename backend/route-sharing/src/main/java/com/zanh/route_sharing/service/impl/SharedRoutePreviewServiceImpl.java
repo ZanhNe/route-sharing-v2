@@ -1,5 +1,6 @@
 package com.zanh.route_sharing.service.impl;
 
+import com.zanh.route_sharing.utils.time.TimePolicy;
 import com.zanh.route_sharing.dto.sharedroute.preview.PreviewPointRequest;
 import com.zanh.route_sharing.dto.sharedroute.preview.PreviewSharedRouteRequest;
 import com.zanh.route_sharing.dto.sharedroute.preview.SharedRoutePreviewResponse;
@@ -57,7 +58,7 @@ public class SharedRoutePreviewServiceImpl implements SharedRoutePreviewService 
         requireRequest(request);
         requireDistinctEndpoints(request.pickup(), request.passengerDestination());
 
-        Instant now = clock.instant();
+        Instant now = TimePolicy.now(clock);
         SharedRoutePreviewCriteria criteria = new SharedRoutePreviewCriteria(
                 actorUserId,
                 request.schoolId(),
@@ -97,7 +98,7 @@ public class SharedRoutePreviewServiceImpl implements SharedRoutePreviewService 
 
         RoutePlan routePlan = routePlanner.plan(routeRequest);
 
-        Instant checkedAt = clock.instant();
+        Instant checkedAt = TimePolicy.now(clock);
         if (!repository.remainsCurrent(preparation.consistencyToken(), checkedAt)) {
             throw error(
                     HttpStatus.CONFLICT,

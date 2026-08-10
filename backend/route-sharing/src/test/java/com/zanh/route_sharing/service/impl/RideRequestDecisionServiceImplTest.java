@@ -6,7 +6,8 @@ import com.zanh.route_sharing.domain.enums.TrangThaiLoTrinh;
 import com.zanh.route_sharing.domain.enums.TrangThaiYeuCau;
 import com.zanh.route_sharing.exception.BusinessException;
 import com.zanh.route_sharing.repository.sharedroute.riderequest.decision.RideRequestDecisionRepository;
-import com.zanh.route_sharing.repository.sharedroute.riderequest.decision.model.CurrentAcceptEligibility;
+import com.zanh.route_sharing.repository.sharedroute.eligibility.OperationalEligibilityRepository;
+import com.zanh.route_sharing.repository.sharedroute.eligibility.model.CurrentOperationalEligibility;
 import com.zanh.route_sharing.service.riderequest.decision.RideRequestActionabilityPolicy;
 import com.zanh.route_sharing.service.riderequest.decision.RideRequestDecisionResponseMapper;
 import com.zanh.route_sharing.service.realtime.UserRealtimeEventPublisher;
@@ -14,6 +15,7 @@ import com.zanh.route_sharing.service.realtime.model.BookingAcceptedRealtimeData
 import com.zanh.route_sharing.service.realtime.model.BookingRejectedRealtimeData;
 import com.zanh.route_sharing.service.realtime.model.RealtimeEventEnvelope;
 import com.zanh.route_sharing.testsupport.riderequest.decision.RideRequestDecisionMother;
+import com.zanh.route_sharing.utils.time.TimePolicy;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -23,7 +25,6 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.time.Clock;
 import java.time.LocalDate;
-import java.time.ZoneId;
 import java.time.ZoneOffset;
 import java.util.Optional;
 
@@ -40,6 +41,8 @@ class RideRequestDecisionServiceImplTest {
     @Mock
     private RideRequestDecisionRepository repository;
     @Mock
+    private OperationalEligibilityRepository eligibilityRepository;
+    @Mock
     private UserRealtimeEventPublisher realtimeEventPublisher;
 
     private RideRequestDecisionServiceImpl sut;
@@ -48,6 +51,7 @@ class RideRequestDecisionServiceImplTest {
     void setUp() {
         sut = new RideRequestDecisionServiceImpl(
                 repository,
+                eligibilityRepository,
                 new RideRequestActionabilityPolicy(),
                 Clock.fixed(RideRequestDecisionMother.DECISION_AT, ZoneOffset.UTC),
                 new RideRequestDecisionResponseMapper(),
@@ -58,13 +62,13 @@ class RideRequestDecisionServiceImplTest {
     void givenOwnedActionablePendingRequest_whenAccepting_thenSeatStateAuditAndNotificationChangeAtomically() {
         var aggregate = RideRequestDecisionMother.aggregate();
         stubCommon(aggregate);
-        when(repository.evaluateCurrentAcceptEligibility(
+        when(eligibilityRepository.evaluate(
                 RideRequestDecisionMother.ACTOR_ID,
                 RideRequestDecisionMother.ROUTE_ID,
                 aggregate.configuration().getNhaTruong().getId(),
                 LocalDate.ofInstant(
                         aggregate.route().getThoiGianKhoiHanhDuKien(),
-                        ZoneId.of("Asia/Ho_Chi_Minh"))))
+                        TimePolicy.BUSINESS_ZONE)))
                 .thenReturn(eligible());
 
         var result = sut.accept(
@@ -120,7 +124,7 @@ class RideRequestDecisionServiceImplTest {
         verify(repository).appendStateLog(org.mockito.ArgumentMatchers.any(NhatKyTrangThaiYeuCau.class));
         verify(repository).persistNotification(org.mockito.ArgumentMatchers.any(ThongBao.class));
         verify(repository).flush();
-        verify(repository, never()).evaluateCurrentAcceptEligibility(
+        verify(eligibilityRepository, never()).evaluate(
                 org.mockito.ArgumentMatchers.anyLong(),
                 org.mockito.ArgumentMatchers.anyLong(),
                 org.mockito.ArgumentMatchers.anyLong(),
@@ -215,7 +219,7 @@ class RideRequestDecisionServiceImplTest {
         var aggregate = RideRequestDecisionMother.aggregate();
         aggregate.route().setSoGheConLai(0);
         stubCommon(aggregate);
-        when(repository.evaluateCurrentAcceptEligibility(
+        when(eligibilityRepository.evaluate(
                 org.mockito.ArgumentMatchers.anyLong(),
                 org.mockito.ArgumentMatchers.anyLong(),
                 org.mockito.ArgumentMatchers.anyLong(),
@@ -232,12 +236,12 @@ class RideRequestDecisionServiceImplTest {
     void givenCurrentDriverOrVehicleIneligible_whenAccepting_thenEligibilityConflict() {
         var aggregate = RideRequestDecisionMother.aggregate();
         stubCommon(aggregate);
-        when(repository.evaluateCurrentAcceptEligibility(
+        when(eligibilityRepository.evaluate(
                 org.mockito.ArgumentMatchers.anyLong(),
                 org.mockito.ArgumentMatchers.anyLong(),
                 org.mockito.ArgumentMatchers.anyLong(),
                 org.mockito.ArgumentMatchers.any()))
-                .thenReturn(new CurrentAcceptEligibility(true, false, true, true, true, true, true, true));
+                .thenReturn(new CurrentOperationalEligibility(true, false, true, true, true, true, true, true));
 
         assertBusinessCode(() -> sut.accept(
                 RideRequestDecisionMother.ACTOR_ID,
@@ -250,7 +254,7 @@ class RideRequestDecisionServiceImplTest {
     void givenAcceptCutoffReached_whenAccepting_thenRequestAndSeatRemainUnchanged() {
         var aggregate = RideRequestDecisionMother.aggregate();
         stubCommon(aggregate);
-        when(repository.evaluateCurrentAcceptEligibility(
+        when(eligibilityRepository.evaluate(
                 org.mockito.ArgumentMatchers.anyLong(),
                 org.mockito.ArgumentMatchers.anyLong(),
                 org.mockito.ArgumentMatchers.anyLong(),
@@ -259,6 +263,7 @@ class RideRequestDecisionServiceImplTest {
         aggregate.configuration().setBookingCutoffSeconds(7200L);
         RideRequestDecisionServiceImpl atCutoff = new RideRequestDecisionServiceImpl(
                 repository,
+                eligibilityRepository,
                 new RideRequestActionabilityPolicy(),
                 Clock.fixed(RideRequestDecisionMother.DECISION_AT, ZoneOffset.UTC),
                 new RideRequestDecisionResponseMapper(),
@@ -310,8 +315,8 @@ class RideRequestDecisionServiceImplTest {
                 .thenReturn(Optional.of(aggregate.configuration()));
     }
 
-    private static CurrentAcceptEligibility eligible() {
-        return new CurrentAcceptEligibility(true, true, true, true, true, true, true, true);
+    private static CurrentOperationalEligibility eligible() {
+        return new CurrentOperationalEligibility(true, true, true, true, true, true, true, true);
     }
 
     private static void assertBusinessCode(org.assertj.core.api.ThrowableAssert.ThrowingCallable call, String code) {

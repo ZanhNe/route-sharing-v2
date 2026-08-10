@@ -35,6 +35,7 @@ public record DriverSharedRouteDetailRow(
         long cancelledByPassenger,
         long cancelledByDriver,
         boolean assignedToTrip,
+        Long tripId,
         Instant cancelledAt,
         String cancellationReason) {
 
@@ -55,5 +56,23 @@ public record DriverSharedRouteDetailRow(
         Objects.requireNonNull(originalDistanceMeters, "originalDistanceMeters không được trống.");
         Objects.requireNonNull(originalDurationSeconds, "originalDurationSeconds không được trống.");
         Objects.requireNonNull(vehicleId, "vehicleId không được trống.");
+    }
+
+    public DriverSharedRouteDetailRow(
+            Long routeId, TrangThaiLoTrinh status, Instant createdAt, Instant expectedDepartureTime,
+            BigDecimal originLatitude, BigDecimal originLongitude, String originAddress,
+            BigDecimal destinationLatitude, BigDecimal destinationLongitude, String destinationAddress,
+            Integer offeredSeats, Integer remainingSeats, BigDecimal suggestedSupportPerKm,
+            String originalRouteGeoJson, BigDecimal originalDistanceMeters, Long originalDurationSeconds,
+            Long vehicleId, String licensePlate, String actualColor, String brandName, String modelName,
+            long totalRequests, long pendingRequests, long acceptedBookings, long rejectedRequests,
+            long cancelledByPassenger, long cancelledByDriver, boolean assignedToTrip,
+            Instant cancelledAt, String cancellationReason) {
+        this(routeId, status, createdAt, expectedDepartureTime, originLatitude, originLongitude, originAddress,
+                destinationLatitude, destinationLongitude, destinationAddress, offeredSeats, remainingSeats,
+                suggestedSupportPerKm, originalRouteGeoJson, originalDistanceMeters, originalDurationSeconds,
+                vehicleId, licensePlate, actualColor, brandName, modelName, totalRequests, pendingRequests,
+                acceptedBookings, rejectedRequests, cancelledByPassenger, cancelledByDriver, assignedToTrip,
+                null, cancelledAt, cancellationReason);
     }
 }

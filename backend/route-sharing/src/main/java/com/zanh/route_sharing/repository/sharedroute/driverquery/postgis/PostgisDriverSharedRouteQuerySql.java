@@ -112,6 +112,11 @@ public final class PostgisDriverSharedRouteQuerySql {
                     FROM chuyen_di trip
                     WHERE trip.lo_trinh_chia_se_id = route.id
                 ) AS assigned_to_trip,
+                (
+                    SELECT trip.id
+                    FROM chuyen_di trip
+                    WHERE trip.lo_trinh_chia_se_id = route.id
+                ) AS trip_id,
                 route.huy_luc AS cancelled_at,
                 route.ly_do_huy AS cancellation_reason
             FROM lo_trinh_chia_se route

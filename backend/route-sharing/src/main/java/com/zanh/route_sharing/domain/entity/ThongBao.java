@@ -6,6 +6,7 @@ import lombok.*;
 import lombok.experimental.SuperBuilder;
 
 import java.time.Instant;
+import java.util.Objects;
 
 @Entity
 @Table(name = "thong_bao", indexes = {
@@ -143,6 +144,30 @@ public class ThongBao extends Base {
                 .doiTuongLienQuanId(trip.getId())
                 .deduplicationKey("E4-01:ROUTE:" + rideRequest.getLoTrinhChiaSe().getId()
                         + ":REQUEST:" + rideRequest.getId() + ":LOCKED")
+                .nguoiNhan(rideRequest.getHanhKhach())
+                .build();
+    }
+
+    public static ThongBao tripStarted(
+            YeuCauDiChung rideRequest,
+            ChuyenDi trip) {
+        if (rideRequest == null || rideRequest.getId() == null
+                || rideRequest.getHanhKhach() == null
+                || rideRequest.getChuyenDi() == null
+                || trip == null || trip.getId() == null
+                || !Objects.equals(rideRequest.getChuyenDi().getId(), trip.getId())) {
+            throw new IllegalArgumentException("Không xác định được booking/trip để tạo thông báo bắt đầu chuyến.");
+        }
+        return ThongBao.builder()
+                .loaiThongBao(LoaiThongBao.TRIP_STARTED)
+                .tieuDe("Chuyến đi đã bắt đầu")
+                .noiDung("Tài xế đã bắt đầu chuyến đi mà booking của bạn đang tham gia.")
+                .kenhGui(KenhThongBao.IN_APP)
+                .trangThaiThongBao(TrangThaiThongBao.PENDING)
+                .loaiDoiTuongLienQuan("CHUYEN_DI")
+                .doiTuongLienQuanId(trip.getId())
+                .deduplicationKey("E5-01:TRIP:" + trip.getId()
+                        + ":REQUEST:" + rideRequest.getId() + ":STARTED")
                 .nguoiNhan(rideRequest.getHanhKhach())
                 .build();
     }

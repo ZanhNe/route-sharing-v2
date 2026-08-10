@@ -1,5 +1,6 @@
 package com.zanh.route_sharing.service.routing.model;
 
+import com.zanh.route_sharing.utils.spatial.Wgs84Coordinates;
 import org.locationtech.jts.geom.LineString;
 
 import java.math.BigDecimal;
@@ -26,7 +27,7 @@ public record RoutePlan(
                 .map(String::trim)
                 .filter(value -> !value.isEmpty())
                 .toList();
-        if (geometry.isEmpty() || geometry.getNumPoints() < 2 || geometry.getSRID() != 4326) {
+        if (geometry.isEmpty() || geometry.getNumPoints() < 2 || geometry.getSRID() != Wgs84Coordinates.SRID) {
             throw new IllegalArgumentException("geometry phải là LineString SRID 4326 không được trống");
         }
         if (distanceMeters.signum() <= 0 || durationSeconds <= 0) {

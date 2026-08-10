@@ -1,10 +1,10 @@
 package com.zanh.route_sharing.service.riderequest.decision;
 
+import com.zanh.route_sharing.domain.riderequest.BookingWindowPolicy;
 import com.zanh.route_sharing.exception.BusinessException;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Component;
 
-import java.time.DateTimeException;
 import java.time.Instant;
 
 @Component
@@ -18,13 +18,13 @@ public class RideRequestActionabilityPolicy {
                 || bookingCutoffSeconds == null || bookingCutoffSeconds < 0) {
             throw unavailableConfiguration();
         }
-        final Instant boundary;
+        final boolean open;
         try {
-            boundary = expectedDepartureTime.minusSeconds(bookingCutoffSeconds);
-        } catch (DateTimeException | ArithmeticException exception) {
+            open = BookingWindowPolicy.isOpen(decisionAt, expectedDepartureTime, bookingCutoffSeconds);
+        } catch (IllegalArgumentException exception) {
             throw unavailableConfiguration();
         }
-        if (!decisionAt.isBefore(boundary)) {
+        if (!open) {
             throw new BusinessException(
                     HttpStatus.CONFLICT,
                     "SHARED_ROUTE_BOOKING_CUTOFF_REACHED",

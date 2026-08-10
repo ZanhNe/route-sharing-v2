@@ -22,6 +22,7 @@ public record DriverSharedRouteDetailResponse(
         DriverSharedRoutePageResponse.VehicleSummary vehicle,
         DriverSharedRoutePageResponse.BookingSummary bookings,
         boolean assignedToTrip,
+        Long tripId,
         boolean canCancelRoute,
         Instant cancelledAt,
         String cancellationReason) {
@@ -38,6 +39,18 @@ public record DriverSharedRouteDetailResponse(
         Objects.requireNonNull(originalRoute, "originalRoute không được trống.");
         Objects.requireNonNull(vehicle, "vehicle không được trống.");
         Objects.requireNonNull(bookings, "bookings không được trống.");
+    }
+
+
+    public DriverSharedRouteDetailResponse(
+            Long routeId, TrangThaiLoTrinh status, Instant createdAt, Instant expectedDepartureTime,
+            Integer offeredSeats, Integer remainingSeats, BigDecimal suggestedSupportPerKm,
+            RouteEndpointResponse origin, RouteEndpointResponse driverDestination, OriginalRoute originalRoute,
+            DriverSharedRoutePageResponse.VehicleSummary vehicle, DriverSharedRoutePageResponse.BookingSummary bookings,
+            boolean assignedToTrip, boolean canCancelRoute, Instant cancelledAt, String cancellationReason) {
+        this(routeId, status, createdAt, expectedDepartureTime, offeredSeats, remainingSeats, suggestedSupportPerKm,
+                origin, driverDestination, originalRoute, vehicle, bookings, assignedToTrip, null, canCancelRoute,
+                cancelledAt, cancellationReason);
     }
 
     public record OriginalRoute(

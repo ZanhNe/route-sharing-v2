@@ -1,5 +1,6 @@
 package com.zanh.route_sharing.service.routing;
 
+import com.zanh.route_sharing.utils.spatial.Wgs84Coordinates;
 import com.zanh.route_sharing.service.routing.model.RoutePlan;
 import com.zanh.route_sharing.service.routing.model.RoutePlanRequest;
 import com.zanh.route_sharing.service.routing.model.RouteWaypoint;
@@ -45,7 +46,7 @@ public class RoutePlanSegmentExtractor {
                 || lineString.getLength() == 0.0d) {
             throw new IllegalArgumentException("Không thể trích LineString cho đoạn tuyến được phục vụ");
         }
-        lineString.setSRID(4326);
+        lineString.setSRID(Wgs84Coordinates.SRID);
         return lineString;
     }
 

@@ -1,5 +1,6 @@
 package com.zanh.route_sharing.service.impl;
 
+import com.zanh.route_sharing.utils.time.TimePolicy;
 import com.zanh.route_sharing.domain.entity.LoTrinhChiaSe;
 import com.zanh.route_sharing.domain.entity.NhatKyTrangThaiLoTrinh;
 import com.zanh.route_sharing.domain.entity.NhatKyTrangThaiYeuCau;
@@ -59,7 +60,7 @@ public class SharedRouteCancellationServiceImpl implements SharedRouteCancellati
         }
 
         List<YeuCauDiChung> activeRequests = repository.lockActiveRequests(routeId);
-        Instant cancelledAt = clock.instant();
+        Instant cancelledAt = TimePolicy.now(clock);
         int pendingCancelled = 0;
         int acceptedCancelled = 0;
         int seatsRestored = 0;

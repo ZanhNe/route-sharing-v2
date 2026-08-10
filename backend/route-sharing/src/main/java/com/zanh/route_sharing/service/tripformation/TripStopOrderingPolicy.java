@@ -1,5 +1,6 @@
 package com.zanh.route_sharing.service.tripformation;
 
+import com.zanh.route_sharing.utils.spatial.Wgs84Coordinates;
 import com.zanh.route_sharing.domain.enums.LoaiDiemDung;
 import com.zanh.route_sharing.service.tripformation.model.PlannedTripStop;
 import com.zanh.route_sharing.service.tripformation.model.TripFormationBookingSnapshot;
@@ -112,7 +113,7 @@ public class TripStopOrderingPolicy {
     }
 
     private static void requirePoint(Point point, String field) {
-        if (point == null || point.isEmpty() || point.getSRID() != 4326) {
+        if (point == null || point.isEmpty() || point.getSRID() != Wgs84Coordinates.SRID) {
             throw new IllegalArgumentException(field + " phải là Point SRID 4326 hợp lệ");
         }
         Coordinate coordinate = point.getCoordinate();
@@ -124,7 +125,7 @@ public class TripStopOrderingPolicy {
     private static void requireLineString(LineString lineString) {
         if (lineString == null
                 || lineString.isEmpty()
-                || lineString.getSRID() != 4326
+                || lineString.getSRID() != Wgs84Coordinates.SRID
                 || lineString.getNumPoints() < 2
                 || lineString.getLength() <= 0.0d) {
             throw new IllegalArgumentException("Tuyến gốc phải là LineString SRID 4326 hợp lệ");
@@ -133,7 +134,7 @@ public class TripStopOrderingPolicy {
 
     private static Point copy(Point source) {
         Point copy = (Point) source.copy();
-        copy.setSRID(4326);
+        copy.setSRID(Wgs84Coordinates.SRID);
         return copy;
     }
 

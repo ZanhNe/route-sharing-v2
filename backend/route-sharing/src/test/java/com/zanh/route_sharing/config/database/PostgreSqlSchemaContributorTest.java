@@ -1,5 +1,6 @@
 package com.zanh.route_sharing.config.database;
 
+import com.zanh.route_sharing.domain.enums.TrangThaiYeuCau;
 import org.junit.jupiter.api.Test;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -39,6 +40,18 @@ class PostgreSqlSchemaContributorTest {
                 .contains("route_sharing_user_security_fields_changed")
                 .contains("route_sharing_revoke_refresh_on_account_change")
                 .contains("trg_revoke_refresh_account_change");
+    }
+
+    @Test
+    void blockingRequestPartialIndexUsesExactlyTheDomainBlockingStatePolicy() {
+        String predicate = PostgreSqlSchemaContributor.blockingRideRequestStatesSql();
+
+        assertThat(predicate).isEqualTo("(\'PENDING\',\'ACCEPTED\',\'ON_BOARD\',\'DISPUTED\')");
+        for (TrangThaiYeuCau state : TrangThaiYeuCau.values()) {
+            assertThat(predicate.contains("'" + state.name() + "'"))
+                    .as("DB blocking predicate parity for %s", state)
+                    .isEqualTo(state.blocksNewRequest());
+        }
     }
 
     @Test

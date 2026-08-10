@@ -1,5 +1,6 @@
 package com.zanh.route_sharing.utils;
 
+import com.zanh.route_sharing.utils.spatial.Wgs84Coordinates;
 import org.locationtech.jts.geom.Coordinate;
 import org.locationtech.jts.geom.GeometryFactory;
 import org.locationtech.jts.geom.LineString;
@@ -10,7 +11,8 @@ import java.util.List;
 
 public final class PolylineUtils {
     private static final int DEFAULT_PRECISION = 5;
-    private static final GeometryFactory GEOMETRY_FACTORY = new GeometryFactory(new PrecisionModel(), 4326);
+    private static final GeometryFactory GEOMETRY_FACTORY = new GeometryFactory(new PrecisionModel(),
+            Wgs84Coordinates.SRID);
 
     private PolylineUtils() {
     }
@@ -49,7 +51,7 @@ public final class PolylineUtils {
             throw new IllegalArgumentException("Polyline phải chứa ít nhất hai tọa độ.");
         }
         LineString lineString = GEOMETRY_FACTORY.createLineString(coordinates.toArray(Coordinate[]::new));
-        lineString.setSRID(4326);
+        lineString.setSRID(Wgs84Coordinates.SRID);
         return lineString;
     }
 

@@ -1,6 +1,7 @@
 package com.zanh.route_sharing.exception;
 
 import com.zanh.route_sharing.dto.response.ApiErrorResponse;
+import com.zanh.route_sharing.utils.time.TimePolicy;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.ConstraintViolationException;
 import lombok.extern.slf4j.Slf4j;
@@ -17,6 +18,7 @@ import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.CredentialsExpiredException;
 import org.springframework.security.authentication.DisabledException;
 import org.springframework.security.authentication.LockedException;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.validation.FieldError;
 import org.springframework.validation.ObjectError;
 import org.springframework.web.HttpMediaTypeNotSupportedException;
@@ -31,13 +33,24 @@ import org.springframework.web.method.annotation.HandlerMethodValidationExceptio
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 import org.springframework.web.multipart.MaxUploadSizeExceededException;
 
-import java.time.Instant;
+import java.time.Clock;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
 @Slf4j
 @RestControllerAdvice
 public class GlobalExceptionHandler {
+
+    private final Clock clock;
+
+    public GlobalExceptionHandler() {
+        this(Clock.systemUTC());
+    }
+
+    @Autowired
+    public GlobalExceptionHandler(Clock clock) {
+        this.clock = clock;
+    }
 
     @ExceptionHandler(BusinessException.class)
     ResponseEntity<ApiErrorResponse> business(BusinessException ex, HttpServletRequest request) {
@@ -174,14 +187,14 @@ public class GlobalExceptionHandler {
                 "Lỗi hệ thống. Vui lòng thử lại sau.", request, null, null);
     }
 
-    private static ResponseEntity<ApiErrorResponse> response(HttpStatus status,
+    private ResponseEntity<ApiErrorResponse> response(HttpStatus status,
             String code,
             String message,
             HttpServletRequest request,
             Map<String, String> errors,
             String referenceCode) {
         ApiErrorResponse body = new ApiErrorResponse(
-                Instant.now(), status.value(), code, message, request.getRequestURI(), errors, referenceCode);
+                TimePolicy.now(clock), status.value(), code, message, request.getRequestURI(), errors, referenceCode);
         return ResponseEntity.status(status).body(body);
     }
 }

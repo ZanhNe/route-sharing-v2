@@ -1,5 +1,7 @@
 package com.zanh.route_sharing.repository.sharedroute.tripformation.jpa;
 
+import com.zanh.route_sharing.utils.spatial.Wgs84Coordinates;
+import com.zanh.route_sharing.utils.time.TimePolicy;
 import com.zanh.route_sharing.domain.entity.CauHinhNghiepVu;
 import com.zanh.route_sharing.domain.entity.ChuyenDi;
 import com.zanh.route_sharing.domain.entity.DiemDungHanhTrinh;
@@ -11,8 +13,8 @@ import com.zanh.route_sharing.domain.enums.LoaiDiemDung;
 import com.zanh.route_sharing.domain.enums.TrangThaiLoTrinh;
 import com.zanh.route_sharing.domain.enums.TrangThaiYeuCau;
 import com.zanh.route_sharing.exception.BusinessException;
-import com.zanh.route_sharing.repository.sharedroute.riderequest.decision.RideRequestDecisionRepository;
-import com.zanh.route_sharing.repository.sharedroute.riderequest.decision.model.CurrentAcceptEligibility;
+import com.zanh.route_sharing.repository.sharedroute.eligibility.OperationalEligibilityRepository;
+import com.zanh.route_sharing.repository.sharedroute.eligibility.model.CurrentOperationalEligibility;
 import com.zanh.route_sharing.repository.sharedroute.tripformation.TripFormationRepository;
 import com.zanh.route_sharing.repository.sharedroute.tripformation.model.TripFormationCommitCommand;
 import com.zanh.route_sharing.repository.sharedroute.tripformation.model.TripFormationCommitResult;
@@ -49,17 +51,17 @@ import java.util.stream.Collectors;
 @Repository
 public class JpaTripFormationRepository implements TripFormationRepository {
 
-    private static final ZoneId BUSINESS_ZONE = ZoneId.of("Asia/Ho_Chi_Minh");
+    private static final ZoneId BUSINESS_ZONE = TimePolicy.BUSINESS_ZONE;
     private static final Set<TrangThaiYeuCau> ACTIVE_STATES = EnumSet.of(
             TrangThaiYeuCau.PENDING,
             TrangThaiYeuCau.ACCEPTED);
 
     private final EntityManager entityManager;
-    private final RideRequestDecisionRepository eligibilityRepository;
+    private final OperationalEligibilityRepository eligibilityRepository;
 
     public JpaTripFormationRepository(
             EntityManager entityManager,
-            RideRequestDecisionRepository eligibilityRepository) {
+            OperationalEligibilityRepository eligibilityRepository) {
         this.entityManager = entityManager;
         this.eligibilityRepository = eligibilityRepository;
     }
@@ -277,9 +279,9 @@ public class JpaTripFormationRepository implements TripFormationRepository {
                 .orElse(null);
         if (configuration == null) {
             return new CurrentContext(schoolId, null, null, null,
-                    new CurrentAcceptEligibility(false, false, false, false, false, false, false, false));
+                    CurrentOperationalEligibility.ineligible());
         }
-        CurrentAcceptEligibility eligibility = eligibilityRepository.evaluateCurrentAcceptEligibility(
+        CurrentOperationalEligibility eligibility = eligibilityRepository.evaluate(
                 actorId,
                 route.getId(),
                 schoolId,
@@ -408,7 +410,7 @@ public class JpaTripFormationRepository implements TripFormationRepository {
         for (int index = 0; index < stops.size(); index++) {
             PlannedTripStop stop = stops.get(index);
             if (stop == null || stop.order() != index + 1 || stop.type() == null
-                    || stop.point() == null || stop.point().isEmpty() || stop.point().getSRID() != 4326
+                    || stop.point() == null || stop.point().isEmpty() || stop.point().getSRID() != Wgs84Coordinates.SRID
                     || stop.address() == null || stop.address().isBlank()) {
                 throw planInconsistent();
             }
@@ -483,7 +485,7 @@ public class JpaTripFormationRepository implements TripFormationRepository {
             return null;
         }
         Point copy = (Point) point.copy();
-        copy.setSRID(4326);
+        copy.setSRID(Wgs84Coordinates.SRID);
         return copy;
     }
 
@@ -492,7 +494,7 @@ public class JpaTripFormationRepository implements TripFormationRepository {
             return null;
         }
         LineString copy = (LineString) lineString.copy();
-        copy.setSRID(4326);
+        copy.setSRID(Wgs84Coordinates.SRID);
         return copy;
     }
 
@@ -541,6 +543,6 @@ public class JpaTripFormationRepository implements TripFormationRepository {
             Long configurationId,
             Long configurationVersion,
             BigDecimal arrivalRadiusMeters,
-            CurrentAcceptEligibility eligibility) {
+            CurrentOperationalEligibility eligibility) {
     }
 }

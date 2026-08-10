@@ -1,10 +1,11 @@
 package com.zanh.route_sharing.repository.sharedroute.preview.postgis;
 
+import com.zanh.route_sharing.utils.time.TimePolicy;
 import com.zanh.route_sharing.repository.sharedroute.common.PostgisSharedRouteMatchingSql;
 
 final class PostgisSharedRoutePreviewSql {
 
-  static final String PREVIEW_CONTEXT = """
+  static final String PREVIEW_CONTEXT = withBusinessZone("""
       SELECT
              cfg.ban_kinh_cung_diem_den_met,
              cfg.ban_kinh_diem_den_gan_tuyen_met,
@@ -27,16 +28,16 @@ final class PostgisSharedRoutePreviewSql {
          AND (actor_membership.ngay_bat_dau_hieu_luc IS NULL
               OR actor_membership.ngay_bat_dau_hieu_luc <= (
                   route.thoi_gian_khoi_hanh_du_kien
-                  AT TIME ZONE 'Asia/Ho_Chi_Minh'
+                  AT TIME ZONE '@@BUSINESS_ZONE@@'
               )::date)
          AND (actor_membership.ngay_ket_thuc_hieu_luc IS NULL
               OR actor_membership.ngay_ket_thuc_hieu_luc >= (
                   route.thoi_gian_khoi_hanh_du_kien
-                  AT TIME ZONE 'Asia/Ho_Chi_Minh'
+                  AT TIME ZONE '@@BUSINESS_ZONE@@'
               )::date)
        ORDER BY cfg.id ASC, actor_membership.id ASC
        LIMIT 1
-      """;
+      """);
 
   private static final String MATCHING_CTE = PostgisSharedRouteMatchingSql.matchingCte(
       PostgisSharedRouteMatchingSql.PREVIEW_ROUTE_SCOPE);
@@ -176,7 +177,7 @@ final class PostgisSharedRoutePreviewSql {
       LIMIT 1
       """;
 
-  static final String DIAGNOSE = """
+  static final String DIAGNOSE = withBusinessZone("""
       SELECT CASE
           WHEN NOT EXISTS (
               SELECT 1
@@ -195,12 +196,12 @@ final class PostgisSharedRoutePreviewSql {
                  AND (membership.ngay_bat_dau_hieu_luc IS NULL
                       OR membership.ngay_bat_dau_hieu_luc <= (
                           route.thoi_gian_khoi_hanh_du_kien
-                          AT TIME ZONE 'Asia/Ho_Chi_Minh'
+                          AT TIME ZONE '@@BUSINESS_ZONE@@'
                       )::date)
                  AND (membership.ngay_ket_thuc_hieu_luc IS NULL
                       OR membership.ngay_ket_thuc_hieu_luc >= (
                           route.thoi_gian_khoi_hanh_du_kien
-                          AT TIME ZONE 'Asia/Ho_Chi_Minh'
+                          AT TIME ZONE '@@BUSINESS_ZONE@@'
                       )::date)
           ) THEN 'NOT_FOUND_OR_INACCESSIBLE'
           WHEN NOT EXISTS (
@@ -212,12 +213,12 @@ final class PostgisSharedRoutePreviewSql {
                  AND (membership.ngay_bat_dau_hieu_luc IS NULL
                       OR membership.ngay_bat_dau_hieu_luc <= (
                           route.thoi_gian_khoi_hanh_du_kien
-                          AT TIME ZONE 'Asia/Ho_Chi_Minh'
+                          AT TIME ZONE '@@BUSINESS_ZONE@@'
                       )::date)
                  AND (membership.ngay_ket_thuc_hieu_luc IS NULL
                       OR membership.ngay_ket_thuc_hieu_luc >= (
                           route.thoi_gian_khoi_hanh_du_kien
-                          AT TIME ZONE 'Asia/Ho_Chi_Minh'
+                          AT TIME ZONE '@@BUSINESS_ZONE@@'
                       )::date)
           ) THEN 'NOT_FOUND_OR_INACCESSIBLE'
           WHEN route.tai_xe_id = :actorUserId THEN 'SELF_ROUTE'
@@ -247,9 +248,9 @@ final class PostgisSharedRoutePreviewSql {
           ON brand.id = model.hang_xe_id
        WHERE route.id = :sharedRouteId
        LIMIT 1
-      """;
+      """);
 
-  static final String REMAINS_CURRENT = """
+  static final String REMAINS_CURRENT = withBusinessZone("""
       SELECT EXISTS (
           SELECT 1
             FROM lo_trinh_chia_se route
@@ -323,25 +324,29 @@ final class PostgisSharedRoutePreviewSql {
              AND (actor_membership.ngay_bat_dau_hieu_luc IS NULL
                   OR actor_membership.ngay_bat_dau_hieu_luc <= (
                       route.thoi_gian_khoi_hanh_du_kien
-                      AT TIME ZONE 'Asia/Ho_Chi_Minh'
+                      AT TIME ZONE '@@BUSINESS_ZONE@@'
                   )::date)
              AND (actor_membership.ngay_ket_thuc_hieu_luc IS NULL
                   OR actor_membership.ngay_ket_thuc_hieu_luc >= (
                       route.thoi_gian_khoi_hanh_du_kien
-                      AT TIME ZONE 'Asia/Ho_Chi_Minh'
+                      AT TIME ZONE '@@BUSINESS_ZONE@@'
                   )::date)
              AND (driver_membership.ngay_bat_dau_hieu_luc IS NULL
                   OR driver_membership.ngay_bat_dau_hieu_luc <= (
                       route.thoi_gian_khoi_hanh_du_kien
-                      AT TIME ZONE 'Asia/Ho_Chi_Minh'
+                      AT TIME ZONE '@@BUSINESS_ZONE@@'
                   )::date)
              AND (driver_membership.ngay_ket_thuc_hieu_luc IS NULL
                   OR driver_membership.ngay_ket_thuc_hieu_luc >= (
                       route.thoi_gian_khoi_hanh_du_kien
-                      AT TIME ZONE 'Asia/Ho_Chi_Minh'
+                      AT TIME ZONE '@@BUSINESS_ZONE@@'
                   )::date)
       ) AS current
-      """;
+      """);
+
+  private static String withBusinessZone(String sql) {
+    return sql.replace("@@BUSINESS_ZONE@@", TimePolicy.BUSINESS_ZONE_ID);
+  }
 
   private PostgisSharedRoutePreviewSql() {
   }

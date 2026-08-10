@@ -26,11 +26,11 @@ public final class CustomUserDetails implements UserDetails, CredentialsContaine
     private final List<GrantedAuthority> authorities;
 
     public CustomUserDetails(Long id,
-                             String emailTruong,
-                             String password,
-                             TrangThaiTaiKhoan trangThaiTaiKhoan,
-                             Long securityVersion,
-                             Collection<? extends GrantedAuthority> authorities) {
+            String emailTruong,
+            String password,
+            TrangThaiTaiKhoan trangThaiTaiKhoan,
+            Long securityVersion,
+            Collection<? extends GrantedAuthority> authorities) {
         this.id = id;
         this.emailTruong = emailTruong;
         this.password = password;

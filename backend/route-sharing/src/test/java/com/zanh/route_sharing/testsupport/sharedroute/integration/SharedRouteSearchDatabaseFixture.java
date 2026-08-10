@@ -17,6 +17,7 @@ import com.zanh.route_sharing.domain.enums.TrangThaiLoTrinh;
 import com.zanh.route_sharing.domain.enums.TrangThaiPhuongTien;
 import com.zanh.route_sharing.domain.enums.TrangThaiTaiKhoan;
 import com.zanh.route_sharing.domain.enums.TrangThaiTaiXe;
+import com.zanh.route_sharing.utils.time.TimePolicy;
 import jakarta.persistence.EntityManager;
 import org.locationtech.jts.geom.Coordinate;
 import org.locationtech.jts.geom.GeometryFactory;
@@ -27,7 +28,6 @@ import org.locationtech.jts.geom.PrecisionModel;
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.LocalDate;
-import java.time.ZoneId;
 import java.util.LinkedHashSet;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicLong;
@@ -43,7 +43,7 @@ import java.util.concurrent.atomic.AtomicLong;
  */
 public final class SharedRouteSearchDatabaseFixture {
 
-        private static final ZoneId BUSINESS_ZONE = ZoneId.of("Asia/Ho_Chi_Minh");
+        private static final java.time.ZoneId BUSINESS_ZONE = TimePolicy.BUSINESS_ZONE;
         private static final GeometryFactory GEOMETRY_FACTORY = new GeometryFactory(new PrecisionModel(), 4326);
         private static final AtomicLong SEQUENCE = new AtomicLong(10_000L);
 

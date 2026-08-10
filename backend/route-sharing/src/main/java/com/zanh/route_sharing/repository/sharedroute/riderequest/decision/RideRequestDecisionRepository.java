@@ -5,9 +5,7 @@ import com.zanh.route_sharing.domain.entity.LoTrinhChiaSe;
 import com.zanh.route_sharing.domain.entity.NhatKyTrangThaiYeuCau;
 import com.zanh.route_sharing.domain.entity.ThongBao;
 import com.zanh.route_sharing.domain.entity.YeuCauDiChung;
-import com.zanh.route_sharing.repository.sharedroute.riderequest.decision.model.CurrentAcceptEligibility;
 
-import java.time.LocalDate;
 import java.util.Optional;
 
 public interface RideRequestDecisionRepository {
@@ -17,12 +15,6 @@ public interface RideRequestDecisionRepository {
     Optional<YeuCauDiChung> lockRideRequest(Long routeId, Long rideRequestId);
 
     Optional<CauHinhNghiepVu> lockCurrentConfiguration(YeuCauDiChung rideRequest);
-
-    CurrentAcceptEligibility evaluateCurrentAcceptEligibility(
-            Long actorId,
-            Long routeId,
-            Long schoolId,
-            LocalDate routeTravelDate);
 
     void appendStateLog(NhatKyTrangThaiYeuCau event);
 

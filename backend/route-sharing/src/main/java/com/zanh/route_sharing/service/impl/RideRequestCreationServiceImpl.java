@@ -1,6 +1,6 @@
 package com.zanh.route_sharing.service.impl;
 
-import com.zanh.route_sharing.config.properties.GoongProperties;
+import com.zanh.route_sharing.utils.time.TimePolicy;
 import com.zanh.route_sharing.domain.enums.LoaiDiemTha;
 import com.zanh.route_sharing.domain.riderequest.RideRequestSnapshot;
 import com.zanh.route_sharing.dto.riderequest.CreateRideRequestRequest;
@@ -23,6 +23,7 @@ import com.zanh.route_sharing.service.realtime.UserRealtimeEventPublisher;
 import com.zanh.route_sharing.service.riderequest.RideRequestSnapshotCalculator;
 import com.zanh.route_sharing.service.riderequest.model.PickupDeviation;
 import com.zanh.route_sharing.service.routing.RoutePlanner;
+import com.zanh.route_sharing.service.routing.RoutePlanningPolicy;
 import com.zanh.route_sharing.service.routing.model.GeoCoordinate;
 import com.zanh.route_sharing.service.routing.model.RoutePlan;
 import com.zanh.route_sharing.service.routing.model.RoutePlanRequest;
@@ -47,7 +48,7 @@ public class RideRequestCreationServiceImpl implements RideRequestCreationServic
     private final LocationLabelResolver locationLabelResolver;
     private final RideRequestSnapshotCalculator snapshotCalculator;
     private final RideRequestResponseMapper responseMapper;
-    private final GoongProperties routePlanningProperties;
+    private final RoutePlanningPolicy routePlanningPolicy;
     private final Clock clock;
     private final UserRealtimeEventPublisher realtimeEventPublisher;
 
@@ -57,7 +58,7 @@ public class RideRequestCreationServiceImpl implements RideRequestCreationServic
             LocationLabelResolver locationLabelResolver,
             RideRequestSnapshotCalculator snapshotCalculator,
             RideRequestResponseMapper responseMapper,
-            GoongProperties routePlanningProperties,
+            RoutePlanningPolicy routePlanningPolicy,
             Clock clock,
             UserRealtimeEventPublisher realtimeEventPublisher) {
         this.repository = repository;
@@ -65,7 +66,7 @@ public class RideRequestCreationServiceImpl implements RideRequestCreationServic
         this.locationLabelResolver = locationLabelResolver;
         this.snapshotCalculator = snapshotCalculator;
         this.responseMapper = responseMapper;
-        this.routePlanningProperties = routePlanningProperties;
+        this.routePlanningPolicy = routePlanningPolicy;
         this.clock = clock;
         this.realtimeEventPublisher = realtimeEventPublisher;
     }
@@ -80,7 +81,7 @@ public class RideRequestCreationServiceImpl implements RideRequestCreationServic
         requireRequest(request);
         requireDistinctEndpoints(request.pickup(), request.passengerDestination());
 
-        Instant evaluatedAt = clock.instant();
+        Instant evaluatedAt = TimePolicy.now(clock);
         RideRequestCriteria criteria = new RideRequestCriteria(
                 actorUserId,
                 request.schoolId(),
@@ -107,7 +108,7 @@ public class RideRequestCreationServiceImpl implements RideRequestCreationServic
                 preparation,
                 request.passengerDestination());
 
-        Instant sentAt = clock.instant();
+        Instant sentAt = TimePolicy.now(clock);
 
         RideRequestSnapshot snapshot = snapshotCalculator.calculate(
                 preparation,
@@ -157,7 +158,7 @@ public class RideRequestCreationServiceImpl implements RideRequestCreationServic
         GeoCoordinate projection = coordinate(preparation.pickupProjection());
         GeoCoordinate pickupCoordinate = coordinate(pickup);
         if (GeoDistanceUtils.distanceMeters(projection, pickupCoordinate)
-                .compareTo(routePlanningProperties.getDuplicateWaypointToleranceMeters()) <= 0) {
+                .compareTo(routePlanningPolicy.duplicateWaypointToleranceMeters()) <= 0) {
             return PickupDeviation.zero();
         }
 

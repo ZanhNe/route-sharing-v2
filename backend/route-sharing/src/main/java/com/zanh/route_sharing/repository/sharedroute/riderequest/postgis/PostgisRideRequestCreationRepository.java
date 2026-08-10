@@ -7,6 +7,7 @@ import com.zanh.route_sharing.domain.entity.NhatKyTrangThaiYeuCau;
 import com.zanh.route_sharing.domain.entity.ThongBao;
 import com.zanh.route_sharing.domain.entity.YeuCauDiChung;
 import com.zanh.route_sharing.domain.enums.TrangThaiYeuCau;
+import com.zanh.route_sharing.domain.riderequest.BookingWindowPolicy;
 import com.zanh.route_sharing.domain.riderequest.RideRequestPointSnapshot;
 import com.zanh.route_sharing.domain.riderequest.RideRequestPolicySnapshot;
 import com.zanh.route_sharing.exception.BusinessException;
@@ -34,7 +35,6 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Duration;
 import java.time.Instant;
-import java.util.EnumSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -43,11 +43,7 @@ import java.util.Set;
 @Repository
 public class PostgisRideRequestCreationRepository implements RideRequestCreationRepository {
 
-    private static final Set<TrangThaiYeuCau> BLOCKING_STATES = EnumSet.of(
-            TrangThaiYeuCau.PENDING,
-            TrangThaiYeuCau.ACCEPTED,
-            TrangThaiYeuCau.ON_BOARD,
-            TrangThaiYeuCau.DISPUTED);
+    private static final Set<TrangThaiYeuCau> BLOCKING_STATES = TrangThaiYeuCau.blockingNewRequestStates();
 
     private final EntityManager entityManager;
     private final SharedRoutePreviewRepository previewRepository;
@@ -200,12 +196,12 @@ public class PostgisRideRequestCreationRepository implements RideRequestCreation
 
     private Optional<BlockingRequest> findBlocking(Long actorUserId) {
         List<Object[]> results = entityManager.createQuery(
-                        "select request.id, request.trangThaiYeuCau "
-                                + "from YeuCauDiChung request "
-                                + "where request.hanhKhach.id = :actorUserId "
-                                + "and request.trangThaiYeuCau in :blockingStates "
-                                + "order by request.id asc",
-                        Object[].class)
+                "select request.id, request.trangThaiYeuCau "
+                        + "from YeuCauDiChung request "
+                        + "where request.hanhKhach.id = :actorUserId "
+                        + "and request.trangThaiYeuCau in :blockingStates "
+                        + "order by request.id asc",
+                Object[].class)
                 .setParameter("actorUserId", actorUserId)
                 .setParameter("blockingStates", BLOCKING_STATES)
                 .setMaxResults(1)
@@ -224,14 +220,14 @@ public class PostgisRideRequestCreationRepository implements RideRequestCreation
             Long routeId,
             Instant now) {
         List<Instant> results = entityManager.createQuery(
-                        "select request.cooldownUntil "
-                                + "from YeuCauDiChung request "
-                                + "where request.hanhKhach.id = :actorUserId "
-                                + "and request.loTrinhChiaSe.id = :routeId "
-                                + "and request.trangThaiYeuCau = :rejected "
-                                + "and request.cooldownUntil > :now "
-                                + "order by request.cooldownUntil desc, request.id desc",
-                        Instant.class)
+                "select request.cooldownUntil "
+                        + "from YeuCauDiChung request "
+                        + "where request.hanhKhach.id = :actorUserId "
+                        + "and request.loTrinhChiaSe.id = :routeId "
+                        + "and request.trangThaiYeuCau = :rejected "
+                        + "and request.cooldownUntil > :now "
+                        + "order by request.cooldownUntil desc, request.id desc",
+                Instant.class)
                 .setParameter("actorUserId", actorUserId)
                 .setParameter("routeId", routeId)
                 .setParameter("rejected", TrangThaiYeuCau.REJECTED)
@@ -247,7 +243,7 @@ public class PostgisRideRequestCreationRepository implements RideRequestCreation
             case ROUTE_UNAVAILABLE -> RideRequestEvaluationStatus.ROUTE_UNAVAILABLE;
             case SELF_ROUTE -> RideRequestEvaluationStatus.SELF_ROUTE;
             case DRIVER_OR_VEHICLE_INELIGIBLE ->
-                    RideRequestEvaluationStatus.DRIVER_OR_VEHICLE_INELIGIBLE;
+                RideRequestEvaluationStatus.DRIVER_OR_VEHICLE_INELIGIBLE;
             case NO_LONGER_MATCHES -> RideRequestEvaluationStatus.NO_LONGER_MATCHES;
             case ELIGIBLE -> throw new IllegalArgumentException("ELIGIBLE không phải lỗi");
         };
@@ -267,14 +263,14 @@ public class PostgisRideRequestCreationRepository implements RideRequestCreation
     }
 
     private static void requireBookingWindowOpen(RideRequestCommitCommand command) {
-        final Instant cutoffBoundary;
         try {
-            cutoffBoundary = command.consistencyToken().expectedDepartureTime()
-                    .minusSeconds(command.consistencyToken().bookingCutoffSeconds());
-        } catch (RuntimeException exception) {
-            throw cutoffReached();
-        }
-        if (!command.sentAt().isBefore(cutoffBoundary)) {
+            if (!BookingWindowPolicy.isOpen(
+                    command.sentAt(),
+                    command.consistencyToken().expectedDepartureTime(),
+                    command.consistencyToken().bookingCutoffSeconds())) {
+                throw cutoffReached();
+            }
+        } catch (IllegalArgumentException exception) {
             throw cutoffReached();
         }
     }
