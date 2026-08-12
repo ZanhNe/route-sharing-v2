@@ -15,6 +15,8 @@ public record TripDetailParticipantRow(
         String passengerAvatarUrl,
         TrangThaiYeuCau status,
         Instant acceptedAt,
+        Instant boardedAt,
+        Instant noShowAt,
         LoaiGhepTuyen matchType,
         LoaiDiemTha dropoffType,
         BigDecimal agreedSupportAmount,

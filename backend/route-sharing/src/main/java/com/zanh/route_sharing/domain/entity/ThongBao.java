@@ -172,6 +172,138 @@ public class ThongBao extends Base {
                 .build();
     }
 
+    public static ThongBao tripCancelledBeforeStart(
+            YeuCauDiChung rideRequest,
+            ChuyenDi trip) {
+        if (rideRequest == null || rideRequest.getId() == null
+                || rideRequest.getHanhKhach() == null
+                || rideRequest.getChuyenDi() == null
+                || trip == null || trip.getId() == null
+                || !Objects.equals(rideRequest.getChuyenDi().getId(), trip.getId())
+                || trip.getLoTrinhChiaSe() == null
+                || trip.getLoTrinhChiaSe().getLyDoHuy() == null
+                || trip.getLoTrinhChiaSe().getLyDoHuy().isBlank()) {
+            throw new IllegalArgumentException("Không xác định được booking/trip/reason để tạo thông báo hủy chuyến.");
+        }
+        return ThongBao.builder()
+                .loaiThongBao(LoaiThongBao.TRIP_CANCELLED_BEFORE_START)
+                .tieuDe("Chuyến đi đã bị hủy trước khi bắt đầu")
+                .noiDung("Tài xế đã hủy chuyến trước khi bắt đầu. Lý do: "
+                        + trip.getLoTrinhChiaSe().getLyDoHuy())
+                .kenhGui(KenhThongBao.IN_APP)
+                .trangThaiThongBao(TrangThaiThongBao.PENDING)
+                .loaiDoiTuongLienQuan("CHUYEN_DI")
+                .doiTuongLienQuanId(trip.getId())
+                .deduplicationKey("E5-05:TRIP:" + trip.getId()
+                        + ":REQUEST:" + rideRequest.getId() + ":CANCELLED_BEFORE_START")
+                .nguoiNhan(rideRequest.getHanhKhach())
+                .build();
+    }
+
+    public static ThongBao driverArrivedPickup(
+            YeuCauDiChung rideRequest,
+            ChuyenDi trip,
+            DiemDungHanhTrinh pickup) {
+        if (rideRequest == null || rideRequest.getId() == null
+                || rideRequest.getHanhKhach() == null
+                || rideRequest.getChuyenDi() == null
+                || trip == null || trip.getId() == null
+                || pickup == null || pickup.getId() == null
+                || pickup.getLoaiDiemDung() != LoaiDiemDung.PICKUP
+                || pickup.getTrangThaiDiemDung() != TrangThaiDiemDung.ARRIVED
+                || pickup.getHanChoLuc() == null
+                || !Objects.equals(rideRequest.getChuyenDi().getId(), trip.getId())
+                || pickup.getYeuCauDiChung() == null
+                || !Objects.equals(pickup.getYeuCauDiChung().getId(), rideRequest.getId())) {
+            throw new IllegalArgumentException("Không xác định được booking/trip/pickup ARRIVED để tạo thông báo.");
+        }
+        return ThongBao.builder()
+                .loaiThongBao(LoaiThongBao.DRIVER_ARRIVED_PICKUP)
+                .tieuDe("Tài xế đã đến điểm đón")
+                .noiDung("Tài xế đã đến điểm đón của bạn. Vui lòng thực hiện bước xác nhận lên xe trong thời gian chờ.")
+                .kenhGui(KenhThongBao.IN_APP)
+                .trangThaiThongBao(TrangThaiThongBao.PENDING)
+                .loaiDoiTuongLienQuan("CHUYEN_DI")
+                .doiTuongLienQuanId(trip.getId())
+                .deduplicationKey("E5-02:TRIP:" + trip.getId()
+                        + ":STOP:" + pickup.getId()
+                        + ":REQUEST:" + rideRequest.getId() + ":ARRIVED")
+                .nguoiNhan(rideRequest.getHanhKhach())
+                .build();
+    }
+
+    public static ThongBao passengerBoarded(
+            YeuCauDiChung rideRequest,
+            ChuyenDi trip,
+            DiemDungHanhTrinh pickup) {
+        if (rideRequest == null || rideRequest.getId() == null
+                || rideRequest.getHanhKhach() == null
+                || rideRequest.getChuyenDi() == null
+                || trip == null || trip.getId() == null
+                || pickup == null || pickup.getId() == null
+                || pickup.getLoaiDiemDung() != LoaiDiemDung.PICKUP
+                || pickup.getTrangThaiDiemDung() != TrangThaiDiemDung.COMPLETED
+                || rideRequest.getTrangThaiYeuCau() != TrangThaiYeuCau.ON_BOARD
+                || rideRequest.getLenXeLuc() == null
+                || pickup.getHoanThanhLuc() == null
+                || !Objects.equals(rideRequest.getChuyenDi().getId(), trip.getId())
+                || pickup.getYeuCauDiChung() == null
+                || !Objects.equals(pickup.getYeuCauDiChung().getId(), rideRequest.getId())) {
+            throw new IllegalArgumentException("Không xác định được booking/trip/pickup đã Boarding để tạo thông báo.");
+        }
+        return ThongBao.builder()
+                .loaiThongBao(LoaiThongBao.PASSENGER_BOARDED)
+                .tieuDe("Đã xác nhận bạn lên xe")
+                .noiDung("Tài xế đã xác nhận bạn đã lên xe cho chuyến đi này.")
+                .kenhGui(KenhThongBao.IN_APP)
+                .trangThaiThongBao(TrangThaiThongBao.PENDING)
+                .loaiDoiTuongLienQuan("CHUYEN_DI")
+                .doiTuongLienQuanId(trip.getId())
+                .deduplicationKey("E5-03:TRIP:" + trip.getId()
+                        + ":STOP:" + pickup.getId()
+                        + ":REQUEST:" + rideRequest.getId() + ":ON_BOARD")
+                .nguoiNhan(rideRequest.getHanhKhach())
+                .build();
+    }
+
+    public static ThongBao passengerNoShow(
+            YeuCauDiChung rideRequest,
+            ChuyenDi trip,
+            DiemDungHanhTrinh pickup,
+            DiemDungHanhTrinh dropoff) {
+        if (rideRequest == null || rideRequest.getId() == null
+                || rideRequest.getHanhKhach() == null
+                || rideRequest.getChuyenDi() == null
+                || trip == null || trip.getId() == null
+                || pickup == null || pickup.getId() == null
+                || dropoff == null || dropoff.getId() == null
+                || rideRequest.getTrangThaiYeuCau() != TrangThaiYeuCau.NO_SHOW
+                || rideRequest.getKhongDenLuc() == null
+                || pickup.getLoaiDiemDung() != LoaiDiemDung.PICKUP
+                || dropoff.getLoaiDiemDung() != LoaiDiemDung.DROPOFF
+                || pickup.getTrangThaiDiemDung() != TrangThaiDiemDung.SKIPPED
+                || dropoff.getTrangThaiDiemDung() != TrangThaiDiemDung.SKIPPED
+                || !Objects.equals(rideRequest.getChuyenDi().getId(), trip.getId())
+                || pickup.getYeuCauDiChung() == null || dropoff.getYeuCauDiChung() == null
+                || !Objects.equals(pickup.getYeuCauDiChung().getId(), rideRequest.getId())
+                || !Objects.equals(dropoff.getYeuCauDiChung().getId(), rideRequest.getId())) {
+            throw new IllegalArgumentException("Không xác định được booking/trip/stops đã No-show để tạo thông báo.");
+        }
+        return ThongBao.builder()
+                .loaiThongBao(LoaiThongBao.PASSENGER_NO_SHOW)
+                .tieuDe("Booking được ghi nhận No-show")
+                .noiDung("Tài xế đã xác nhận bạn không xuất hiện tại điểm đón sau thời gian chờ của chuyến đi này.")
+                .kenhGui(KenhThongBao.IN_APP)
+                .trangThaiThongBao(TrangThaiThongBao.PENDING)
+                .loaiDoiTuongLienQuan("CHUYEN_DI")
+                .doiTuongLienQuanId(trip.getId())
+                .deduplicationKey("E5-04:TRIP:" + trip.getId()
+                        + ":STOP:" + pickup.getId()
+                        + ":REQUEST:" + rideRequest.getId() + ":NO_SHOW")
+                .nguoiNhan(rideRequest.getHanhKhach())
+                .build();
+    }
+
     private static ThongBao bookingCancellation(
             YeuCauDiChung rideRequest,
             NguoiDung recipient,

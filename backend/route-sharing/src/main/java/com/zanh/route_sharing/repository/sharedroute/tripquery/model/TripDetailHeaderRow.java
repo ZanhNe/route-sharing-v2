@@ -14,6 +14,8 @@ public record TripDetailHeaderRow(
         TrangThaiVanHanhChuyenDi tripStatus,
         Instant formedAt,
         Instant startedAt,
+        Instant cancelledAt,
+        String cancellationReason,
         Integer plannedPassengerCount,
         Integer actualPassengerCount,
         TrangThaiDiemDung driverStartStatus,

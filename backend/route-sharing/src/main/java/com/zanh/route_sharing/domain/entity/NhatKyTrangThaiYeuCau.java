@@ -132,6 +132,54 @@ public class NhatKyTrangThaiYeuCau {
                 "ROUTE_CANCELLED_BY_DRIVER", sequence);
     }
 
+    public static NhatKyTrangThaiYeuCau tripCancelledBeforeStart(
+            YeuCauDiChung rideRequest,
+            NguoiDung actor,
+            Instant occurredAt,
+            long sequence) {
+        if (sequence <= 0) {
+            throw new IllegalArgumentException("sequence phải là số dương.");
+        }
+        return transitionWithSequence(
+                rideRequest, actor, occurredAt,
+                TrangThaiYeuCau.ACCEPTED,
+                TrangThaiYeuCau.CANCELLED_BY_DRIVER,
+                "TRIP_CANCELLED_BEFORE_START",
+                sequence);
+    }
+
+    public static NhatKyTrangThaiYeuCau boarded(
+            YeuCauDiChung rideRequest,
+            NguoiDung actor,
+            Instant occurredAt,
+            long sequence) {
+        if (sequence <= 0) {
+            throw new IllegalArgumentException("sequence phải là số dương.");
+        }
+        return transitionWithSequence(
+                rideRequest, actor, occurredAt,
+                TrangThaiYeuCau.ACCEPTED,
+                TrangThaiYeuCau.ON_BOARD,
+                "BOARDING_CREDENTIAL_VERIFIED",
+                sequence);
+    }
+
+    public static NhatKyTrangThaiYeuCau passengerNoShow(
+            YeuCauDiChung rideRequest,
+            NguoiDung actor,
+            Instant occurredAt,
+            long sequence) {
+        if (sequence <= 0) {
+            throw new IllegalArgumentException("sequence phải là số dương.");
+        }
+        return transitionWithSequence(
+                rideRequest, actor, occurredAt,
+                TrangThaiYeuCau.ACCEPTED,
+                TrangThaiYeuCau.NO_SHOW,
+                "PASSENGER_NO_SHOW_CONFIRMED",
+                sequence);
+    }
+
     private static NhatKyTrangThaiYeuCau transitionWithSequence(
             YeuCauDiChung rideRequest,
             NguoiDung actor,

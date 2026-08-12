@@ -2,6 +2,7 @@ package com.zanh.route_sharing.domain.entity;
 
 import com.zanh.route_sharing.utils.spatial.Wgs84Coordinates;
 import com.zanh.route_sharing.domain.enums.TrangThaiLoTrinh;
+import com.zanh.route_sharing.domain.enums.TrangThaiVanHanhChuyenDi;
 import jakarta.persistence.*;
 import lombok.*;
 import lombok.experimental.SuperBuilder;
@@ -126,6 +127,21 @@ public class LoTrinhChiaSe extends Base {
                 this.soGheConLai = this.soGheConLai + 1;
         }
 
+        public void restoreOneSeatAfterTripCancellationBeforeStart() {
+                if (this.trangThaiLoTrinh != TrangThaiLoTrinh.LOCKED) {
+                        throw new IllegalStateException("Chỉ lộ trình LOCKED của chuyến đã hình thành mới được hoàn ghế khi hủy trước Start.");
+                }
+                if (this.chuyenDi == null
+                                || this.chuyenDi.getTrangThaiVanHanh() != TrangThaiVanHanhChuyenDi.CANCELLED_BEFORE_START) {
+                        throw new IllegalStateException("Chuyến liên kết phải đã CANCELLED_BEFORE_START trước khi hoàn ghế.");
+                }
+                if (this.soGheConLai == null || this.soGheCungCap == null
+                                || this.soGheConLai >= this.soGheCungCap) {
+                        throw new IllegalStateException("Không thể hoàn ghế vượt quá số ghế cung cấp.");
+                }
+                this.soGheConLai = this.soGheConLai + 1;
+        }
+
         public void lockForTripFormation(ChuyenDi trip, Instant lockedAt) {
                 Objects.requireNonNull(trip, "trip không được trống");
                 Objects.requireNonNull(lockedAt, "lockedAt không được trống");
@@ -150,6 +166,27 @@ public class LoTrinhChiaSe extends Base {
                 }
                 if (this.chuyenDi != null) {
                         throw new IllegalStateException("Lộ trình đã hình thành chuyến đi thực tế.");
+                }
+                if (reason == null || reason.isBlank()) {
+                        throw new IllegalArgumentException("Lý do hủy không được để trống.");
+                }
+                String normalizedReason = reason.trim();
+                if (normalizedReason.length() > 2000) {
+                        throw new IllegalArgumentException("Lý do hủy không được vượt quá 2000 ký tự.");
+                }
+                this.trangThaiLoTrinh = TrangThaiLoTrinh.CANCELLED;
+                this.huyLuc = cancelledAt;
+                this.lyDoHuy = normalizedReason;
+        }
+
+        public void cancelBecauseTripCancelledBeforeStart(Instant cancelledAt, String reason) {
+                Objects.requireNonNull(cancelledAt, "cancelledAt không được trống");
+                if (this.trangThaiLoTrinh != TrangThaiLoTrinh.LOCKED) {
+                        throw new IllegalStateException("Chỉ lộ trình LOCKED mới có thể kết thúc cùng chuyến bị hủy trước Start.");
+                }
+                if (this.chuyenDi == null
+                                || this.chuyenDi.getTrangThaiVanHanh() != TrangThaiVanHanhChuyenDi.CANCELLED_BEFORE_START) {
+                        throw new IllegalStateException("Lộ trình phải liên kết với chuyến CANCELLED_BEFORE_START.");
                 }
                 if (reason == null || reason.isBlank()) {
                         throw new IllegalArgumentException("Lý do hủy không được để trống.");

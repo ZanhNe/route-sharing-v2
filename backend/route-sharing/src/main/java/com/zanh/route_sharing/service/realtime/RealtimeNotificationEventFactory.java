@@ -7,10 +7,14 @@ import com.zanh.route_sharing.service.realtime.model.BookingAcceptedRealtimeData
 import com.zanh.route_sharing.service.realtime.model.BookingCancelledByPassengerRealtimeData;
 import com.zanh.route_sharing.service.realtime.model.BookingRejectedRealtimeData;
 import com.zanh.route_sharing.service.realtime.model.BookingRequestRealtimeData;
+import com.zanh.route_sharing.service.realtime.model.DriverArrivedPickupRealtimeData;
+import com.zanh.route_sharing.service.realtime.model.PassengerBoardedRealtimeData;
+import com.zanh.route_sharing.service.realtime.model.PassengerNoShowRealtimeData;
 import com.zanh.route_sharing.service.realtime.model.RealtimeEventEnvelope;
 import com.zanh.route_sharing.service.realtime.model.RealtimeResource;
 import com.zanh.route_sharing.service.realtime.model.RouteCancelledByDriverRealtimeData;
 import com.zanh.route_sharing.service.realtime.model.TripFormedRealtimeData;
+import com.zanh.route_sharing.service.realtime.model.TripCancelledBeforeStartRealtimeData;
 import com.zanh.route_sharing.service.realtime.model.TripStartedRealtimeData;
 
 import java.math.BigDecimal;
@@ -133,6 +137,101 @@ public final class RealtimeNotificationEventFactory {
                                                 TrangThaiVanHanhChuyenDi.PREPARING.name(),
                                                 formedAt,
                                                 expectedDepartureTime));
+        }
+
+        public static RealtimeEventEnvelope<TripCancelledBeforeStartRealtimeData> tripCancelledBeforeStart(
+                        Long tripId,
+                        Long routeId,
+                        Long rideRequestId,
+                        Instant cancelledAt) {
+                return new RealtimeEventEnvelope<>(
+                                "TRIP_CANCELLED_BEFORE_START",
+                                EVENT_VERSION,
+                                cancelledAt,
+                                new RealtimeResource(TRIP_RESOURCE, tripId),
+                                new TripCancelledBeforeStartRealtimeData(
+                                                tripId,
+                                                routeId,
+                                                rideRequestId,
+                                                TrangThaiVanHanhChuyenDi.CANCELLED_BEFORE_START.name(),
+                                                TrangThaiLoTrinh.CANCELLED.name(),
+                                                TrangThaiYeuCau.CANCELLED_BY_DRIVER.name(),
+                                                cancelledAt));
+        }
+
+        public static RealtimeEventEnvelope<DriverArrivedPickupRealtimeData> driverArrivedPickup(
+                        Long tripId,
+                        Long routeId,
+                        Long rideRequestId,
+                        Long pickupStopId,
+                        Integer pickupStopOrder,
+                        Instant arrivedAt,
+                        Instant waitingDeadline) {
+                return new RealtimeEventEnvelope<>(
+                                "DRIVER_ARRIVED_PICKUP",
+                                EVENT_VERSION,
+                                arrivedAt,
+                                new RealtimeResource(TRIP_RESOURCE, tripId),
+                                new DriverArrivedPickupRealtimeData(
+                                                tripId,
+                                                routeId,
+                                                rideRequestId,
+                                                pickupStopId,
+                                                pickupStopOrder,
+                                                com.zanh.route_sharing.domain.enums.TrangThaiDiemDung.ARRIVED.name(),
+                                                arrivedAt,
+                                                waitingDeadline));
+        }
+
+        public static RealtimeEventEnvelope<PassengerBoardedRealtimeData> passengerBoarded(
+                        Long tripId,
+                        Long routeId,
+                        Long rideRequestId,
+                        Long pickupStopId,
+                        Integer pickupStopOrder,
+                        Instant boardedAt) {
+                return new RealtimeEventEnvelope<>(
+                                "PASSENGER_BOARDED",
+                                EVENT_VERSION,
+                                boardedAt,
+                                new RealtimeResource(TRIP_RESOURCE, tripId),
+                                new PassengerBoardedRealtimeData(
+                                                tripId,
+                                                routeId,
+                                                rideRequestId,
+                                                pickupStopId,
+                                                pickupStopOrder,
+                                                TrangThaiYeuCau.ON_BOARD.name(),
+                                                com.zanh.route_sharing.domain.enums.TrangThaiDiemDung.COMPLETED.name(),
+                                                boardedAt));
+        }
+
+        public static RealtimeEventEnvelope<PassengerNoShowRealtimeData> passengerNoShow(
+                        Long tripId,
+                        Long routeId,
+                        Long rideRequestId,
+                        Long pickupStopId,
+                        Integer pickupStopOrder,
+                        Long dropoffStopId,
+                        Integer dropoffStopOrder,
+                        Instant noShowAt) {
+                return new RealtimeEventEnvelope<>(
+                                "PASSENGER_NO_SHOW",
+                                EVENT_VERSION,
+                                noShowAt,
+                                new RealtimeResource(TRIP_RESOURCE, tripId),
+                                new PassengerNoShowRealtimeData(
+                                                tripId,
+                                                routeId,
+                                                rideRequestId,
+                                                pickupStopId,
+                                                pickupStopOrder,
+                                                dropoffStopId,
+                                                dropoffStopOrder,
+                                                TrangThaiYeuCau.NO_SHOW.name(),
+                                                com.zanh.route_sharing.domain.enums.TrangThaiDiemDung.SKIPPED.name(),
+                                                com.zanh.route_sharing.domain.enums.TrangThaiDiemDung.SKIPPED.name(),
+                                                noShowAt));
         }
 
         public static RealtimeEventEnvelope<TripStartedRealtimeData> tripStarted(

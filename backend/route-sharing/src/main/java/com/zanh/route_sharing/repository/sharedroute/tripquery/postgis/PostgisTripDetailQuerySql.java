@@ -9,6 +9,8 @@ final class PostgisTripDetailQuerySql {
           trip.trang_thai_van_hanh AS trip_status,
           route.chot_danh_sach_luc AS formed_at,
           trip.bat_dau_luc AS started_at,
+          route.huy_luc AS cancelled_at,
+          route.ly_do_huy AS cancellation_reason,
           trip.so_khach_ke_hoach AS planned_passenger_count,
           trip.so_khach_thuc_te AS actual_passenger_count,
           driver_start.trang_thai_diem_dung AS driver_start_status,
@@ -63,6 +65,8 @@ final class PostgisTripDetailQuerySql {
           passenger.anh_dai_dien_url AS passenger_avatar_url,
           request.trang_thai_yeu_cau AS request_status,
           request.chap_nhan_luc AS accepted_at,
+          request.len_xe_luc AS boarded_at,
+          request.khong_den_luc AS no_show_at,
           request.loai_ghep_tuyen AS match_type,
           request.loai_diem_tha AS dropoff_type,
           request.muc_ho_tro_da_thoa_thuan AS agreed_support_amount,
@@ -95,7 +99,11 @@ final class PostgisTripDetailQuerySql {
           stop.yeu_cau_di_chung_id AS ride_request_id,
           ST_Y(stop.toa_do_ke_hoach) AS stop_latitude,
           ST_X(stop.toa_do_ke_hoach) AS stop_longitude,
-          stop.dia_chi AS stop_address
+          stop.dia_chi AS stop_address,
+          stop.den_luc AS arrived_at,
+          stop.bat_dau_cho_luc AS waiting_started_at,
+          stop.han_cho_luc AS waiting_deadline,
+          stop.hoan_thanh_luc AS completed_at
       FROM diem_dung_hanh_trinh stop
       WHERE stop.chuyen_di_id = :tripId
       ORDER BY stop.thu_tu ASC, stop.id ASC
@@ -110,7 +118,11 @@ final class PostgisTripDetailQuerySql {
           stop.yeu_cau_di_chung_id AS ride_request_id,
           ST_Y(stop.toa_do_ke_hoach) AS stop_latitude,
           ST_X(stop.toa_do_ke_hoach) AS stop_longitude,
-          stop.dia_chi AS stop_address
+          stop.dia_chi AS stop_address,
+          stop.den_luc AS arrived_at,
+          stop.bat_dau_cho_luc AS waiting_started_at,
+          stop.han_cho_luc AS waiting_deadline,
+          stop.hoan_thanh_luc AS completed_at
       FROM diem_dung_hanh_trinh stop
       JOIN yeu_cau_di_chung request ON request.id = stop.yeu_cau_di_chung_id
       WHERE stop.chuyen_di_id = :tripId

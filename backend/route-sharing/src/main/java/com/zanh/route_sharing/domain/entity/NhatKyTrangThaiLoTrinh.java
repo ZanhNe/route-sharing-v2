@@ -1,6 +1,7 @@
 package com.zanh.route_sharing.domain.entity;
 
 import com.zanh.route_sharing.domain.enums.TrangThaiLoTrinh;
+import com.zanh.route_sharing.domain.enums.TrangThaiVanHanhChuyenDi;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EntityListeners;
@@ -122,6 +123,37 @@ public class NhatKyTrangThaiLoTrinh {
         event.actor = driver;
         event.occurredAt = Objects.requireNonNull(occurredAt, "occurredAt không được trống");
         event.reasonCode = "DRIVER_CANCELLED_ROUTE";
+        return event;
+    }
+
+    public static NhatKyTrangThaiLoTrinh tripCancelledBeforeStart(
+            LoTrinhChiaSe route,
+            NguoiDung driver,
+            Instant occurredAt,
+            long sequence) {
+        if (route == null || route.getId() == null) {
+            throw new IllegalArgumentException("Lộ trình phải được lưu trước khi tạo nhật ký.");
+        }
+        if (route.getTrangThaiLoTrinh() != TrangThaiLoTrinh.CANCELLED
+                || route.getChuyenDi() == null
+                || route.getChuyenDi().getTrangThaiVanHanh() != TrangThaiVanHanhChuyenDi.CANCELLED_BEFORE_START) {
+            throw new IllegalArgumentException("Trạng thái lộ trình không khớp sự kiện hủy chuyến trước Start.");
+        }
+        if (sequence <= 0) {
+            throw new IllegalArgumentException("sequence phải là số dương.");
+        }
+        if (driver == null || route.getTaiXe() == null
+                || !Objects.equals(driver.getId(), route.getTaiXe().getId())) {
+            throw new IllegalArgumentException("Actor phải là tài xế sở hữu lộ trình.");
+        }
+        NhatKyTrangThaiLoTrinh event = new NhatKyTrangThaiLoTrinh();
+        event.loTrinhChiaSe = route;
+        event.sequence = sequence;
+        event.trangThaiTruoc = TrangThaiLoTrinh.LOCKED;
+        event.trangThaiSau = TrangThaiLoTrinh.CANCELLED;
+        event.actor = driver;
+        event.occurredAt = Objects.requireNonNull(occurredAt, "occurredAt không được trống");
+        event.reasonCode = "TRIP_CANCELLED_BEFORE_START";
         return event;
     }
 }

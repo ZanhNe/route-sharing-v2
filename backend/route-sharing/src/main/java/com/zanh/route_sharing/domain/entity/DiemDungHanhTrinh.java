@@ -139,4 +139,109 @@ public class DiemDungHanhTrinh extends Base {
                 this.trangThaiDiemDung = TrangThaiDiemDung.COMPLETED;
         }
 
+        public void arrivePickup(Point actualPoint, Instant arrivedAt, Instant waitingDeadline) {
+                if (this.loaiDiemDung != LoaiDiemDung.PICKUP) {
+                        throw new IllegalStateException("Chỉ PICKUP mới được ghi nhận đã đến bởi E5-02.");
+                }
+                if (this.trangThaiDiemDung != TrangThaiDiemDung.PENDING) {
+                        throw new IllegalStateException("PICKUP phải đang PENDING trước khi ghi nhận ARRIVED.");
+                }
+                if (this.yeuCauDiChung == null) {
+                        throw new IllegalStateException("PICKUP phải gắn booking.");
+                }
+                if (actualPoint == null || actualPoint.isEmpty() || actualPoint.getSRID() != Wgs84Coordinates.SRID) {
+                        throw new IllegalArgumentException("Vị trí thực tế phải là Point WGS84 SRID 4326 hợp lệ.");
+                }
+                if (arrivedAt == null || waitingDeadline == null || waitingDeadline.isBefore(arrivedAt)) {
+                        throw new IllegalArgumentException("Thời điểm arrival/waiting deadline không hợp lệ.");
+                }
+                if (this.toaDoThucTe != null
+                                || this.denGanLuc != null
+                                || this.denLuc != null
+                                || this.batDauChoLuc != null
+                                || this.hanChoLuc != null
+                                || this.hoanThanhLuc != null) {
+                        throw new IllegalStateException("PICKUP đã có bằng chứng vận hành trước đó.");
+                }
+                Point pointCopy = (Point) actualPoint.copy();
+                pointCopy.setSRID(Wgs84Coordinates.SRID);
+                this.toaDoThucTe = pointCopy;
+                this.denLuc = arrivedAt;
+                this.batDauChoLuc = arrivedAt;
+                this.hanChoLuc = waitingDeadline;
+                this.trangThaiDiemDung = TrangThaiDiemDung.ARRIVED;
+        }
+
+        public void completeArrivedPickup(Instant completedAt) {
+                if (this.loaiDiemDung != LoaiDiemDung.PICKUP) {
+                        throw new IllegalStateException("Chỉ PICKUP mới được hoàn thành bởi Boarding.");
+                }
+                if (this.trangThaiDiemDung != TrangThaiDiemDung.ARRIVED) {
+                        throw new IllegalStateException("PICKUP phải ARRIVED trước khi Passenger lên xe.");
+                }
+                if (this.yeuCauDiChung == null) {
+                        throw new IllegalStateException("PICKUP phải gắn booking.");
+                }
+                if (this.denLuc == null || this.batDauChoLuc == null || this.hanChoLuc == null
+                                || !this.denLuc.equals(this.batDauChoLuc)) {
+                        throw new IllegalStateException("PICKUP ARRIVED thiếu waiting evidence hợp lệ.");
+                }
+                if (completedAt == null || completedAt.isBefore(this.denLuc)) {
+                        throw new IllegalArgumentException("completedAt không hợp lệ.");
+                }
+                if (this.hoanThanhLuc != null) {
+                        throw new IllegalStateException("PICKUP đã được hoàn thành trước đó.");
+                }
+                this.hoanThanhLuc = completedAt;
+                this.trangThaiDiemDung = TrangThaiDiemDung.COMPLETED;
+        }
+
+        public void skipArrivedPickupForNoShow(Instant noShowAt) {
+                if (this.loaiDiemDung != LoaiDiemDung.PICKUP) {
+                        throw new IllegalStateException("Chỉ PICKUP mới được SKIPPED bởi No-show.");
+                }
+                if (this.trangThaiDiemDung != TrangThaiDiemDung.ARRIVED || this.yeuCauDiChung == null) {
+                        throw new IllegalStateException("PICKUP phải ARRIVED và gắn booking trước No-show.");
+                }
+                if (this.denLuc == null || this.batDauChoLuc == null || this.hanChoLuc == null
+                                || !this.denLuc.equals(this.batDauChoLuc)
+                                || this.hanChoLuc.isBefore(this.denLuc)
+                                || this.hoanThanhLuc != null) {
+                        throw new IllegalStateException("PICKUP ARRIVED thiếu waiting evidence hợp lệ.");
+                }
+                if (noShowAt == null || noShowAt.isBefore(this.hanChoLuc)) {
+                        throw new IllegalArgumentException("No-show chỉ hợp lệ tại hoặc sau waitingDeadline.");
+                }
+                this.trangThaiDiemDung = TrangThaiDiemDung.SKIPPED;
+        }
+
+        public void skipPendingDropoffForNoShow() {
+                if (this.loaiDiemDung != LoaiDiemDung.DROPOFF) {
+                        throw new IllegalStateException("Chỉ DROPOFF mới được skip như hậu quả No-show.");
+                }
+                if (this.trangThaiDiemDung != TrangThaiDiemDung.PENDING || this.yeuCauDiChung == null) {
+                        throw new IllegalStateException("DROPOFF phải PENDING và gắn booking trước No-show.");
+                }
+                if (this.toaDoThucTe != null || this.denGanLuc != null || this.denLuc != null
+                                || this.batDauChoLuc != null || this.hanChoLuc != null || this.hoanThanhLuc != null) {
+                        throw new IllegalStateException("DROPOFF PENDING không được có operational evidence trước No-show.");
+                }
+                this.trangThaiDiemDung = TrangThaiDiemDung.SKIPPED;
+        }
+
+        public void cancelBeforeStart() {
+                if (this.trangThaiDiemDung != TrangThaiDiemDung.PENDING) {
+                        throw new IllegalStateException("Chỉ điểm dừng PENDING mới được hủy trước khi chuyến bắt đầu.");
+                }
+                if (this.toaDoThucTe != null
+                                || this.denGanLuc != null
+                                || this.denLuc != null
+                                || this.batDauChoLuc != null
+                                || this.hanChoLuc != null
+                                || this.hoanThanhLuc != null) {
+                        throw new IllegalStateException("Điểm dừng PREPARING không được có bằng chứng vận hành trước khi hủy.");
+                }
+                this.trangThaiDiemDung = TrangThaiDiemDung.CANCELLED;
+        }
+
 }

@@ -98,4 +98,35 @@ public class NhatKyTrangThaiChuyenDi {
         event.reasonCode = "DRIVER_STARTED_TRIP";
         return event;
     }
+
+    public static NhatKyTrangThaiChuyenDi driverCancelledBeforeStart(
+            ChuyenDi trip,
+            NguoiDung driver,
+            Instant occurredAt,
+            long sequence) {
+        if (trip == null || trip.getId() == null) {
+            throw new IllegalArgumentException("Chuyến đi phải được lưu trước khi tạo nhật ký.");
+        }
+        if (trip.getTrangThaiVanHanh() != TrangThaiVanHanhChuyenDi.CANCELLED_BEFORE_START
+                || trip.getBatDauLuc() != null) {
+            throw new IllegalArgumentException("Trạng thái chuyến không khớp sự kiện hủy trước Start.");
+        }
+        if (sequence <= 0) {
+            throw new IllegalArgumentException("sequence phải là số dương.");
+        }
+        if (driver == null || trip.getLoTrinhChiaSe() == null
+                || trip.getLoTrinhChiaSe().getTaiXe() == null
+                || !Objects.equals(driver.getId(), trip.getLoTrinhChiaSe().getTaiXe().getId())) {
+            throw new IllegalArgumentException("Actor phải là tài xế sở hữu chuyến đi.");
+        }
+        NhatKyTrangThaiChuyenDi event = new NhatKyTrangThaiChuyenDi();
+        event.chuyenDi = trip;
+        event.sequence = sequence;
+        event.trangThaiTruoc = TrangThaiVanHanhChuyenDi.PREPARING;
+        event.trangThaiSau = TrangThaiVanHanhChuyenDi.CANCELLED_BEFORE_START;
+        event.actor = driver;
+        event.occurredAt = Objects.requireNonNull(occurredAt, "occurredAt không được trống");
+        event.reasonCode = "DRIVER_CANCELLED_TRIP_BEFORE_START";
+        return event;
+    }
 }

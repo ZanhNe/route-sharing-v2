@@ -74,6 +74,8 @@ public class PostgisTripDetailQueryRepository implements TripDetailQueryReposito
                                 enumValue(TrangThaiVanHanhChuyenDi.class, rs.getString("trip_status")),
                                 PostgresJdbcValues.instant(rs, "formed_at"),
                                 PostgresJdbcValues.instant(rs, "started_at"),
+                                PostgresJdbcValues.instant(rs, "cancelled_at"),
+                                rs.getString("cancellation_reason"),
                                 rs.getInt("planned_passenger_count"),
                                 rs.getInt("actual_passenger_count"),
                                 enumValue(TrangThaiDiemDung.class, rs.getString("driver_start_status")),
@@ -109,6 +111,8 @@ public class PostgisTripDetailQueryRepository implements TripDetailQueryReposito
                                 rs.getString("passenger_avatar_url"),
                                 enumValue(TrangThaiYeuCau.class, rs.getString("request_status")),
                                 PostgresJdbcValues.instant(rs, "accepted_at"),
+                                PostgresJdbcValues.instant(rs, "boarded_at"),
+                                PostgresJdbcValues.instant(rs, "no_show_at"),
                                 enumValue(LoaiGhepTuyen.class, rs.getString("match_type")),
                                 enumValue(LoaiDiemTha.class, rs.getString("dropoff_type")),
                                 rs.getBigDecimal("agreed_support_amount"),
@@ -127,7 +131,11 @@ public class PostgisTripDetailQueryRepository implements TripDetailQueryReposito
                                 PostgresJdbcValues.longObject(rs, "ride_request_id"),
                                 rs.getBigDecimal("stop_latitude"),
                                 rs.getBigDecimal("stop_longitude"),
-                                rs.getString("stop_address"));
+                                rs.getString("stop_address"),
+                                PostgresJdbcValues.instant(rs, "arrived_at"),
+                                PostgresJdbcValues.instant(rs, "waiting_started_at"),
+                                PostgresJdbcValues.instant(rs, "waiting_deadline"),
+                                PostgresJdbcValues.instant(rs, "completed_at"));
         }
 
         private static <E extends Enum<E>> E enumValue(Class<E> type, String value) {

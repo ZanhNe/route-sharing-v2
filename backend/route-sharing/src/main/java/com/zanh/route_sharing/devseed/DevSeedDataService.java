@@ -72,6 +72,11 @@ public class DevSeedDataService {
         private static final String LOCK_OWN_SHARED_ROUTE_PERMISSION = "LOCK_OWN_SHARED_ROUTE";
         private static final String VIEW_OWN_TRIP_PERMISSION = "VIEW_OWN_TRIP";
         private static final String START_OWN_TRIP_PERMISSION = "START_OWN_TRIP";
+        private static final String CANCEL_OWN_TRIP_PERMISSION = "CANCEL_OWN_TRIP";
+        private static final String CONFIRM_OWN_TRIP_PICKUP_ARRIVAL_PERMISSION = "CONFIRM_OWN_TRIP_PICKUP_ARRIVAL";
+        private static final String VIEW_OWN_BOARDING_CODE_PERMISSION = "VIEW_OWN_BOARDING_CODE";
+        private static final String CONFIRM_OWN_TRIP_BOARDING_PERMISSION = "CONFIRM_OWN_TRIP_BOARDING";
+        private static final String CONFIRM_OWN_TRIP_NO_SHOW_PERMISSION = "CONFIRM_OWN_TRIP_NO_SHOW";
         private static final String DRIVER_GROUP = "DRIVER";
         private static final ZoneId BUSINESS_ZONE = TimePolicy.BUSINESS_ZONE;
         private static final GeometryFactory GEOMETRY_FACTORY = new GeometryFactory(new PrecisionModel(),
@@ -147,6 +152,26 @@ public class DevSeedDataService {
                                 START_OWN_TRIP_PERMISSION,
                                 "Bắt đầu chuyến đi của mình",
                                 "Cho phép tài xế bắt đầu chuyến PREPARING do chính mình sở hữu khi ở đúng điểm DRIVER_START.");
+                QuyenHan cancelOwnTripPermission = ensurePermission(
+                                CANCEL_OWN_TRIP_PERMISSION,
+                                "Hủy chuyến đã hình thành trước khi bắt đầu",
+                                "Cho phép tài xế hủy toàn bộ chuyến PREPARING do chính mình sở hữu trước Start.");
+                QuyenHan confirmOwnTripPickupArrivalPermission = ensurePermission(
+                                CONFIRM_OWN_TRIP_PICKUP_ARRIVAL_PERMISSION,
+                                "Xác nhận đã đến điểm đón",
+                                "Cho phép tài xế của chuyến IN_PROGRESS xác nhận đã đến pickup kế tiếp hợp lệ.");
+                QuyenHan viewOwnBoardingCodePermission = ensurePermission(
+                                VIEW_OWN_BOARDING_CODE_PERMISSION,
+                                "Xem boarding code của booking mình",
+                                "Cho phép Passenger xem cùng boarding code active của pickup hiện tại thuộc chính mình.");
+                QuyenHan confirmOwnTripBoardingPermission = ensurePermission(
+                                CONFIRM_OWN_TRIP_BOARDING_PERMISSION,
+                                "Xác nhận Passenger lên xe",
+                                "Cho phép Driver của chuyến xác nhận Boarding bằng code cho pickup hiện tại.");
+                QuyenHan confirmOwnTripNoShowPermission = ensurePermission(
+                                CONFIRM_OWN_TRIP_NO_SHOW_PERMISSION,
+                                "Xác nhận Passenger no-show",
+                                "Cho phép Driver của chuyến xác nhận Passenger hiện tại no-show sau waiting deadline.");
 
                 NhomQuyen driverGroup = ensureDriverGroup(
                                 createPermission,
@@ -156,7 +181,11 @@ public class DevSeedDataService {
                                 viewOwnSharedRoutesPermission,
                                 lockOwnSharedRoutePermission,
                                 viewOwnTripPermission,
-                                startOwnTripPermission);
+                                startOwnTripPermission,
+                                cancelOwnTripPermission,
+                                confirmOwnTripPickupArrivalPermission,
+                                confirmOwnTripBoardingPermission,
+                                confirmOwnTripNoShowPermission);
                 retireLegacyPermission(driverGroup, LEGACY_CANCEL_ROUTE_RIDE_REQUEST_PERMISSION);
                 NguoiDung driver = ensureDriverUser(driverGroup, now);
                 HoSoTaiXe driverProfile = ensureDriverProfile(driver, now);
@@ -171,6 +200,7 @@ public class DevSeedDataService {
                                 cancelOwnRideRequestPermission,
                                 viewOwnRideRequestsPermission,
                                 viewOwnTripPermission,
+                                viewOwnBoardingCodePermission,
                                 now);
                 NguoiDung passenger2 = ensureAdditionalPassengerUser(
                                 PASSENGER2_EMAIL,
@@ -181,6 +211,7 @@ public class DevSeedDataService {
                                 cancelOwnRideRequestPermission,
                                 viewOwnRideRequestsPermission,
                                 viewOwnTripPermission,
+                                viewOwnBoardingCodePermission,
                                 now);
                 NguoiDung passenger3 = ensureAdditionalPassengerUser(
                                 PASSENGER3_EMAIL,
@@ -191,6 +222,7 @@ public class DevSeedDataService {
                                 cancelOwnRideRequestPermission,
                                 viewOwnRideRequestsPermission,
                                 viewOwnTripPermission,
+                                viewOwnBoardingCodePermission,
                                 now);
                 ensureLoginOnlyUser(
                                 NO_TRIP_VIEW_EMAIL,
@@ -340,6 +372,7 @@ public class DevSeedDataService {
                         QuyenHan cancelOwnRideRequestPermission,
                         QuyenHan viewOwnRideRequestsPermission,
                         QuyenHan viewOwnTripPermission,
+                        QuyenHan viewOwnBoardingCodePermission,
                         Instant now) {
                 NguoiDung user = userRepository.findByEmailTruongIgnoreCase(PASSENGER_EMAIL)
                                 .orElseGet(() -> NguoiDung.builder()
@@ -373,6 +406,7 @@ public class DevSeedDataService {
                                                 .equalsIgnoreCase(viewOwnTripPermission.getMaQuyen()))) {
                         user.getDanhSachQuyenTrucTiep().add(viewOwnTripPermission);
                 }
+                grantDirectPermission(user, viewOwnBoardingCodePermission);
                 return userRepository.save(user);
         }
 
@@ -385,6 +419,7 @@ public class DevSeedDataService {
                         QuyenHan cancelOwnRideRequestPermission,
                         QuyenHan viewOwnRideRequestsPermission,
                         QuyenHan viewOwnTripPermission,
+                        QuyenHan viewOwnBoardingCodePermission,
                         Instant now) {
                 NguoiDung user = userRepository.findByEmailTruongIgnoreCase(email)
                                 .orElseGet(() -> NguoiDung.builder()
@@ -398,6 +433,7 @@ public class DevSeedDataService {
                 grantDirectPermission(user, cancelOwnRideRequestPermission);
                 grantDirectPermission(user, viewOwnRideRequestsPermission);
                 grantDirectPermission(user, viewOwnTripPermission);
+                grantDirectPermission(user, viewOwnBoardingCodePermission);
                 return userRepository.save(user);
         }
 

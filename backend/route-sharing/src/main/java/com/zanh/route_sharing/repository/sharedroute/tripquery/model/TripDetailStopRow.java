@@ -4,6 +4,7 @@ import com.zanh.route_sharing.domain.enums.LoaiDiemDung;
 import com.zanh.route_sharing.domain.enums.TrangThaiDiemDung;
 
 import java.math.BigDecimal;
+import java.time.Instant;
 import java.util.Objects;
 
 public record TripDetailStopRow(
@@ -14,7 +15,11 @@ public record TripDetailStopRow(
         Long rideRequestId,
         BigDecimal latitude,
         BigDecimal longitude,
-        String address) {
+        String address,
+        Instant arrivedAt,
+        Instant waitingStartedAt,
+        Instant waitingDeadline,
+        Instant completedAt) {
     public TripDetailStopRow {
         Objects.requireNonNull(stopId);
         Objects.requireNonNull(order);

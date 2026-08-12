@@ -29,7 +29,7 @@ public class TripDetailResponseMapper {
                                                 new TripDetailResponse.Passenger(p.passengerId(), p.passengerFullName(),
                                                                 p.passengerAvatarUrl()),
                                                 new TripDetailResponse.Booking(
-                                                                p.status(), p.acceptedAt(), p.matchType(),
+                                                                p.status(), p.acceptedAt(), p.boardedAt(), p.noShowAt(), p.matchType(),
                                                                 p.dropoffType(), p.agreedSupportAmount(), p.note()),
                                                 p.pickupStopId(),
                                                 p.dropoffStopId()))
@@ -37,7 +37,8 @@ public class TripDetailResponseMapper {
                 var stops = snapshot.stops().stream()
                                 .map(s -> new TripDetailResponse.Stop(
                                                 s.stopId(), s.order(), s.type(), s.status(), s.rideRequestId(),
-                                                new TripDetailResponse.Point(s.latitude(), s.longitude(), s.address())))
+                                                new TripDetailResponse.Point(s.latitude(), s.longitude(), s.address()),
+                                                s.arrivedAt(), s.waitingStartedAt(), s.waitingDeadline(), s.completedAt()))
                                 .toList();
 
                 return new TripDetailResponse(
@@ -46,6 +47,7 @@ public class TripDetailResponseMapper {
                                                 : TripDetailResponse.ViewerRole.PASSENGER,
                                 new TripDetailResponse.Trip(
                                                 h.tripId(), h.tripStatus(), h.formedAt(), h.startedAt(),
+                                                h.cancelledAt(), h.cancellationReason(),
                                                 h.plannedPassengerCount(), h.actualPassengerCount()),
                                 new TripDetailResponse.Route(
                                                 h.routeId(), h.routeStatus(), h.lockedAt(), h.expectedDepartureTime(),

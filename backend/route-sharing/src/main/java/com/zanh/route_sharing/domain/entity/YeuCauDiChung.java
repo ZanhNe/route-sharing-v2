@@ -3,6 +3,7 @@ package com.zanh.route_sharing.domain.entity;
 import com.zanh.route_sharing.domain.enums.LoaiDiemTha;
 import com.zanh.route_sharing.domain.enums.LoaiGhepTuyen;
 import com.zanh.route_sharing.domain.enums.TrangThaiYeuCau;
+import com.zanh.route_sharing.domain.enums.TrangThaiVanHanhChuyenDi;
 import com.zanh.route_sharing.domain.riderequest.RideRequestPolicySnapshot;
 import com.zanh.route_sharing.domain.riderequest.RideRequestSnapshot;
 import jakarta.persistence.CheckConstraint;
@@ -75,7 +76,9 @@ import java.util.Objects;
                 + "OR (huy_luc IS NOT NULL "
                 + "AND ly_do_huy IS NOT NULL "
                 + "AND length(trim(ly_do_huy)) BETWEEN 1 AND 2000 "
-                + "AND trang_thai_yeu_cau IN ('CANCELLED_BY_PASSENGER', 'CANCELLED_BY_DRIVER'))")
+                + "AND trang_thai_yeu_cau IN ('CANCELLED_BY_PASSENGER', 'CANCELLED_BY_DRIVER'))"),
+        @CheckConstraint(name = "ck_yeu_cau_no_show", constraint = "(trang_thai_yeu_cau <> 'NO_SHOW' OR khong_den_luc IS NOT NULL) "
+                + "AND (khong_den_luc IS NULL OR (chap_nhan_luc IS NOT NULL AND len_xe_luc IS NULL AND khong_den_luc >= chap_nhan_luc))")
 })
 @Getter
 @Setter
@@ -167,6 +170,8 @@ public class YeuCauDiChung extends Base {
     private Instant hanhKhachXacNhanDonLuc;
     @Column(name = "len_xe_luc")
     private Instant lenXeLuc;
+    @Column(name = "khong_den_luc")
+    private Instant khongDenLuc;
     @Column(name = "tai_xe_xac_nhan_tra_luc")
     private Instant taiXeXacNhanTraLuc;
     @Column(name = "hanh_khach_xac_nhan_tra_luc")
@@ -303,6 +308,49 @@ public class YeuCauDiChung extends Base {
         this.chuyenDi = trip;
     }
 
+    public void board(ChuyenDi trip, Instant boardedAt) {
+        Objects.requireNonNull(trip, "trip không được trống");
+        Objects.requireNonNull(boardedAt, "boardedAt không được trống");
+        if (this.trangThaiYeuCau != TrangThaiYeuCau.ACCEPTED) {
+            throw new IllegalStateException("Chỉ booking ACCEPTED mới có thể chuyển sang ON_BOARD.");
+        }
+        if (this.chuyenDi == null || this.chuyenDi.getId() == null || trip.getId() == null
+                || !Objects.equals(this.chuyenDi.getId(), trip.getId())) {
+            throw new IllegalStateException("Booking phải thuộc chính chuyến đang xác nhận Boarding.");
+        }
+        if (this.lenXeLuc != null) {
+            throw new IllegalStateException("Booking đã có thời điểm lên xe trước đó.");
+        }
+        if (trip.getTrangThaiVanHanh() != TrangThaiVanHanhChuyenDi.IN_PROGRESS) {
+            throw new IllegalStateException("Chuyến phải IN_PROGRESS khi Passenger lên xe.");
+        }
+        this.trangThaiYeuCau = TrangThaiYeuCau.ON_BOARD;
+        this.lenXeLuc = boardedAt;
+    }
+
+    public void markNoShow(ChuyenDi trip, Instant noShowAt) {
+        Objects.requireNonNull(trip, "trip không được trống");
+        Objects.requireNonNull(noShowAt, "noShowAt không được trống");
+        if (this.trangThaiYeuCau != TrangThaiYeuCau.ACCEPTED) {
+            throw new IllegalStateException("Chỉ booking ACCEPTED mới có thể chuyển sang NO_SHOW.");
+        }
+        if (this.chuyenDi == null || this.chuyenDi.getId() == null || trip.getId() == null
+                || !Objects.equals(this.chuyenDi.getId(), trip.getId())) {
+            throw new IllegalStateException("Booking phải thuộc chính chuyến đang xác nhận No-show.");
+        }
+        if (trip.getTrangThaiVanHanh() != TrangThaiVanHanhChuyenDi.IN_PROGRESS) {
+            throw new IllegalStateException("Chuyến phải IN_PROGRESS khi xác nhận No-show.");
+        }
+        if (this.chapNhanLuc == null || noShowAt.isBefore(this.chapNhanLuc)) {
+            throw new IllegalArgumentException("noShowAt không hợp lệ so với acceptedAt.");
+        }
+        if (this.lenXeLuc != null || this.khongDenLuc != null) {
+            throw new IllegalStateException("Booking đã được resolve trước đó.");
+        }
+        this.trangThaiYeuCau = TrangThaiYeuCau.NO_SHOW;
+        this.khongDenLuc = noShowAt;
+    }
+
     public TrangThaiYeuCau cancelByPassenger(Instant cancelledAt, String reason) {
         Objects.requireNonNull(cancelledAt, "cancelledAt không được trống");
         if (this.trangThaiYeuCau != TrangThaiYeuCau.PENDING
@@ -332,6 +380,24 @@ public class YeuCauDiChung extends Base {
         this.huyLuc = cancelledAt;
         this.lyDoHuy = normalizedReason;
         return previous;
+    }
+
+    public void cancelBecauseTripCancelledBeforeStart(ChuyenDi trip, Instant cancelledAt, String reason) {
+        Objects.requireNonNull(trip, "trip không được trống");
+        Objects.requireNonNull(cancelledAt, "cancelledAt không được trống");
+        if (this.trangThaiYeuCau != TrangThaiYeuCau.ACCEPTED) {
+            throw new IllegalStateException("Chỉ booking ACCEPTED mới được kết thúc khi chuyến bị hủy trước Start.");
+        }
+        if (this.chuyenDi == null || !Objects.equals(this.chuyenDi.getId(), trip.getId())) {
+            throw new IllegalStateException("Booking phải đang thuộc chính chuyến bị hủy.");
+        }
+        if (trip.getTrangThaiVanHanh() != TrangThaiVanHanhChuyenDi.CANCELLED_BEFORE_START) {
+            throw new IllegalStateException("Chuyến phải ở trạng thái CANCELLED_BEFORE_START.");
+        }
+        String normalizedReason = normalizeCancellationReason(reason);
+        this.trangThaiYeuCau = TrangThaiYeuCau.CANCELLED_BY_DRIVER;
+        this.huyLuc = cancelledAt;
+        this.lyDoHuy = normalizedReason;
     }
 
     private void requirePendingState() {

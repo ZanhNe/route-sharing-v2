@@ -37,9 +37,13 @@ class EntitySchemaMetadataTest {
                                                 "ck_yeu_cau_muc_ho_tro",
                                                 "ck_yeu_cau_booking_policy",
                     "ck_yeu_cau_huy",
+                                                "ck_yeu_cau_no_show",
                                                 "ck_yeu_cau_policy_snapshot",
                                                 "ck_yeu_cau_cooldown")),
                                 Map.entry(ChuyenDi.class, Set.of("ck_chuyen_di_so_khach")),
+                                Map.entry(ThongTinXacThucLenXe.class, Set.of(
+                                                "ck_xac_thuc_len_xe_material",
+                                                "ck_xac_thuc_len_xe_time")),
                                 Map.entry(DiemDungHanhTrinh.class, Set.of(
                                                 "ck_diem_dung_thu_tu",
                                                 "ck_diem_dung_ban_kinh",

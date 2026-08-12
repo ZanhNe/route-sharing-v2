@@ -113,4 +113,39 @@ public class ChuyenDi extends Base {
                 this.batDauLuc = startedAt;
         }
 
+        public void boardOnePassenger() {
+                if (this.trangThaiVanHanh != TrangThaiVanHanhChuyenDi.IN_PROGRESS || this.batDauLuc == null) {
+                        throw new IllegalStateException("Chỉ chuyến IN_PROGRESS đã Start mới ghi nhận Passenger lên xe.");
+                }
+                if (this.loTrinhChiaSe == null
+                                || this.loTrinhChiaSe.getTrangThaiLoTrinh() != TrangThaiLoTrinh.LOCKED
+                                || this.loTrinhChiaSe.getChuyenDi() != this) {
+                        throw new IllegalStateException("Chuyến IN_PROGRESS phải thuộc lộ trình LOCKED tương ứng.");
+                }
+                if (this.soKhachThucTe == null || this.soKhachKeHoach == null
+                                || this.soKhachThucTe < 0
+                                || this.soKhachThucTe >= this.soKhachKeHoach) {
+                        throw new IllegalStateException("Số khách thực tế không thể tăng thêm.");
+                }
+                this.soKhachThucTe += 1;
+        }
+
+        public void cancelBeforeStart() {
+                if (this.batDauLuc != null) {
+                        throw new IllegalStateException("Chuyến đi đã được bắt đầu và không thể hủy trước Start.");
+                }
+                if (this.trangThaiVanHanh != TrangThaiVanHanhChuyenDi.PREPARING) {
+                        throw new IllegalStateException("Chỉ chuyến PREPARING mới có thể hủy trước Start.");
+                }
+                if (this.loTrinhChiaSe == null
+                                || this.loTrinhChiaSe.getTrangThaiLoTrinh() != TrangThaiLoTrinh.LOCKED
+                                || this.loTrinhChiaSe.getChuyenDi() != this) {
+                        throw new IllegalStateException("Chuyến PREPARING phải thuộc lộ trình LOCKED tương ứng.");
+                }
+                if (this.soKhachThucTe == null || this.soKhachThucTe != 0) {
+                        throw new IllegalStateException("Số khách thực tế trước khi hủy phải bằng 0.");
+                }
+                this.trangThaiVanHanh = TrangThaiVanHanhChuyenDi.CANCELLED_BEFORE_START;
+        }
+
 }

@@ -47,6 +47,8 @@ public record TripDetailResponse(
             TrangThaiVanHanhChuyenDi status,
             Instant formedAt,
             Instant startedAt,
+            Instant cancelledAt,
+            String cancellationReason,
             Integer plannedPassengerCount,
             Integer actualPassengerCount) {
         public Trip {
@@ -133,6 +135,8 @@ public record TripDetailResponse(
     public record Booking(
             TrangThaiYeuCau status,
             Instant acceptedAt,
+            Instant boardedAt,
+            Instant noShowAt,
             LoaiGhepTuyen matchType,
             LoaiDiemTha dropoffType,
             BigDecimal agreedSupportAmount,
@@ -152,7 +156,11 @@ public record TripDetailResponse(
             LoaiDiemDung type,
             TrangThaiDiemDung status,
             Long rideRequestId,
-            Point point) {
+            Point point,
+            Instant arrivedAt,
+            Instant waitingStartedAt,
+            Instant waitingDeadline,
+            Instant completedAt) {
         public Stop {
             Objects.requireNonNull(stopId, "stopId không được trống.");
             Objects.requireNonNull(order, "order không được trống.");
