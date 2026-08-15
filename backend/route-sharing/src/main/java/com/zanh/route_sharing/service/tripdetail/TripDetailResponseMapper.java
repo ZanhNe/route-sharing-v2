@@ -29,7 +29,8 @@ public class TripDetailResponseMapper {
                                                 new TripDetailResponse.Passenger(p.passengerId(), p.passengerFullName(),
                                                                 p.passengerAvatarUrl()),
                                                 new TripDetailResponse.Booking(
-                                                                p.status(), p.acceptedAt(), p.boardedAt(), p.noShowAt(), p.matchType(),
+                                                                p.status(), p.acceptedAt(), p.boardedAt(), p.noShowAt(),
+                                                                p.matchType(),
                                                                 p.dropoffType(), p.agreedSupportAmount(), p.note()),
                                                 p.pickupStopId(),
                                                 p.dropoffStopId()))
@@ -38,7 +39,8 @@ public class TripDetailResponseMapper {
                                 .map(s -> new TripDetailResponse.Stop(
                                                 s.stopId(), s.order(), s.type(), s.status(), s.rideRequestId(),
                                                 new TripDetailResponse.Point(s.latitude(), s.longitude(), s.address()),
-                                                s.arrivedAt(), s.waitingStartedAt(), s.waitingDeadline(), s.completedAt()))
+                                                s.arrivedAt(), s.waitingStartedAt(), s.waitingDeadline(),
+                                                s.completedAt()))
                                 .toList();
 
                 return new TripDetailResponse(
@@ -46,8 +48,10 @@ public class TripDetailResponseMapper {
                                                 ? TripDetailResponse.ViewerRole.DRIVER
                                                 : TripDetailResponse.ViewerRole.PASSENGER,
                                 new TripDetailResponse.Trip(
-                                                h.tripId(), h.tripStatus(), h.formedAt(), h.startedAt(),
+                                                h.tripId(), h.tripStatus(), h.monitoringStatus(), h.signalReferenceAt(),
+                                                h.formedAt(), h.startedAt(), h.endedAt(),
                                                 h.cancelledAt(), h.cancellationReason(),
+                                                h.safetyHoldStartedAt(), h.safetyMessage(),
                                                 h.plannedPassengerCount(), h.actualPassengerCount()),
                                 new TripDetailResponse.Route(
                                                 h.routeId(), h.routeStatus(), h.lockedAt(), h.expectedDepartureTime(),
@@ -64,7 +68,35 @@ public class TripDetailResponseMapper {
                                                 readOperationalRoute(h.operationalRouteGeoJson())),
                                 participants,
                                 stops,
+                                activeSafetyHold(snapshot),
+                                currentDriverLocation(snapshot),
                                 readAt);
+        }
+
+        private static TripDetailResponse.ActiveSafetyHold activeSafetyHold(TripDetailSnapshot snapshot) {
+                var h = snapshot.header();
+                if (h.viewerRole() != TripViewerRole.DRIVER || h
+                                .tripStatus() != com.zanh.route_sharing.domain.enums.TrangThaiVanHanhChuyenDi.SECURITY_FROZEN) {
+                        return null;
+                }
+                if (h.activeSafetyHoldInterventionId() == null || h.activeSafetyHoldTargetRideRequestId() == null) {
+                        throw TripDetailSnapshotValidator.invalidStoredPlan();
+                }
+                return new TripDetailResponse.ActiveSafetyHold(h.activeSafetyHoldInterventionId(),
+                                h.activeSafetyHoldTargetRideRequestId());
+        }
+
+        private static TripDetailResponse.CurrentDriverLocation currentDriverLocation(TripDetailSnapshot snapshot) {
+                var location = snapshot.currentDriverLocation();
+                if (location == null) {
+                        return null;
+                }
+                return new TripDetailResponse.CurrentDriverLocation(
+                                new TripDetailResponse.Position(location.latitude(), location.longitude()),
+                                location.observedAt(),
+                                location.receivedAt(),
+                                location.accuracyMeters(),
+                                location.locationSequence());
         }
 
         private GeoJsonLineStringResponse readOperationalRoute(String geoJson) {

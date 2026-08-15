@@ -4,12 +4,14 @@ import com.zanh.route_sharing.domain.enums.LoaiDiemDung;
 import com.zanh.route_sharing.domain.enums.LoaiDiemTha;
 import com.zanh.route_sharing.domain.enums.LoaiGhepTuyen;
 import com.zanh.route_sharing.domain.enums.TrangThaiDiemDung;
+import com.zanh.route_sharing.domain.enums.TrangThaiGiamSatChuyenDi;
 import com.zanh.route_sharing.domain.enums.TrangThaiLoTrinh;
 import com.zanh.route_sharing.domain.enums.TrangThaiVanHanhChuyenDi;
 import com.zanh.route_sharing.domain.enums.TrangThaiYeuCau;
 import com.zanh.route_sharing.repository.sharedroute.common.postgis.PostgresJdbcValues;
 import com.zanh.route_sharing.repository.sharedroute.tripquery.TripDetailQueryRepository;
 import com.zanh.route_sharing.repository.sharedroute.tripquery.model.TripDetailHeaderRow;
+import com.zanh.route_sharing.repository.sharedroute.tripquery.model.TripDetailCurrentLocationRow;
 import com.zanh.route_sharing.repository.sharedroute.tripquery.model.TripDetailParticipantRow;
 import com.zanh.route_sharing.repository.sharedroute.tripquery.model.TripDetailSnapshot;
 import com.zanh.route_sharing.repository.sharedroute.tripquery.model.TripDetailStopRow;
@@ -64,7 +66,21 @@ public class PostgisTripDetailQueryRepository implements TripDetailQueryReposito
                                                 : PostgisTripDetailQuerySql.STOPS_PASSENGER,
                                 params,
                                 (rs, rowNum) -> mapStop(rs));
-                return Optional.of(new TripDetailSnapshot(header.orElseThrow(), participants, stops));
+                TripDetailCurrentLocationRow currentDriverLocation = null;
+                if (!driverView
+                                && isTrackingActive(header.orElseThrow().tripStatus())
+                                && participants.stream().anyMatch(participant -> participant.status() != null
+                                                && participant.status().isActiveTripParticipant())) {
+                        currentDriverLocation = jdbcTemplate.query(
+                                        PostgisTripDetailQuerySql.CURRENT_LOCATION,
+                                        params,
+                                        (rs, rowNum) -> mapCurrentLocation(rs))
+                                        .stream()
+                                        .findFirst()
+                                        .orElse(null);
+                }
+                return Optional.of(new TripDetailSnapshot(
+                                header.orElseThrow(), participants, stops, currentDriverLocation));
         }
 
         private static TripDetailHeaderRow mapHeader(ResultSet rs) throws SQLException {
@@ -72,10 +88,18 @@ public class PostgisTripDetailQueryRepository implements TripDetailQueryReposito
                                 TripViewerRole.valueOf(rs.getString("viewer_role")),
                                 rs.getLong("trip_id"),
                                 enumValue(TrangThaiVanHanhChuyenDi.class, rs.getString("trip_status")),
+                                enumValue(TrangThaiGiamSatChuyenDi.class, rs.getString("monitoring_status")),
+                                PostgresJdbcValues.instant(rs, "signal_reference_at"),
                                 PostgresJdbcValues.instant(rs, "formed_at"),
                                 PostgresJdbcValues.instant(rs, "started_at"),
+                                PostgresJdbcValues.instant(rs, "ended_at"),
                                 PostgresJdbcValues.instant(rs, "cancelled_at"),
                                 rs.getString("cancellation_reason"),
+                                PostgresJdbcValues.instant(rs, "safety_hold_started_at"),
+                                rs.getString("safety_message"),
+                                rs.getLong("active_safety_hold_count"),
+                                PostgresJdbcValues.longObject(rs, "active_safety_hold_intervention_id"),
+                                PostgresJdbcValues.longObject(rs, "active_safety_hold_target_ride_request_id"),
                                 rs.getInt("planned_passenger_count"),
                                 rs.getInt("actual_passenger_count"),
                                 enumValue(TrangThaiDiemDung.class, rs.getString("driver_start_status")),
@@ -136,6 +160,21 @@ public class PostgisTripDetailQueryRepository implements TripDetailQueryReposito
                                 PostgresJdbcValues.instant(rs, "waiting_started_at"),
                                 PostgresJdbcValues.instant(rs, "waiting_deadline"),
                                 PostgresJdbcValues.instant(rs, "completed_at"));
+        }
+
+        private static TripDetailCurrentLocationRow mapCurrentLocation(ResultSet rs) throws SQLException {
+                return new TripDetailCurrentLocationRow(
+                                rs.getBigDecimal("latitude"),
+                                rs.getBigDecimal("longitude"),
+                                PostgresJdbcValues.instant(rs, "observed_at"),
+                                PostgresJdbcValues.instant(rs, "received_at"),
+                                rs.getBigDecimal("accuracy_meters"),
+                                rs.getLong("location_sequence"));
+        }
+
+        private static boolean isTrackingActive(TrangThaiVanHanhChuyenDi status) {
+                return status == TrangThaiVanHanhChuyenDi.IN_PROGRESS
+                                || status == TrangThaiVanHanhChuyenDi.SECURITY_FROZEN;
         }
 
         private static <E extends Enum<E>> E enumValue(Class<E> type, String value) {

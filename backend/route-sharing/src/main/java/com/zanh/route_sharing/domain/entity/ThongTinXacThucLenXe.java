@@ -8,6 +8,7 @@ import jakarta.persistence.CheckConstraint;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;
+import jakarta.persistence.Index;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.OneToOne;
@@ -26,7 +27,7 @@ import java.util.Objects;
 @Entity
 @Table(name = "thong_tin_xac_thuc_len_xe", uniqueConstraints = {
         @UniqueConstraint(name = "uk_xac_thuc_len_xe_pickup", columnNames = "diem_dung_hanh_trinh_id")
-}, check = {
+}, indexes = @Index(name = "idx_xac_thuc_len_xe_can_thiep", columnList = "can_thiep_an_toan_vo_hieu_hoa_id"), check = {
         @CheckConstraint(name = "ck_xac_thuc_len_xe_material", constraint = "(vo_hieu_hoa_luc IS NULL AND ma_ma_hoa IS NOT NULL AND nonce_ma_hoa IS NOT NULL AND phien_ban_khoa IS NOT NULL) OR (vo_hieu_hoa_luc IS NOT NULL AND ma_ma_hoa IS NULL AND nonce_ma_hoa IS NULL AND phien_ban_khoa IS NULL)"),
         @CheckConstraint(name = "ck_xac_thuc_len_xe_time", constraint = "vo_hieu_hoa_luc IS NULL OR vo_hieu_hoa_luc >= kich_hoat_luc")
 })
@@ -62,6 +63,10 @@ public class ThongTinXacThucLenXe extends Base {
 
     @Column(name = "vo_hieu_hoa_luc")
     private Instant voHieuHoaLuc;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "can_thiep_an_toan_vo_hieu_hoa_id")
+    private CanThiepAnToanChuyenDi canThiepAnToanVoHieuHoa;
 
     public static ThongTinXacThucLenXe activate(
             ChuyenDi trip,
@@ -113,6 +118,12 @@ public class ThongTinXacThucLenXe extends Base {
             throw new IllegalStateException("Boarding credential không còn active.");
         }
         return new ProtectedBoardingCode(maMaHoa, nonceMaHoa, phienBanKhoa);
+    }
+
+    public void resolveForSafety(Instant resolvedAt, CanThiepAnToanChuyenDi intervention) {
+        Objects.requireNonNull(intervention, "intervention không được trống");
+        resolve(resolvedAt);
+        this.canThiepAnToanVoHieuHoa = intervention;
     }
 
     public void resolve(Instant resolvedAt) {

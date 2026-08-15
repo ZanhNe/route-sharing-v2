@@ -6,5 +6,6 @@ public enum LoaiTaiNguyenNhayCam {
     CA_VET_XE,
     ANH_CHAN_DUNG,
     DU_LIEU_DINH_VI,
-    TEP_MINH_CHUNG
+    TEP_MINH_CHUNG,
+    SU_CO_CHUYEN_DI
 }

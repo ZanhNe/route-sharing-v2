@@ -17,7 +17,12 @@ import java.math.BigDecimal;
                                 + "AND thoi_gian_lech_don_toi_da_giay >= 0 "
                                 + "AND ban_kinh_xac_dinh_da_den_met > 0 "
                                 + "AND thoi_gian_cho_khach_giay >= 0 "
-                                + "AND thoi_gian_mat_tin_hieu_giay > 0"),
+                                + "AND thoi_gian_mat_tin_hieu_giay > 0 "
+                                + "AND so_ngay_luu_vi_tri > 0 "
+                                + "AND so_ngay_luu_nhat_ky > 0 "
+                                + "AND chu_ky_gui_vi_tri_giay > 0 "
+                                + "AND thoi_gian_tre_tin_hieu_giay > chu_ky_gui_vi_tri_giay "
+                                + "AND thoi_gian_mat_tin_hieu_giay > thoi_gian_tre_tin_hieu_giay"),
                 @CheckConstraint(name = "ck_cau_hinh_yeu_cau_di_chung", constraint = "booking_cutoff_seconds >= 0 "
                                 + "AND rejection_cooldown_seconds >= 0")
 })
@@ -40,12 +45,16 @@ public class CauHinhNghiepVu extends Base {
         private BigDecimal banKinhXacDinhDaDenMet;
         @Column(name = "thoi_gian_cho_khach_giay", nullable = false)
         private Long thoiGianChoKhachGiay;
+        @Column(name = "thoi_gian_tre_tin_hieu_giay", nullable = false)
+        private Long thoiGianTreTinHieuGiay;
         @Column(name = "thoi_gian_mat_tin_hieu_giay", nullable = false)
         private Long thoiGianMatTinHieuGiay;
         @Column(name = "do_lech_thoi_gian_khoi_hanh_phut", nullable = false)
         private Integer doLechThoiGianKhoiHanhPhut;
         @Column(name = "so_ngay_luu_vi_tri", nullable = false)
         private Integer soNgayLuuViTri;
+        @Column(name = "chu_ky_gui_vi_tri_giay", nullable = false)
+        private Long chuKyGuiViTriGiay;
         @Column(name = "so_ngay_luu_nhat_ky", nullable = false)
         private Integer soNgayLuuNhatKy;
         @Column(name = "booking_cutoff_seconds", nullable = false)

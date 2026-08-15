@@ -3,7 +3,6 @@ package com.zanh.route_sharing.security;
 import com.zanh.route_sharing.domain.enums.TrangThaiTaiKhoan;
 import com.zanh.route_sharing.exception.ResourceNotFoundException;
 import io.jsonwebtoken.JwtException;
-import lombok.RequiredArgsConstructor;
 import org.springframework.messaging.Message;
 import org.springframework.messaging.MessageChannel;
 import org.springframework.messaging.simp.stomp.StompHeaderAccessor;
@@ -14,16 +13,26 @@ import org.springframework.security.authentication.UsernamePasswordAuthenticatio
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.stereotype.Component;
+import com.zanh.route_sharing.service.realtime.TripLocationSubscriptionAuthorizer;
 
 import java.util.List;
 
 @Component
-@RequiredArgsConstructor
 public class WebSocketJwtAuthenticationInterceptor implements ChannelInterceptor {
     private static final String BEARER_PREFIX = "Bearer ";
 
     private final JwtUtil jwtUtil;
     private final SecurityStateService securityStateService;
+    private final TripLocationSubscriptionAuthorizer tripLocationSubscriptionAuthorizer;
+
+    public WebSocketJwtAuthenticationInterceptor(
+            JwtUtil jwtUtil,
+            SecurityStateService securityStateService,
+            TripLocationSubscriptionAuthorizer tripLocationSubscriptionAuthorizer) {
+        this.jwtUtil = jwtUtil;
+        this.securityStateService = securityStateService;
+        this.tripLocationSubscriptionAuthorizer = tripLocationSubscriptionAuthorizer;
+    }
 
     @Override
     public Message<?> preSend(Message<?> message, MessageChannel channel) {
@@ -44,6 +53,9 @@ public class WebSocketJwtAuthenticationInterceptor implements ChannelInterceptor
                 if (destination == null
                         || !(destination.startsWith("/user/queue/") || destination.startsWith("/topic/public/"))) {
                     throw new BadCredentialsException("Không thể subscribe vì destination không hợp lệ");
+                }
+                if (tripLocationSubscriptionAuthorizer.isLocationDestinationCandidate(destination)) {
+                    tripLocationSubscriptionAuthorizer.authorize((Authentication) accessor.getUser(), destination);
                 }
             }
             default -> {

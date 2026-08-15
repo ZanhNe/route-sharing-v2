@@ -1,6 +1,7 @@
 package com.zanh.route_sharing.repository.sharedroute.tripquery.model;
 
 import com.zanh.route_sharing.domain.enums.TrangThaiDiemDung;
+import com.zanh.route_sharing.domain.enums.TrangThaiGiamSatChuyenDi;
 import com.zanh.route_sharing.domain.enums.TrangThaiLoTrinh;
 import com.zanh.route_sharing.domain.enums.TrangThaiVanHanhChuyenDi;
 
@@ -12,10 +13,18 @@ public record TripDetailHeaderRow(
         TripViewerRole viewerRole,
         Long tripId,
         TrangThaiVanHanhChuyenDi tripStatus,
+        TrangThaiGiamSatChuyenDi monitoringStatus,
+        Instant signalReferenceAt,
         Instant formedAt,
         Instant startedAt,
+        Instant endedAt,
         Instant cancelledAt,
         String cancellationReason,
+        Instant safetyHoldStartedAt,
+        String safetyMessage,
+        Long activeSafetyHoldCount,
+        Long activeSafetyHoldInterventionId,
+        Long activeSafetyHoldTargetRideRequestId,
         Integer plannedPassengerCount,
         Integer actualPassengerCount,
         TrangThaiDiemDung driverStartStatus,
@@ -45,6 +54,7 @@ public record TripDetailHeaderRow(
         Objects.requireNonNull(viewerRole);
         Objects.requireNonNull(tripId);
         Objects.requireNonNull(tripStatus);
+        Objects.requireNonNull(monitoringStatus);
         Objects.requireNonNull(formedAt);
         Objects.requireNonNull(plannedPassengerCount);
         Objects.requireNonNull(actualPassengerCount);

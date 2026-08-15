@@ -60,3 +60,9 @@ goong:
   geocoding-path: ${GOONG_GEOCODING_PATH:/Geocode}
   waypoint-snap-tolerance-meters: ${GOONG_WAYPOINT_SNAP_TOLERANCE_METERS:100}
   duplicate-waypoint-tolerance-meters: ${GOONG_DUPLICATE_WAYPOINT_TOLERANCE_METERS:2}
+
+
+routeshare:
+  trip-monitoring:
+    enabled: ${TRIP_MONITORING_ENABLED:true}
+    scan-delay-ms: ${TRIP_MONITORING_SCAN_DELAY_MS:5000}

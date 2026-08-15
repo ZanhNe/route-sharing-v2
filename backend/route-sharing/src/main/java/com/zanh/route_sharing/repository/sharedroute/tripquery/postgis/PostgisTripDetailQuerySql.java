@@ -1,5 +1,7 @@
 package com.zanh.route_sharing.repository.sharedroute.tripquery.postgis;
 
+import com.zanh.route_sharing.repository.sharedroute.triplocation.model.TripLocationCurrentOrdering;
+
 final class PostgisTripDetailQuerySql {
 
   static final String HEADER = """
@@ -7,10 +9,27 @@ final class PostgisTripDetailQuerySql {
           CASE WHEN route.tai_xe_id = :actorUserId THEN 'DRIVER' ELSE 'PASSENGER' END AS viewer_role,
           trip.id AS trip_id,
           trip.trang_thai_van_hanh AS trip_status,
+          trip.trang_thai_giam_sat AS monitoring_status,
+          COALESCE(trip.nhan_tin_hieu_cuoi_luc, trip.bat_dau_luc) AS signal_reference_at,
           route.chot_danh_sach_luc AS formed_at,
           trip.bat_dau_luc AS started_at,
+          trip.ket_thuc_luc AS ended_at,
           route.huy_luc AS cancelled_at,
           route.ly_do_huy AS cancellation_reason,
+          trip.dong_bang_luc AS safety_hold_started_at,
+          trip.ly_do_dong_bang AS safety_message,
+          (SELECT count(*) FROM can_thiep_an_toan_chuyen_di active_hold_count
+             WHERE active_hold_count.chuyen_di_id = trip.id
+               AND active_hold_count.loai_can_thiep = 'GIU_DE_XUONG_XE_AN_TOAN'
+               AND active_hold_count.trang_thai_can_thiep = 'DANG_THUC_HIEN') AS active_safety_hold_count,
+          (SELECT min(active_hold.id) FROM can_thiep_an_toan_chuyen_di active_hold
+             WHERE active_hold.chuyen_di_id = trip.id
+               AND active_hold.loai_can_thiep = 'GIU_DE_XUONG_XE_AN_TOAN'
+               AND active_hold.trang_thai_can_thiep = 'DANG_THUC_HIEN') AS active_safety_hold_intervention_id,
+          (SELECT min(active_hold.yeu_cau_muc_tieu_id) FROM can_thiep_an_toan_chuyen_di active_hold
+             WHERE active_hold.chuyen_di_id = trip.id
+               AND active_hold.loai_can_thiep = 'GIU_DE_XUONG_XE_AN_TOAN'
+               AND active_hold.trang_thai_can_thiep = 'DANG_THUC_HIEN') AS active_safety_hold_target_ride_request_id,
           trip.so_khach_ke_hoach AS planned_passenger_count,
           trip.so_khach_thuc_te AS actual_passenger_count,
           driver_start.trang_thai_diem_dung AS driver_start_status,
@@ -130,6 +149,18 @@ final class PostgisTripDetailQuerySql {
         AND stop.loai_diem_dung IN ('PICKUP', 'DROPOFF')
       ORDER BY stop.thu_tu ASC, stop.id ASC
       """;
+
+  static final String CURRENT_LOCATION = """
+      SELECT
+          ST_Y(toa_do) AS latitude,
+          ST_X(toa_do) AS longitude,
+          thoi_gian_trinh_duyet AS observed_at,
+          thoi_gian_server_nhan AS received_at,
+          do_chinh_xac_met AS accuracy_meters,
+          thu_tu_ban_ghi AS location_sequence
+      FROM ban_ghi_dinh_vi
+      WHERE chuyen_di_id = :tripId
+      """ + TripLocationCurrentOrdering.SQL_ORDER_BY + " LIMIT 1";
 
   private PostgisTripDetailQuerySql() {
   }

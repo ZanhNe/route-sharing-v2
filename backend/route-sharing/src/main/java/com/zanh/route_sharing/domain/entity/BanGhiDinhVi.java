@@ -14,7 +14,8 @@ import java.time.Instant;
                 @UniqueConstraint(name = "uk_ban_ghi_dinh_vi_thu_tu", columnNames = { "chuyen_di_id",
                                 "thu_tu_ban_ghi" })
 }, indexes = {
-                @Index(name = "idx_ban_ghi_dinh_vi_chuyen_thoi_gian", columnList = "chuyen_di_id,thoi_gian_server_nhan")
+                @Index(name = "idx_ban_ghi_dinh_vi_chuyen_thoi_gian", columnList = "chuyen_di_id,thoi_gian_server_nhan"),
+                @Index(name = "idx_ban_ghi_dinh_vi_chuyen_trinh_duyet", columnList = "chuyen_di_id,thoi_gian_trinh_duyet")
 }, check = {
                 @CheckConstraint(name = "ck_ban_ghi_thu_tu", constraint = "thu_tu_ban_ghi >= 0"),
                 @CheckConstraint(name = "ck_ban_ghi_do_chinh_xac", constraint = "do_chinh_xac_met IS NULL OR do_chinh_xac_met >= 0"),

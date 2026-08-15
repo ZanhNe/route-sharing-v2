@@ -4,6 +4,7 @@ import com.zanh.route_sharing.domain.enums.LoaiDiemDung;
 import com.zanh.route_sharing.domain.enums.LoaiDiemTha;
 import com.zanh.route_sharing.domain.enums.LoaiGhepTuyen;
 import com.zanh.route_sharing.domain.enums.TrangThaiDiemDung;
+import com.zanh.route_sharing.domain.enums.TrangThaiGiamSatChuyenDi;
 import com.zanh.route_sharing.domain.enums.TrangThaiLoTrinh;
 import com.zanh.route_sharing.domain.enums.TrangThaiVanHanhChuyenDi;
 import com.zanh.route_sharing.domain.enums.TrangThaiYeuCau;
@@ -23,6 +24,8 @@ public record TripDetailResponse(
         OperationalRoute operationalRoute,
         List<Participant> participants,
         List<Stop> stops,
+        ActiveSafetyHold activeSafetyHold,
+        CurrentDriverLocation currentDriverLocation,
         Instant readAt) {
 
     public TripDetailResponse {
@@ -45,15 +48,21 @@ public record TripDetailResponse(
     public record Trip(
             Long tripId,
             TrangThaiVanHanhChuyenDi status,
+            TrangThaiGiamSatChuyenDi monitoringStatus,
+            Instant signalReferenceAt,
             Instant formedAt,
             Instant startedAt,
+            Instant endedAt,
             Instant cancelledAt,
             String cancellationReason,
+            Instant safetyHoldStartedAt,
+            String safetyMessage,
             Integer plannedPassengerCount,
             Integer actualPassengerCount) {
         public Trip {
             Objects.requireNonNull(tripId, "tripId không được trống.");
             Objects.requireNonNull(status, "trip status không được trống.");
+            Objects.requireNonNull(monitoringStatus, "monitoringStatus không được trống.");
             Objects.requireNonNull(formedAt, "formedAt không được trống.");
             Objects.requireNonNull(plannedPassengerCount, "plannedPassengerCount không được trống.");
             Objects.requireNonNull(actualPassengerCount, "actualPassengerCount không được trống.");
@@ -167,6 +176,39 @@ public record TripDetailResponse(
             Objects.requireNonNull(type, "stop type không được trống.");
             Objects.requireNonNull(status, "stop status không được trống.");
             Objects.requireNonNull(point, "stop point không được trống.");
+        }
+    }
+
+    public record ActiveSafetyHold(Long interventionId, Long targetRideRequestId) {
+        public ActiveSafetyHold {
+            Objects.requireNonNull(interventionId, "activeSafetyHold.interventionId không được trống.");
+            Objects.requireNonNull(targetRideRequestId, "activeSafetyHold.targetRideRequestId không được trống.");
+        }
+    }
+
+    public record CurrentDriverLocation(
+            Position position,
+            Instant observedAt,
+            Instant receivedAt,
+            BigDecimal accuracyMeters,
+            Long locationSequence) {
+        public CurrentDriverLocation {
+            Objects.requireNonNull(position, "currentDriverLocation.position không được trống.");
+            Objects.requireNonNull(observedAt, "currentDriverLocation.observedAt không được trống.");
+            Objects.requireNonNull(receivedAt, "currentDriverLocation.receivedAt không được trống.");
+            if (accuracyMeters != null && accuracyMeters.signum() < 0) {
+                throw new IllegalArgumentException("currentDriverLocation.accuracyMeters không được âm.");
+            }
+            if (locationSequence == null || locationSequence <= 0) {
+                throw new IllegalArgumentException("currentDriverLocation.locationSequence phải là số dương.");
+            }
+        }
+    }
+
+    public record Position(BigDecimal latitude, BigDecimal longitude) {
+        public Position {
+            Objects.requireNonNull(latitude, "currentDriverLocation.latitude không được trống.");
+            Objects.requireNonNull(longitude, "currentDriverLocation.longitude không được trống.");
         }
     }
 

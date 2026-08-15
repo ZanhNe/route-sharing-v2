@@ -1,5 +1,6 @@
 package com.zanh.route_sharing.service.realtime;
 
+import com.zanh.route_sharing.domain.enums.TrangThaiGiamSatChuyenDi;
 import com.zanh.route_sharing.domain.enums.TrangThaiLoTrinh;
 import com.zanh.route_sharing.domain.enums.TrangThaiYeuCau;
 import com.zanh.route_sharing.domain.enums.TrangThaiVanHanhChuyenDi;
@@ -16,6 +17,13 @@ import com.zanh.route_sharing.service.realtime.model.RouteCancelledByDriverRealt
 import com.zanh.route_sharing.service.realtime.model.TripFormedRealtimeData;
 import com.zanh.route_sharing.service.realtime.model.TripCancelledBeforeStartRealtimeData;
 import com.zanh.route_sharing.service.realtime.model.TripStartedRealtimeData;
+import com.zanh.route_sharing.service.realtime.model.TripSignalMonitoringChangedRealtimeData;
+import com.zanh.route_sharing.service.realtime.model.TripSafetyIncidentReportedRealtimeData;
+import com.zanh.route_sharing.service.realtime.model.TripSafetyIncidentStatusChangedRealtimeData;
+import com.zanh.route_sharing.service.realtime.model.TripSafetyIncidentWorkChangedRealtimeData;
+import com.zanh.route_sharing.service.realtime.model.TripLocationUpdatedRealtimeData;
+import com.zanh.route_sharing.service.realtime.model.TripSafetyStateChangedRealtimeData;
+import com.zanh.route_sharing.service.realtime.model.TripParticipantSafetyChangedRealtimeData;
 
 import java.math.BigDecimal;
 import java.time.Instant;
@@ -25,6 +33,7 @@ public final class RealtimeNotificationEventFactory {
         public static final String RIDE_REQUEST_RESOURCE = "RIDE_REQUEST";
         public static final String SHARED_ROUTE_RESOURCE = "SHARED_ROUTE";
         public static final String TRIP_RESOURCE = "TRIP";
+        public static final String TRIP_INCIDENT_RESOURCE = "TRIP_INCIDENT";
 
         private RealtimeNotificationEventFactory() {
         }
@@ -234,6 +243,53 @@ public final class RealtimeNotificationEventFactory {
                                                 noShowAt));
         }
 
+        public static RealtimeEventEnvelope<TripLocationUpdatedRealtimeData> tripLocationUpdated(
+                        Long tripId,
+                        BigDecimal latitude,
+                        BigDecimal longitude,
+                        Instant observedAt,
+                        Instant receivedAt,
+                        BigDecimal accuracyMeters,
+                        Long locationSequence) {
+                return new RealtimeEventEnvelope<>(
+                                "TRIP_LOCATION_UPDATED",
+                                EVENT_VERSION,
+                                receivedAt,
+                                new RealtimeResource(TRIP_RESOURCE, tripId),
+                                new TripLocationUpdatedRealtimeData(
+                                                tripId,
+                                                new TripLocationUpdatedRealtimeData.Position(latitude, longitude),
+                                                observedAt,
+                                                receivedAt,
+                                                accuracyMeters,
+                                                locationSequence));
+        }
+
+        public static RealtimeEventEnvelope<TripSignalMonitoringChangedRealtimeData> tripSignalMonitoringChanged(
+                        Long tripId,
+                        TrangThaiGiamSatChuyenDi previousStatus,
+                        TrangThaiGiamSatChuyenDi monitoringStatus,
+                        Instant signalReferenceAt,
+                        Instant changedAt) {
+                if (previousStatus == null || monitoringStatus == null || previousStatus == monitoringStatus) {
+                        throw new IllegalArgumentException("Monitoring realtime event phải là actual transition.");
+                }
+                if (signalReferenceAt == null || changedAt == null || signalReferenceAt.isAfter(changedAt)) {
+                        throw new IllegalArgumentException("Monitoring realtime timestamps không hợp lệ.");
+                }
+                return new RealtimeEventEnvelope<>(
+                                "TRIP_SIGNAL_MONITORING_CHANGED",
+                                EVENT_VERSION,
+                                changedAt,
+                                new RealtimeResource(TRIP_RESOURCE, tripId),
+                                new TripSignalMonitoringChangedRealtimeData(
+                                                tripId,
+                                                previousStatus.name(),
+                                                monitoringStatus.name(),
+                                                signalReferenceAt,
+                                                changedAt));
+        }
+
         public static RealtimeEventEnvelope<TripStartedRealtimeData> tripStarted(
                         Long tripId,
                         Long routeId,
@@ -250,6 +306,69 @@ public final class RealtimeNotificationEventFactory {
                                                 rideRequestId,
                                                 TrangThaiVanHanhChuyenDi.IN_PROGRESS.name(),
                                                 startedAt));
+        }
+
+        public static RealtimeEventEnvelope<TripSafetyIncidentReportedRealtimeData> tripSafetyIncidentReported(
+                        Long incidentId,
+                        Long tripId,
+                        String type,
+                        String severity,
+                        String status,
+                        Instant reportedAt) {
+                return new RealtimeEventEnvelope<>(
+                                "TRIP_SAFETY_INCIDENT_REPORTED",
+                                EVENT_VERSION,
+                                reportedAt,
+                                new RealtimeResource(TRIP_INCIDENT_RESOURCE, incidentId),
+                                new TripSafetyIncidentReportedRealtimeData(
+                                                incidentId, tripId, type, severity, status, reportedAt));
+        }
+
+        public static RealtimeEventEnvelope<TripSafetyIncidentWorkChangedRealtimeData> tripSafetyIncidentWorkChanged(
+                        Long incidentId,
+                        Long tripId,
+                        String changeType,
+                        String status,
+                        Long primaryHandlerUserId,
+                        Instant occurredAt) {
+                return new RealtimeEventEnvelope<>(
+                                "TRIP_SAFETY_INCIDENT_WORK_CHANGED",
+                                EVENT_VERSION,
+                                occurredAt,
+                                new RealtimeResource(TRIP_INCIDENT_RESOURCE, incidentId),
+                                new TripSafetyIncidentWorkChangedRealtimeData(
+                                                incidentId, tripId, changeType, status, primaryHandlerUserId));
+        }
+
+        public static RealtimeEventEnvelope<TripSafetyIncidentStatusChangedRealtimeData> tripSafetyIncidentStatusChanged(
+                        Long incidentId,
+                        Long tripId,
+                        String status,
+                        Instant occurredAt) {
+                return new RealtimeEventEnvelope<>(
+                                "TRIP_SAFETY_INCIDENT_STATUS_CHANGED",
+                                EVENT_VERSION,
+                                occurredAt,
+                                new RealtimeResource(TRIP_INCIDENT_RESOURCE, incidentId),
+                                new TripSafetyIncidentStatusChangedRealtimeData(incidentId, tripId, status));
+        }
+
+        public static RealtimeEventEnvelope<TripSafetyStateChangedRealtimeData> tripSafetyStateChanged(
+                        Long tripId, Long interventionId, String changeType, String tripStatus, Instant changedAt) {
+                return new RealtimeEventEnvelope<>(
+                                "TRIP_SAFETY_STATE_CHANGED", EVENT_VERSION, changedAt,
+                                new RealtimeResource(TRIP_RESOURCE, tripId),
+                                new TripSafetyStateChangedRealtimeData(tripId, interventionId, changeType, tripStatus,
+                                                changedAt));
+        }
+
+        public static RealtimeEventEnvelope<TripParticipantSafetyChangedRealtimeData> tripParticipantSafetyChanged(
+                        Long tripId, Long interventionId, Long rideRequestId, String bookingStatus, Instant changedAt) {
+                return new RealtimeEventEnvelope<>(
+                                "TRIP_PARTICIPANT_SAFETY_CHANGED", EVENT_VERSION, changedAt,
+                                new RealtimeResource("RIDE_REQUEST", rideRequestId),
+                                new TripParticipantSafetyChangedRealtimeData(tripId, interventionId, rideRequestId,
+                                                "PASSENGER_ABORTED", bookingStatus, changedAt));
         }
 
 }

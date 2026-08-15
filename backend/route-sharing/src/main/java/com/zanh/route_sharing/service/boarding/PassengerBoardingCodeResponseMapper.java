@@ -8,6 +8,7 @@ import org.springframework.stereotype.Component;
 public class PassengerBoardingCodeResponseMapper {
     public PassengerBoardingCodeResponse toResponse(PassengerBoardingCodeResult result) {
         return new PassengerBoardingCodeResponse(
-                result.tripId(), result.rideRequestId(), result.pickupStopId(), result.pickupStopOrder(), result.boardingCode());
+                result.tripId(), result.rideRequestId(), result.pickupStopId(), result.pickupStopOrder(),
+                result.boardingCode());
     }
 }

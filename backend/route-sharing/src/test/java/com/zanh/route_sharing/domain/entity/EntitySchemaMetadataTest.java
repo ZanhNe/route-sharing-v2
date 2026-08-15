@@ -105,6 +105,21 @@ class EntitySchemaMetadataTest {
         }
 
         @Test
+        void signalMonitoringThresholdAndHistoryMetadataMatchE603Design() throws Exception {
+                Field delayed = CauHinhNghiepVu.class.getDeclaredField("thoiGianTreTinHieuGiay");
+                Column delayedColumn = delayed.getAnnotation(Column.class);
+                assertThat(delayedColumn.name()).isEqualTo("thoi_gian_tre_tin_hieu_giay");
+                assertThat(delayedColumn.nullable()).isFalse();
+
+                Table history = NhatKyGiamSatTinHieu.class.getAnnotation(Table.class);
+                assertThat(history.name()).isEqualTo("nhat_ky_giam_sat_tin_hieu");
+                assertThat(NhatKyGiamSatTinHieu.class.getSuperclass()).isEqualTo(Object.class);
+                assertThat(Arrays.stream(history.uniqueConstraints())
+                                .map(jakarta.persistence.UniqueConstraint::name))
+                                .contains("uk_nhat_ky_giam_sat_trip_sequence");
+        }
+
+        @Test
         void matchingDestinationRadiusIsOwnedByBusinessConfigurationEntity() throws Exception {
                 Field field = CauHinhNghiepVu.class
                                 .getDeclaredField("banKinhDiemDenGanTuyenMet");

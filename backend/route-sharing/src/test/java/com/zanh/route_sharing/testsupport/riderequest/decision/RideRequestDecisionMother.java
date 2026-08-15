@@ -91,8 +91,8 @@ public final class RideRequestDecisionMother {
                 .khoangCachLechDonToiDaMet(new BigDecimal("150"))
                 .thoiGianLechDonToiDaGiay(900L)
                 .banKinhXacDinhDaDenMet(new BigDecimal("100"))
-                .thoiGianChoKhachGiay(300L).thoiGianMatTinHieuGiay(120L)
-                .doLechThoiGianKhoiHanhPhut(15).soNgayLuuViTri(30).soNgayLuuNhatKy(365).bookingCutoffSeconds(900L)
+                .thoiGianChoKhachGiay(300L).thoiGianTreTinHieuGiay(15L).thoiGianMatTinHieuGiay(120L)
+                .doLechThoiGianKhoiHanhPhut(15).soNgayLuuViTri(30).chuKyGuiViTriGiay(5L).soNgayLuuNhatKy(365).bookingCutoffSeconds(900L)
                 .rejectionCooldownSeconds(3600L).build();
 
         RideRequestSnapshot snapshot = snapshot(route.getVersion(), driver.getId(), config, DEPARTURE);

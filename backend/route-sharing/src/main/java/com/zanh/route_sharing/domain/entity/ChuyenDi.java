@@ -130,6 +130,90 @@ public class ChuyenDi extends Base {
                 this.soKhachThucTe += 1;
         }
 
+
+        public void recordCurrentLocation(Point location, Instant receivedAt) {
+                if (location == null || location.isEmpty() || location.getSRID() != Wgs84Coordinates.SRID) {
+                        throw new IllegalArgumentException("Vị trí hiện tại phải là Point WGS84 SRID 4326 hợp lệ.");
+                }
+                if (receivedAt == null) {
+                        throw new IllegalArgumentException("receivedAt không được trống.");
+                }
+                if (this.batDauLuc == null
+                                || this.ketThucLuc != null
+                                || (this.trangThaiVanHanh != TrangThaiVanHanhChuyenDi.IN_PROGRESS
+                                                && this.trangThaiVanHanh != TrangThaiVanHanhChuyenDi.SECURITY_FROZEN)) {
+                        throw new IllegalStateException("Chuyến đi hiện không thuộc tracking lifecycle.");
+                }
+                Point copy = (Point) location.copy();
+                copy.setSRID(Wgs84Coordinates.SRID);
+                this.viTriCuoiCung = copy;
+                this.nhanTinHieuCuoiLuc = receivedAt;
+        }
+
+        public void transitionMonitoringState(TrangThaiGiamSatChuyenDi desiredState) {
+                if (desiredState == null) {
+                        throw new IllegalArgumentException("desiredState không được trống.");
+                }
+                if (this.batDauLuc == null
+                                || this.ketThucLuc != null
+                                || (this.trangThaiVanHanh != TrangThaiVanHanhChuyenDi.IN_PROGRESS
+                                                && this.trangThaiVanHanh != TrangThaiVanHanhChuyenDi.SECURITY_FROZEN)) {
+                        throw new IllegalStateException("Chuyến đi hiện không thuộc monitoring lifecycle.");
+                }
+                if (this.trangThaiGiamSat == desiredState) {
+                        throw new IllegalStateException("Monitoring state phải thực sự thay đổi.");
+                }
+                this.trangThaiGiamSat = desiredState;
+        }
+
+        public void batDauGiuAnToan(Instant startedAt, String participantSafeReason) {
+                if (startedAt == null) throw new IllegalArgumentException("startedAt không được trống.");
+                String reason = participantSafeReason == null ? null : participantSafeReason.trim();
+                if (reason == null || reason.isEmpty() || reason.length() > 2000) {
+                        throw new IllegalArgumentException("participantSafeReason phải có nội dung <= 2000 ký tự.");
+                }
+                if (this.trangThaiVanHanh != TrangThaiVanHanhChuyenDi.IN_PROGRESS || this.batDauLuc == null || this.ketThucLuc != null) {
+                        throw new IllegalStateException("Chỉ Trip IN_PROGRESS đã Start mới có thể bắt đầu Safety hold.");
+                }
+                if (this.dongBangLuc != null || this.lyDoDongBang != null) {
+                        throw new IllegalStateException("Trip đã có current Safety hold projection.");
+                }
+                this.trangThaiVanHanh = TrangThaiVanHanhChuyenDi.SECURITY_FROZEN;
+                this.dongBangLuc = startedAt;
+                this.lyDoDongBang = reason;
+        }
+
+        public void ketThucGiuAnToanVaTiepTuc() {
+                if (this.trangThaiVanHanh != TrangThaiVanHanhChuyenDi.SECURITY_FROZEN || this.ketThucLuc != null
+                                || this.dongBangLuc == null || this.lyDoDongBang == null || this.lyDoDongBang.isBlank()) {
+                        throw new IllegalStateException("Trip không có active Safety hold hợp lệ để tiếp tục.");
+                }
+                this.trangThaiVanHanh = TrangThaiVanHanhChuyenDi.IN_PROGRESS;
+                this.dongBangLuc = null;
+                this.lyDoDongBang = null;
+        }
+
+        public void giamMotKhachDangTrenXe() {
+                if (this.trangThaiVanHanh != TrangThaiVanHanhChuyenDi.SECURITY_FROZEN || this.soKhachThucTe == null || this.soKhachThucTe <= 0) {
+                        throw new IllegalStateException("Trip frozen không có Passenger ON_BOARD để giảm.");
+                }
+                this.soKhachThucTe -= 1;
+        }
+
+        public void huyKhanCap(Instant endedAt) {
+                if (endedAt == null) throw new IllegalArgumentException("endedAt không được trống.");
+                if (this.batDauLuc == null || endedAt.isBefore(this.batDauLuc) || this.ketThucLuc != null
+                                || (this.trangThaiVanHanh != TrangThaiVanHanhChuyenDi.IN_PROGRESS
+                                && this.trangThaiVanHanh != TrangThaiVanHanhChuyenDi.SECURITY_FROZEN)) {
+                        throw new IllegalStateException("Trip không ở lifecycle cho phép emergency abort.");
+                }
+                this.trangThaiVanHanh = TrangThaiVanHanhChuyenDi.EMERGENCY_ABORTED;
+                this.ketThucLuc = endedAt;
+                this.soKhachThucTe = 0;
+                this.dongBangLuc = null;
+                this.lyDoDongBang = null;
+        }
+
         public void cancelBeforeStart() {
                 if (this.batDauLuc != null) {
                         throw new IllegalStateException("Chuyến đi đã được bắt đầu và không thể hủy trước Start.");

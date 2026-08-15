@@ -6,6 +6,7 @@ import com.zanh.route_sharing.domain.entity.CauHinhNghiepVu;
 import com.zanh.route_sharing.domain.entity.DongXe;
 import com.zanh.route_sharing.domain.entity.HangXe;
 import com.zanh.route_sharing.domain.entity.HoSoSinhVien;
+import com.zanh.route_sharing.domain.entity.HoSoNhanSu;
 import com.zanh.route_sharing.domain.entity.HoSoTaiXe;
 import com.zanh.route_sharing.domain.entity.LoTrinhChiaSe;
 import com.zanh.route_sharing.domain.entity.NguoiDung;
@@ -16,6 +17,7 @@ import com.zanh.route_sharing.domain.entity.QuyenHan;
 import com.zanh.route_sharing.domain.enums.CoSoSuDungPhuongTien;
 import com.zanh.route_sharing.domain.enums.LoaiPhuongTien;
 import com.zanh.route_sharing.domain.enums.TrangThaiHoSoThanhVien;
+import com.zanh.route_sharing.domain.enums.TrangThaiCongTac;
 import com.zanh.route_sharing.domain.enums.TrangThaiHocTap;
 import com.zanh.route_sharing.domain.enums.TrangThaiLoTrinh;
 import com.zanh.route_sharing.domain.enums.TrangThaiPhuongTien;
@@ -55,6 +57,10 @@ public class DevSeedDataService {
         public static final String PASSENGER3_EMAIL = "passenger3@university.test";
         public static final String PASSENGER3_PASSWORD = "Dev123!";
         public static final String NO_TRIP_VIEW_EMAIL = "member-no-trip-view@university.test";
+        public static final String SAFETY_EMAIL = "safety1@university.test";
+        public static final String SAFETY_PASSWORD = "Dev123!";
+        public static final String SAFETY2_EMAIL = "safety2@university.test";
+        public static final String SAFETY2_PASSWORD = "Dev123!";
         public static final String NO_TRIP_VIEW_PASSWORD = "Dev123!";
         public static final String VEHICLE_PLATE = "59A1-SEED01";
         public static final String SCHOOL_CODE = "SEED-UNIVERSITY";
@@ -77,6 +83,13 @@ public class DevSeedDataService {
         private static final String VIEW_OWN_BOARDING_CODE_PERMISSION = "VIEW_OWN_BOARDING_CODE";
         private static final String CONFIRM_OWN_TRIP_BOARDING_PERMISSION = "CONFIRM_OWN_TRIP_BOARDING";
         private static final String CONFIRM_OWN_TRIP_NO_SHOW_PERMISSION = "CONFIRM_OWN_TRIP_NO_SHOW";
+        private static final String SUBMIT_OWN_TRIP_LOCATION_PERMISSION = "SUBMIT_OWN_TRIP_LOCATION";
+        private static final String REPORT_OWN_TRIP_INCIDENT_PERMISSION = "REPORT_OWN_TRIP_INCIDENT";
+        private static final String MANAGE_OWN_TRIP_SAFETY_INTERVENTION_PERMISSION = "MANAGE_OWN_TRIP_SAFETY_INTERVENTION";
+        private static final String HANDLE_INCIDENT_PERMISSION = "HANDLE_INCIDENT";
+        private static final String INTERVENE_TRIP_SAFETY_PERMISSION = "INTERVENE_TRIP_SAFETY";
+        private static final String VIEW_SAFETY_INVESTIGATION_EVIDENCE_PERMISSION = "VIEW_SAFETY_INVESTIGATION_EVIDENCE";
+        private static final String REASSIGN_INCIDENT_PERMISSION = "REASSIGN_INCIDENT";
         private static final String DRIVER_GROUP = "DRIVER";
         private static final ZoneId BUSINESS_ZONE = TimePolicy.BUSINESS_ZONE;
         private static final GeometryFactory GEOMETRY_FACTORY = new GeometryFactory(new PrecisionModel(),
@@ -95,6 +108,7 @@ public class DevSeedDataService {
         private final NhaTruongSeedRepository schoolRepository;
         private final CauHinhNghiepVuSeedRepository configurationRepository;
         private final HoSoSinhVienSeedRepository membershipRepository;
+        private final HoSoNhanSuSeedRepository staffMembershipRepository;
         private final LoTrinhChiaSeSeedRepository sharedRouteRepository;
         private final PasswordEncoder passwordEncoder;
         private final Clock clock;
@@ -172,6 +186,34 @@ public class DevSeedDataService {
                                 CONFIRM_OWN_TRIP_NO_SHOW_PERMISSION,
                                 "Xác nhận Passenger no-show",
                                 "Cho phép Driver của chuyến xác nhận Passenger hiện tại no-show sau waiting deadline.");
+                QuyenHan submitOwnTripLocationPermission = ensurePermission(
+                                SUBMIT_OWN_TRIP_LOCATION_PERMISSION,
+                                "Gửi vị trí chuyến đi của mình",
+                                "Cho phép Driver gửi browser geolocation định kỳ cho chuyến đang vận hành của chính mình.");
+                QuyenHan reportOwnTripIncidentPermission = ensurePermission(
+                                REPORT_OWN_TRIP_INCIDENT_PERMISSION,
+                                "Báo sự cố/SOS trên chuyến mình tham gia",
+                                "Cho phép Driver hoặc active Passenger báo sự cố/SOS cho chuyến đang vận hành mà mình tham gia.");
+                QuyenHan manageOwnTripSafetyInterventionPermission = ensurePermission(
+                                MANAGE_OWN_TRIP_SAFETY_INTERVENTION_PERMISSION,
+                                "Xử lý can thiệp an toàn chuyến của mình",
+                                "Cho phép Driver xác nhận safe-exit hoặc escalates active Safety hold của chính Trip mình.");
+                QuyenHan handleIncidentPermission = ensurePermission(
+                                HANDLE_INCIDENT_PERMISSION,
+                                "Tiếp nhận safety incident",
+                                "Cho phép nhân sự Safety trong đúng phạm vi trường xem và xử lý incident/SOS.");
+                QuyenHan interveneTripSafetyPermission = ensurePermission(
+                                INTERVENE_TRIP_SAFETY_PERMISSION,
+                                "Can thiệp an toàn vào Trip",
+                                "Cho phép current Safety handler emergency-abort Trip trong đúng phạm vi trường.");
+                QuyenHan viewSafetyEvidencePermission = ensurePermission(
+                                VIEW_SAFETY_INVESTIGATION_EVIDENCE_PERMISSION,
+                                "Xem bằng chứng điều tra Safety",
+                                "Cho phép người phụ trách incident xem route/location/history nhạy cảm phục vụ điều tra.");
+                QuyenHan reassignIncidentPermission = ensurePermission(
+                                REASSIGN_INCIDENT_PERMISSION,
+                                "Chuyển người xử lý Safety incident",
+                                "Cho phép nhân sự được ủy quyền chuyển primary handler của incident.");
 
                 NhomQuyen driverGroup = ensureDriverGroup(
                                 createPermission,
@@ -185,7 +227,10 @@ public class DevSeedDataService {
                                 cancelOwnTripPermission,
                                 confirmOwnTripPickupArrivalPermission,
                                 confirmOwnTripBoardingPermission,
-                                confirmOwnTripNoShowPermission);
+                                confirmOwnTripNoShowPermission,
+                                submitOwnTripLocationPermission,
+                                reportOwnTripIncidentPermission,
+                                manageOwnTripSafetyInterventionPermission);
                 retireLegacyPermission(driverGroup, LEGACY_CANCEL_ROUTE_RIDE_REQUEST_PERMISSION);
                 NguoiDung driver = ensureDriverUser(driverGroup, now);
                 HoSoTaiXe driverProfile = ensureDriverProfile(driver, now);
@@ -224,6 +269,19 @@ public class DevSeedDataService {
                                 viewOwnTripPermission,
                                 viewOwnBoardingCodePermission,
                                 now);
+                grantDirectPermission(passenger, reportOwnTripIncidentPermission);
+                grantDirectPermission(passenger2, reportOwnTripIncidentPermission);
+                grantDirectPermission(passenger3, reportOwnTripIncidentPermission);
+                passenger = userRepository.save(passenger);
+                passenger2 = userRepository.save(passenger2);
+                passenger3 = userRepository.save(passenger3);
+                NguoiDung safety = ensureSafetyUser(
+                                SAFETY_EMAIL, SAFETY_PASSWORD, "Nhân sự Safety Seed E6-05 Lead", now,
+                                handleIncidentPermission, viewSafetyEvidencePermission, reassignIncidentPermission,
+                                interveneTripSafetyPermission);
+                NguoiDung safety2 = ensureSafetyUser(
+                                SAFETY2_EMAIL, SAFETY2_PASSWORD, "Nhân sự Safety Seed E6-05 Handler", now,
+                                handleIncidentPermission, viewSafetyEvidencePermission, interveneTripSafetyPermission);
                 ensureLoginOnlyUser(
                                 NO_TRIP_VIEW_EMAIL,
                                 NO_TRIP_VIEW_PASSWORD,
@@ -252,6 +310,18 @@ public class DevSeedDataService {
                                 passenger3,
                                 school,
                                 "SEED-PASSENGER-003",
+                                currentBusinessDate,
+                                now);
+                ensureStaffMembership(
+                                safety,
+                                school,
+                                "SEED-SAFETY-001",
+                                currentBusinessDate,
+                                now);
+                ensureStaffMembership(
+                                safety2,
+                                school,
+                                "SEED-SAFETY-002",
                                 currentBusinessDate,
                                 now);
 
@@ -437,6 +507,24 @@ public class DevSeedDataService {
                 return userRepository.save(user);
         }
 
+        private NguoiDung ensureSafetyUser(
+                        String email,
+                        String password,
+                        String fullName,
+                        Instant now,
+                        QuyenHan... permissions) {
+                NguoiDung user = userRepository.findByEmailTruongIgnoreCase(email)
+                                .orElseGet(() -> NguoiDung.builder()
+                                                .hoTen(fullName)
+                                                .emailTruong(email)
+                                                .build());
+                normalizeSeedUser(user, password, now);
+                for (QuyenHan permission : permissions) {
+                        grantDirectPermission(user, permission);
+                }
+                return userRepository.save(user);
+        }
+
         private NguoiDung ensureLoginOnlyUser(
                         String email,
                         String password,
@@ -570,14 +658,42 @@ public class DevSeedDataService {
                 configuration.setThoiGianLechDonToiDaGiay(900L);
                 configuration.setBanKinhXacDinhDaDenMet(new BigDecimal("50.00"));
                 configuration.setThoiGianChoKhachGiay(300L);
-                configuration.setThoiGianMatTinHieuGiay(120L);
+                configuration.setThoiGianTreTinHieuGiay(15L);
+                configuration.setThoiGianMatTinHieuGiay(30L);
                 configuration.setDoLechThoiGianKhoiHanhPhut(30);
                 configuration.setSoNgayLuuViTri(30);
+                configuration.setChuKyGuiViTriGiay(5L);
                 configuration.setSoNgayLuuNhatKy(90);
                 configuration.setBookingCutoffSeconds(900L);
                 configuration.setRejectionCooldownSeconds(3600L);
                 configuration.setBatBuocTepXacNhanChuXeKhiKhongChinhChu(false);
                 return configurationRepository.save(configuration);
+        }
+
+        private HoSoNhanSu ensureStaffMembership(
+                        NguoiDung user,
+                        NhaTruong school,
+                        String internalCode,
+                        LocalDate currentBusinessDate,
+                        Instant now) {
+                HoSoNhanSu membership = staffMembershipRepository
+                                .findFirstByNguoiDung_IdAndNhaTruong_Id(user.getId(), school.getId())
+                                .orElseGet(() -> HoSoNhanSu.builder()
+                                                .nguoiDung(user)
+                                                .nhaTruong(school)
+                                                .maDinhDanhNoiBo(internalCode)
+                                                .build());
+                membership.setNguoiDung(user);
+                membership.setNhaTruong(school);
+                membership.setMaDinhDanhNoiBo(internalCode);
+                membership.setTrangThaiHoSo(TrangThaiHoSoThanhVien.APPROVED);
+                membership.setNgayBatDauHieuLuc(currentBusinessDate.minusYears(1));
+                membership.setNgayKetThucHieuLuc(currentBusinessDate.plusYears(1));
+                membership.setNgayDuocDuyet(now);
+                membership.setNgayBatDauCongTac(currentBusinessDate.minusYears(1));
+                membership.setNgayKetThucCongTac(null);
+                membership.setTrangThaiCongTac(TrangThaiCongTac.DANG_CONG_TAC);
+                return staffMembershipRepository.save(membership);
         }
 
         private HoSoSinhVien ensureMembership(

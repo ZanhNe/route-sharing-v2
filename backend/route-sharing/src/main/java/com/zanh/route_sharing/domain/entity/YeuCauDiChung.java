@@ -351,6 +351,26 @@ public class YeuCauDiChung extends Base {
         this.khongDenLuc = noShowAt;
     }
 
+    public TrangThaiYeuCau abortForSafety(ChuyenDi trip) {
+        Objects.requireNonNull(trip, "trip không được trống");
+        if (this.trangThaiYeuCau != TrangThaiYeuCau.ACCEPTED && this.trangThaiYeuCau != TrangThaiYeuCau.ON_BOARD) {
+            throw new IllegalStateException("Chỉ booking ACCEPTED/ON_BOARD mới được emergency-abort.");
+        }
+        if (this.chuyenDi == null || this.chuyenDi.getId() == null || trip.getId() == null
+                || !Objects.equals(this.chuyenDi.getId(), trip.getId())) {
+            throw new IllegalStateException("Booking phải thuộc chính Trip đang can thiệp an toàn.");
+        }
+        TrangThaiYeuCau previous = this.trangThaiYeuCau;
+        if (previous == TrangThaiYeuCau.ON_BOARD && this.lenXeLuc == null) {
+            throw new IllegalStateException("Booking ON_BOARD phải giữ boardedAt lịch sử.");
+        }
+        if (previous == TrangThaiYeuCau.ACCEPTED && this.lenXeLuc != null) {
+            throw new IllegalStateException("Booking ACCEPTED không được có boardedAt.");
+        }
+        this.trangThaiYeuCau = TrangThaiYeuCau.ABORTED;
+        return previous;
+    }
+
     public TrangThaiYeuCau cancelByPassenger(Instant cancelledAt, String reason) {
         Objects.requireNonNull(cancelledAt, "cancelledAt không được trống");
         if (this.trangThaiYeuCau != TrangThaiYeuCau.PENDING

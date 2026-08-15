@@ -229,6 +229,33 @@ public class DiemDungHanhTrinh extends Base {
                 this.trangThaiDiemDung = TrangThaiDiemDung.SKIPPED;
         }
 
+        public TrangThaiDiemDung cancelForSafety() {
+                if (this.trangThaiDiemDung != TrangThaiDiemDung.PENDING
+                                && this.trangThaiDiemDung != TrangThaiDiemDung.APPROACHING
+                                && this.trangThaiDiemDung != TrangThaiDiemDung.ARRIVED) {
+                        throw new IllegalStateException("Chỉ stop chưa hoàn tất mới được Safety cancel.");
+                }
+                TrangThaiDiemDung previous = this.trangThaiDiemDung;
+                this.trangThaiDiemDung = TrangThaiDiemDung.CANCELLED;
+                return previous;
+        }
+
+        public Instant extendWaitingDeadlineForSafety(java.time.Duration holdDuration) {
+                if (this.loaiDiemDung != LoaiDiemDung.PICKUP || this.trangThaiDiemDung != TrangThaiDiemDung.ARRIVED
+                                || this.hanChoLuc == null || this.denLuc == null || this.batDauChoLuc == null) {
+                        throw new IllegalStateException("Chỉ PICKUP ARRIVED có waiting deadline mới được gia hạn.");
+                }
+                if (holdDuration == null || holdDuration.isNegative() || holdDuration.isZero()) {
+                        throw new IllegalArgumentException("holdDuration phải dương.");
+                }
+                Instant previous = this.hanChoLuc;
+                try { this.hanChoLuc = this.hanChoLuc.plus(holdDuration); }
+                catch (java.time.DateTimeException | ArithmeticException ex) {
+                        throw new IllegalArgumentException("Không thể gia hạn waiting deadline.", ex);
+                }
+                return previous;
+        }
+
         public void cancelBeforeStart() {
                 if (this.trangThaiDiemDung != TrangThaiDiemDung.PENDING) {
                         throw new IllegalStateException("Chỉ điểm dừng PENDING mới được hủy trước khi chuyến bắt đầu.");

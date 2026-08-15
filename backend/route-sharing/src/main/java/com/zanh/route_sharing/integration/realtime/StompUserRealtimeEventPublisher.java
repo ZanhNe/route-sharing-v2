@@ -25,22 +25,29 @@ public class StompUserRealtimeEventPublisher implements UserRealtimeEventPublish
     private final SimpMessagingTemplate messagingTemplate;
     private final SimpUserRegistry userRegistry;
 
-    public StompUserRealtimeEventPublisher(
-            SimpMessagingTemplate messagingTemplate,
-            SimpUserRegistry userRegistry) {
+    public StompUserRealtimeEventPublisher(SimpMessagingTemplate messagingTemplate, SimpUserRegistry userRegistry) {
         this.messagingTemplate = messagingTemplate;
         this.userRegistry = userRegistry;
     }
 
     @Override
     public void publish(Long recipientUserId, RealtimeEventEnvelope<?> event) {
+        publish(recipientUserId, NOTIFICATION_DESTINATION, event);
+    }
+
+    @Override
+    public void publish(Long recipientUserId, String userDestination, RealtimeEventEnvelope<?> event) {
         Objects.requireNonNull(recipientUserId, "recipientUserId không được trống");
+        Objects.requireNonNull(userDestination, "userDestination không được trống");
         Objects.requireNonNull(event, "realtime event không được trống");
         if (recipientUserId <= 0) {
             throw new IllegalArgumentException("recipientUserId phải là số dương");
         }
+        if (!userDestination.startsWith("/queue/")) {
+            throw new IllegalArgumentException("Private userDestination phải thuộc /queue/**.");
+        }
 
-        Runnable dispatch = () -> dispatchSafely(recipientUserId, event);
+        Runnable dispatch = () -> dispatchSafely(recipientUserId, userDestination, event);
         if (TransactionSynchronizationManager.isSynchronizationActive()
                 && TransactionSynchronizationManager.isActualTransactionActive()) {
             TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
@@ -51,36 +58,24 @@ public class StompUserRealtimeEventPublisher implements UserRealtimeEventPublish
             });
             return;
         }
-
-        // Some use-cases (E2-01) deliberately commit in a short repository transaction
-        // after provider work. When control returns here, the business transaction is
-        // already committed, so immediate best-effort dispatch is still AFTER_COMMIT.
         dispatch.run();
     }
 
-    private void dispatchSafely(Long recipientUserId, RealtimeEventEnvelope<?> event) {
+    private void dispatchSafely(Long recipientUserId, String userDestination, RealtimeEventEnvelope<?> event) {
         userRegistry.getUsers().stream()
                 .filter(user -> belongsTo(user, recipientUserId))
                 .map(SimpUser::getName)
                 .distinct()
-                .forEach(username -> sendSafely(username, recipientUserId, event));
+                .forEach(username -> sendSafely(username, recipientUserId, userDestination, event));
     }
 
-    private void sendSafely(
-            String username,
-            Long recipientUserId,
+    private void sendSafely(String username, Long recipientUserId, String userDestination,
             RealtimeEventEnvelope<?> event) {
         try {
-            messagingTemplate.convertAndSendToUser(username, NOTIFICATION_DESTINATION, event);
+            messagingTemplate.convertAndSendToUser(username, userDestination, event);
         } catch (RuntimeException exception) {
-            // Business state and durable ThongBao are already committed. Realtime is a
-            // best-effort signal; transport failure must never turn a committed command
-            // into an apparent business rollback to the REST caller.
-            LOGGER.warn(
-                    "Realtime delivery failed after commit: recipientUserId={}, eventType={}",
-                    recipientUserId,
-                    event.eventType(),
-                    exception);
+            LOGGER.warn("Realtime delivery failed after commit: recipientUserId={}, destination={}, eventType={}",
+                    recipientUserId, userDestination, event.eventType(), exception);
         }
     }
 

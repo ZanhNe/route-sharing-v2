@@ -42,6 +42,15 @@ class PostgreSqlSchemaCreationIntegrationTest {
                 "cooldown_until",
                 "khong_den_luc");
         assertThat(columns).doesNotContain("expires_at", "request_ttl_applied_seconds");
+        assertThat(jdbc.queryForList(
+                "select column_name from information_schema.columns "
+                        + "where table_schema = current_schema() and table_name = 'cau_hinh_nghiep_vu'",
+                String.class)).contains("thoi_gian_tre_tin_hieu_giay");
+        assertThat(jdbc.queryForObject(
+                "select count(*) from information_schema.tables "
+                        + "where table_schema = current_schema() "
+                        + "and table_name = 'nhat_ky_giam_sat_tin_hieu'",
+                Long.class)).isEqualTo(1L);
         assertThat(jdbc.queryForObject(
                 "select count(*) from information_schema.tables "
                         + "where table_schema = current_schema() "

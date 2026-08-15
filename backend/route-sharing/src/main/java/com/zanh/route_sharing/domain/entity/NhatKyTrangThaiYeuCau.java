@@ -10,6 +10,7 @@ import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
+import jakarta.persistence.Index;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
@@ -26,7 +27,7 @@ import java.util.Objects;
 @Entity
 @Table(name = "nhat_ky_trang_thai_yeu_cau", uniqueConstraints = {
         @UniqueConstraint(name = "uk_nhat_ky_yeu_cau_sequence", columnNames = { "yeu_cau_di_chung_id", "sequence" })
-})
+}, indexes = @Index(name = "idx_nhat_ky_yeu_cau_can_thiep", columnList = "can_thiep_an_toan_chuyen_di_id"))
 @EntityListeners(AuditingEntityListener.class)
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
@@ -61,9 +62,27 @@ public class NhatKyTrangThaiYeuCau {
     @Column(name = "reason_code", length = 100)
     private String reasonCode;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "can_thiep_an_toan_chuyen_di_id")
+    private CanThiepAnToanChuyenDi canThiepAnToanChuyenDi;
+
     @CreatedDate
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt;
+
+    public static NhatKyTrangThaiYeuCau safetyAborted(
+            YeuCauDiChung booking, NguoiDung actor, Instant occurredAt, long sequence,
+            TrangThaiYeuCau previous, CanThiepAnToanChuyenDi intervention) {
+        if (booking == null || booking.getId() == null || actor == null || occurredAt == null || sequence <= 0
+                || (previous != TrangThaiYeuCau.ACCEPTED && previous != TrangThaiYeuCau.ON_BOARD) || intervention == null) {
+            throw new IllegalArgumentException("Safety booking history data không hợp lệ.");
+        }
+        if (booking.getTrangThaiYeuCau() != TrangThaiYeuCau.ABORTED) throw new IllegalArgumentException("Booking current state phải ABORTED.");
+        NhatKyTrangThaiYeuCau event = new NhatKyTrangThaiYeuCau();
+        event.yeuCauDiChung = booking; event.sequence = sequence; event.trangThaiTruoc = previous; event.trangThaiSau = TrangThaiYeuCau.ABORTED;
+        event.actor = actor; event.occurredAt = occurredAt; event.reasonCode = "SAFETY_ABORTED"; event.canThiepAnToanChuyenDi = intervention;
+        return event;
+    }
 
     public static NhatKyTrangThaiYeuCau created(
             YeuCauDiChung rideRequest,

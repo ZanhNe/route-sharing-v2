@@ -12,351 +12,361 @@ import com.zanh.route_sharing.repository.sharedroute.tripquery.model.TripViewerR
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Component;
 
-import java.util.EnumSet;
 import java.util.HashSet;
 import java.util.Set;
 
 @Component
 public class TripDetailSnapshotValidator {
 
-    private static final Set<TrangThaiYeuCau> FUTURE_IN_PROGRESS_BOOKING_STATES = EnumSet.of(
-            TrangThaiYeuCau.PICKUP_FAILED,
-            TrangThaiYeuCau.COMPLETED,
-            TrangThaiYeuCau.ABORTED,
-            TrangThaiYeuCau.DISPUTED);
-
     public void validate(TripDetailSnapshot snapshot) {
         var header = snapshot.header();
         if (header.tripStatus() != TrangThaiVanHanhChuyenDi.PREPARING
                 && header.tripStatus() != TrangThaiVanHanhChuyenDi.IN_PROGRESS
-                && header.tripStatus() != TrangThaiVanHanhChuyenDi.CANCELLED_BEFORE_START) {
+                && header.tripStatus() != TrangThaiVanHanhChuyenDi.SECURITY_FROZEN
+                && header.tripStatus() != TrangThaiVanHanhChuyenDi.CANCELLED_BEFORE_START
+                && header.tripStatus() != TrangThaiVanHanhChuyenDi.EMERGENCY_ABORTED) {
             throw outsideCurrentScope();
         }
 
         validateBaseStructure(snapshot);
-        if (header.viewerRole() == TripViewerRole.DRIVER) {
+        if (header.viewerRole() == TripViewerRole.DRIVER)
             validateDriverStructure(snapshot);
-        } else {
+        else
             validatePassengerStructure(snapshot);
-        }
+        validateCurrentDriverLocation(snapshot);
 
-        if (header.tripStatus() == TrangThaiVanHanhChuyenDi.PREPARING) {
-            validatePreparing(snapshot);
-            return;
+        switch (header.tripStatus()) {
+            case PREPARING -> validatePreparing(snapshot);
+            case CANCELLED_BEFORE_START -> validateCancelledBeforeStart(snapshot);
+            case IN_PROGRESS, SECURITY_FROZEN -> validateOperationalAfterStart(snapshot);
+            case EMERGENCY_ABORTED -> validateEmergencyAborted(snapshot);
+            default -> throw outsideCurrentScope();
         }
-        if (header.tripStatus() == TrangThaiVanHanhChuyenDi.CANCELLED_BEFORE_START) {
-            validateCancelledBeforeStart(snapshot);
-            return;
-        }
-        validateInProgressAfterStart(snapshot);
     }
 
     private static void validateBaseStructure(TripDetailSnapshot snapshot) {
-        var header = snapshot.header();
-        if (header.lockedAt() == null || header.formedAt() == null) {
+        var h = snapshot.header();
+        if (h.lockedAt() == null || h.formedAt() == null || h.activeSafetyHoldCount() == null
+                || h.activeSafetyHoldCount() < 0) {
             throw invalidStoredPlan();
         }
-        if (header.plannedPassengerCount() == null || header.plannedPassengerCount() <= 0
-                || header.actualPassengerCount() == null || header.actualPassengerCount() < 0
-                || header.actualPassengerCount() > header.plannedPassengerCount()) {
+        if (h.plannedPassengerCount() == null || h.plannedPassengerCount() <= 0
+                || h.actualPassengerCount() == null || h.actualPassengerCount() < 0
+                || h.actualPassengerCount() > h.plannedPassengerCount()
+                || h.driverStartStatus() == null) {
             throw invalidStoredPlan();
         }
-        if (header.driverStartStatus() == null) {
+        boolean activeHoldProjection = h.safetyHoldStartedAt() != null || h.safetyMessage() != null
+                || h.activeSafetyHoldCount() > 0 || h.activeSafetyHoldInterventionId() != null
+                || h.activeSafetyHoldTargetRideRequestId() != null;
+        if (h.tripStatus() == TrangThaiVanHanhChuyenDi.SECURITY_FROZEN) {
+            if (h.activeSafetyHoldCount() != 1 || h.safetyHoldStartedAt() == null || h.safetyMessage() == null
+                    || h.safetyMessage().isBlank() || h.activeSafetyHoldInterventionId() == null
+                    || h.activeSafetyHoldTargetRideRequestId() == null) {
+                throw invalidStoredPlan();
+            }
+        } else if (activeHoldProjection) {
             throw invalidStoredPlan();
         }
     }
 
     private static void validateDriverStructure(TripDetailSnapshot snapshot) {
         int n = snapshot.header().plannedPassengerCount();
-        if (snapshot.participants().size() != n || snapshot.stops().size() != 2 + 2 * n) {
+        if (snapshot.participants().size() != n || snapshot.stops().size() != 2 + 2 * n)
             throw invalidStoredPlan();
-        }
         long starts = snapshot.stops().stream().filter(s -> s.type() == LoaiDiemDung.DRIVER_START).count();
         long ends = snapshot.stops().stream().filter(s -> s.type() == LoaiDiemDung.DRIVER_END).count();
-        if (starts != 1 || ends != 1) {
+        if (starts != 1 || ends != 1)
             throw invalidStoredPlan();
-        }
 
         Set<Long> participantIds = new HashSet<>();
         for (var participant : snapshot.participants()) {
-            if (!participantIds.add(participant.rideRequestId())) {
+            if (!participantIds.add(participant.rideRequestId()))
                 throw invalidStoredPlan();
-            }
             validateParticipantStructure(participant);
             if (snapshot.stops().stream().noneMatch(s -> participant.pickupStopId().equals(s.stopId())
-                    && s.type() == LoaiDiemDung.PICKUP
-                    && participant.rideRequestId().equals(s.rideRequestId()))) {
+                    && s.type() == LoaiDiemDung.PICKUP && participant.rideRequestId().equals(s.rideRequestId())))
                 throw invalidStoredPlan();
-            }
             if (snapshot.stops().stream().noneMatch(s -> participant.dropoffStopId().equals(s.stopId())
-                    && s.type() == LoaiDiemDung.DROPOFF
-                    && participant.rideRequestId().equals(s.rideRequestId()))) {
+                    && s.type() == LoaiDiemDung.DROPOFF && participant.rideRequestId().equals(s.rideRequestId())))
                 throw invalidStoredPlan();
-            }
         }
-
-        var visibleDriverStart = snapshot.stops().stream()
-                .filter(stop -> stop.type() == LoaiDiemDung.DRIVER_START)
-                .findFirst()
-                .orElseThrow(TripDetailSnapshotValidator::invalidStoredPlan);
-        if (visibleDriverStart.status() != snapshot.header().driverStartStatus()) {
+        var visibleDriverStart = snapshot.stops().stream().filter(s -> s.type() == LoaiDiemDung.DRIVER_START)
+                .findFirst().orElseThrow(TripDetailSnapshotValidator::invalidStoredPlan);
+        if (visibleDriverStart.status() != snapshot.header().driverStartStatus())
             throw invalidStoredPlan();
-        }
         validateOrder(snapshot);
     }
 
     private static void validatePassengerStructure(TripDetailSnapshot snapshot) {
-        if (snapshot.participants().size() != 1 || snapshot.stops().size() != 2) {
+        if (snapshot.participants().size() != 1 || snapshot.stops().size() != 2)
             throw invalidStoredPlan();
-        }
         long pickup = snapshot.stops().stream().filter(s -> s.type() == LoaiDiemDung.PICKUP).count();
         long dropoff = snapshot.stops().stream().filter(s -> s.type() == LoaiDiemDung.DROPOFF).count();
-        if (pickup != 1 || dropoff != 1) {
+        if (pickup != 1 || dropoff != 1)
             throw invalidStoredPlan();
-        }
         var participant = snapshot.participants().get(0);
-        Long rideRequestId = participant.rideRequestId();
-        if (snapshot.stops().stream().anyMatch(stop -> !rideRequestId.equals(stop.rideRequestId()))) {
+        Long requestId = participant.rideRequestId();
+        if (snapshot.stops().stream().anyMatch(s -> !requestId.equals(s.rideRequestId())))
             throw invalidStoredPlan();
-        }
-        if (snapshot.stops().stream().noneMatch(stop -> participant.pickupStopId().equals(stop.stopId())
-                && stop.type() == LoaiDiemDung.PICKUP)) {
+        if (snapshot.stops().stream()
+                .noneMatch(s -> participant.pickupStopId().equals(s.stopId()) && s.type() == LoaiDiemDung.PICKUP))
             throw invalidStoredPlan();
-        }
-        if (snapshot.stops().stream().noneMatch(stop -> participant.dropoffStopId().equals(stop.stopId())
-                && stop.type() == LoaiDiemDung.DROPOFF)) {
+        if (snapshot.stops().stream()
+                .noneMatch(s -> participant.dropoffStopId().equals(s.stopId()) && s.type() == LoaiDiemDung.DROPOFF))
             throw invalidStoredPlan();
-        }
         validateParticipantStructure(participant);
         validateOrder(snapshot);
     }
 
-    private static void validateParticipantStructure(TripDetailParticipantRow participant) {
-        if (participant.status() == null || participant.acceptedAt() == null
-                || participant.agreedSupportAmount() == null) {
+    private static void validateParticipantStructure(TripDetailParticipantRow p) {
+        if (p.status() == null || p.acceptedAt() == null || p.agreedSupportAmount() == null)
             throw invalidStoredPlan();
-        }
-        if (participant.status() == TrangThaiYeuCau.ON_BOARD) {
-            if (participant.boardedAt() == null || participant.boardedAt().isBefore(participant.acceptedAt())
-                    || participant.noShowAt() != null) {
-                throw invalidStoredPlan();
-            }
-        } else if (participant.status() == TrangThaiYeuCau.NO_SHOW) {
-            if (participant.noShowAt() == null || participant.noShowAt().isBefore(participant.acceptedAt())
-                    || participant.boardedAt() != null) {
-                throw invalidStoredPlan();
-            }
-        } else if (participant.boardedAt() != null || participant.noShowAt() != null) {
+        if (p.boardedAt() != null && p.boardedAt().isBefore(p.acceptedAt()))
             throw invalidStoredPlan();
+        if (p.noShowAt() != null && p.noShowAt().isBefore(p.acceptedAt()))
+            throw invalidStoredPlan();
+        switch (p.status()) {
+            case ON_BOARD -> {
+                if (p.boardedAt() == null || p.noShowAt() != null)
+                    throw invalidStoredPlan();
+            }
+            case NO_SHOW -> {
+                if (p.noShowAt() == null || p.boardedAt() != null)
+                    throw invalidStoredPlan();
+            }
+            case ABORTED -> {
+                if (p.noShowAt() != null)
+                    throw invalidStoredPlan();
+            }
+            case ACCEPTED, CANCELLED_BY_DRIVER -> {
+                if (p.boardedAt() != null || p.noShowAt() != null)
+                    throw invalidStoredPlan();
+            }
+            default -> {
+                if (p.boardedAt() != null || p.noShowAt() != null)
+                    throw outsideCurrentScope();
+            }
         }
+    }
+
+    private static void validateCurrentDriverLocation(TripDetailSnapshot snapshot) {
+        var location = snapshot.currentDriverLocation();
+        if (location == null)
+            return;
+        var h = snapshot.header();
+        if (h.viewerRole() != TripViewerRole.PASSENGER
+                || (h.tripStatus() != TrangThaiVanHanhChuyenDi.IN_PROGRESS
+                        && h.tripStatus() != TrangThaiVanHanhChuyenDi.SECURITY_FROZEN)
+                || snapshot.participants().size() != 1
+                || !snapshot.participants().get(0).status().isActiveTripParticipant()
+                || h.signalReferenceAt() == null || !h.signalReferenceAt().equals(location.receivedAt()))
+            throw invalidStoredPlan();
     }
 
     private static void validatePreparing(TripDetailSnapshot snapshot) {
-        var header = snapshot.header();
-        if (header.routeStatus() != TrangThaiLoTrinh.LOCKED
-                || header.startedAt() != null
-                || header.cancelledAt() != null
-                || header.cancellationReason() != null
-                || header.actualPassengerCount() != 0
-                || header.driverStartStatus() != TrangThaiDiemDung.PENDING
-                || header.driverStartCompletedAt() != null) {
+        var h = snapshot.header();
+        if (h.routeStatus() != TrangThaiLoTrinh.LOCKED || h.startedAt() != null || h.endedAt() != null
+                || h.cancelledAt() != null || h.cancellationReason() != null || h.actualPassengerCount() != 0
+                || h.driverStartStatus() != TrangThaiDiemDung.PENDING || h.driverStartCompletedAt() != null)
             throw invalidStoredPlan();
-        }
-        if (snapshot.participants().stream().anyMatch(p -> p.status() != TrangThaiYeuCau.ACCEPTED)) {
+        if (snapshot.participants().stream().anyMatch(p -> p.status() != TrangThaiYeuCau.ACCEPTED))
             throw invalidStoredPlan();
-        }
-        if (snapshot.stops().stream().anyMatch(stop -> stop.status() != TrangThaiDiemDung.PENDING)) {
+        if (snapshot.stops().stream().anyMatch(s -> s.status() != TrangThaiDiemDung.PENDING))
             throw invalidStoredPlan();
-        }
     }
 
-    private static void validateInProgressAfterStart(TripDetailSnapshot snapshot) {
-        var header = snapshot.header();
-        if (header.routeStatus() != TrangThaiLoTrinh.LOCKED
-                || header.cancelledAt() != null
-                || header.cancellationReason() != null
-                || header.startedAt() == null
-                || header.startedAt().isBefore(header.formedAt())
-                || header.driverStartStatus() != TrangThaiDiemDung.COMPLETED
-                || header.driverStartCompletedAt() == null
-                || header.driverStartCompletedAt().isBefore(header.formedAt())) {
+    private static void validateOperationalAfterStart(TripDetailSnapshot snapshot) {
+        var h = snapshot.header();
+        validateStartedHeader(h);
+        if (h.endedAt() != null)
             throw invalidStoredPlan();
-        }
 
-        int onBoardParticipants = 0;
-        for (var participant : snapshot.participants()) {
-            if (participant.status() == TrangThaiYeuCau.ACCEPTED) {
+        int onBoard = 0;
+        for (var p : snapshot.participants()) {
+            if (p.status() == TrangThaiYeuCau.ACCEPTED
+                    || p.status() == TrangThaiYeuCau.NO_SHOW
+                    || p.status() == TrangThaiYeuCau.ABORTED) {
                 continue;
             }
-            if (participant.status() == TrangThaiYeuCau.ON_BOARD) {
-                onBoardParticipants++;
+            if (p.status() == TrangThaiYeuCau.ON_BOARD) {
+                onBoard++;
                 continue;
             }
-            if (participant.status() == TrangThaiYeuCau.NO_SHOW) {
-                continue;
-            }
-            if (FUTURE_IN_PROGRESS_BOOKING_STATES.contains(participant.status())) {
+            if (p.status() == TrangThaiYeuCau.PICKUP_FAILED
+                    || p.status() == TrangThaiYeuCau.COMPLETED
+                    || p.status() == TrangThaiYeuCau.DISPUTED) {
                 throw outsideCurrentScope();
             }
             throw invalidStoredPlan();
         }
-        if (header.viewerRole() == TripViewerRole.DRIVER
-                && header.actualPassengerCount() != onBoardParticipants) {
+        if (h.viewerRole() == TripViewerRole.DRIVER && h.actualPassengerCount() != onBoard)
             throw invalidStoredPlan();
+        if (h.tripStatus() == TrangThaiVanHanhChuyenDi.SECURITY_FROZEN && h.viewerRole() == TripViewerRole.DRIVER) {
+            var holdTarget = snapshot.participants().stream()
+                    .filter(p -> p.rideRequestId().equals(h.activeSafetyHoldTargetRideRequestId())).findFirst();
+            if (holdTarget.isEmpty() || holdTarget.orElseThrow().status() != TrangThaiYeuCau.ON_BOARD)
+                throw invalidStoredPlan();
         }
 
+        validateOperationalStops(snapshot, false);
+        validateParticipantStopConsistency(snapshot, false);
+    }
+
+    private static void validateEmergencyAborted(TripDetailSnapshot snapshot) {
+        var h = snapshot.header();
+        validateStartedHeader(h);
+        if (h.endedAt() == null || h.endedAt().isBefore(h.startedAt()) || h.actualPassengerCount() != 0
+                || snapshot.currentDriverLocation() != null)
+            throw invalidStoredPlan();
+        for (var p : snapshot.participants()) {
+            if (p.status() != TrangThaiYeuCau.ABORTED && p.status() != TrangThaiYeuCau.NO_SHOW)
+                throw invalidStoredPlan();
+        }
+        validateOperationalStops(snapshot, true);
+        validateParticipantStopConsistency(snapshot, true);
+    }
+
+    private static void validateStartedHeader(
+            com.zanh.route_sharing.repository.sharedroute.tripquery.model.TripDetailHeaderRow h) {
+        if (h.routeStatus() != TrangThaiLoTrinh.LOCKED || h.cancelledAt() != null || h.cancellationReason() != null
+                || h.startedAt() == null || h.startedAt().isBefore(h.formedAt())
+                || h.driverStartStatus() != TrangThaiDiemDung.COMPLETED || h.driverStartCompletedAt() == null
+                || h.driverStartCompletedAt().isBefore(h.formedAt()))
+            throw invalidStoredPlan();
+    }
+
+    private static void validateOperationalStops(TripDetailSnapshot snapshot, boolean terminalAbort) {
         int arrivedPickups = 0;
-        for (var stop : snapshot.stops()) {
-            if (stop.type() == LoaiDiemDung.DRIVER_START) {
-                if (stop.status() != TrangThaiDiemDung.COMPLETED
-                        || stop.arrivedAt() != null
-                        || stop.waitingStartedAt() != null
-                        || stop.waitingDeadline() != null
-                        || stop.completedAt() == null) {
+        for (var s : snapshot.stops()) {
+            if (s.type() == LoaiDiemDung.DRIVER_START) {
+                if (s.status() != TrangThaiDiemDung.COMPLETED || s.arrivedAt() != null || s.waitingStartedAt() != null
+                        || s.waitingDeadline() != null || s.completedAt() == null)
                     throw invalidStoredPlan();
-                }
                 continue;
             }
-            if (stop.status() == TrangThaiDiemDung.PENDING) {
-                if (stop.arrivedAt() != null
-                        || stop.waitingStartedAt() != null
-                        || stop.waitingDeadline() != null
-                        || stop.completedAt() != null) {
+            if (s.status() == TrangThaiDiemDung.PENDING) {
+                if (terminalAbort || hasAnyTimingEvidence(s))
                     throw invalidStoredPlan();
-                }
                 continue;
             }
-            if (stop.type() == LoaiDiemDung.PICKUP && stop.status() == TrangThaiDiemDung.ARRIVED) {
-                if (stop.arrivedAt() == null
-                        || stop.waitingStartedAt() == null
-                        || stop.waitingDeadline() == null
-                        || stop.completedAt() != null
-                        || !stop.waitingStartedAt().equals(stop.arrivedAt())
-                        || stop.waitingDeadline().isBefore(stop.arrivedAt())) {
+            if (s.status() == TrangThaiDiemDung.CANCELLED) {
+                if (!terminalAbort && s.type() == LoaiDiemDung.DRIVER_END)
                     throw invalidStoredPlan();
-                }
+
+                if (s.completedAt() != null)
+                    throw invalidStoredPlan();
+                continue;
+            }
+            if (s.type() == LoaiDiemDung.PICKUP && s.status() == TrangThaiDiemDung.ARRIVED) {
+                if (terminalAbort || s.arrivedAt() == null || s.waitingStartedAt() == null
+                        || s.waitingDeadline() == null
+                        || s.completedAt() != null || !s.waitingStartedAt().equals(s.arrivedAt())
+                        || s.waitingDeadline().isBefore(s.arrivedAt()))
+                    throw invalidStoredPlan();
                 arrivedPickups++;
                 continue;
             }
-            if (stop.type() == LoaiDiemDung.PICKUP && stop.status() == TrangThaiDiemDung.SKIPPED) {
-                if (stop.arrivedAt() == null
-                        || stop.waitingStartedAt() == null
-                        || stop.waitingDeadline() == null
-                        || stop.completedAt() != null
-                        || !stop.waitingStartedAt().equals(stop.arrivedAt())
-                        || stop.waitingDeadline().isBefore(stop.arrivedAt())) {
+            if (s.type() == LoaiDiemDung.PICKUP && s.status() == TrangThaiDiemDung.SKIPPED) {
+                if (s.arrivedAt() == null || s.waitingStartedAt() == null || s.waitingDeadline() == null
+                        || s.completedAt() != null
+                        || !s.waitingStartedAt().equals(s.arrivedAt()) || s.waitingDeadline().isBefore(s.arrivedAt()))
                     throw invalidStoredPlan();
-                }
                 continue;
             }
-            if (stop.type() == LoaiDiemDung.DROPOFF && stop.status() == TrangThaiDiemDung.SKIPPED) {
-                if (stop.arrivedAt() != null || stop.waitingStartedAt() != null
-                        || stop.waitingDeadline() != null || stop.completedAt() != null) {
+            if (s.type() == LoaiDiemDung.DROPOFF && s.status() == TrangThaiDiemDung.SKIPPED) {
+                if (hasAnyTimingEvidence(s))
                     throw invalidStoredPlan();
-                }
                 continue;
             }
-            if (stop.type() == LoaiDiemDung.PICKUP && stop.status() == TrangThaiDiemDung.COMPLETED) {
-                if (stop.arrivedAt() == null
-                        || stop.waitingStartedAt() == null
-                        || stop.waitingDeadline() == null
-                        || stop.completedAt() == null
-                        || !stop.waitingStartedAt().equals(stop.arrivedAt())
-                        || stop.waitingDeadline().isBefore(stop.arrivedAt())
-                        || stop.completedAt().isBefore(stop.arrivedAt())) {
+            if (s.type() == LoaiDiemDung.PICKUP && s.status() == TrangThaiDiemDung.COMPLETED) {
+                if (s.arrivedAt() == null || s.waitingStartedAt() == null || s.waitingDeadline() == null
+                        || s.completedAt() == null
+                        || !s.waitingStartedAt().equals(s.arrivedAt()) || s.waitingDeadline().isBefore(s.arrivedAt())
+                        || s.completedAt().isBefore(s.arrivedAt()))
                     throw invalidStoredPlan();
-                }
                 continue;
             }
             throw outsideCurrentScope();
         }
-        if (snapshot.header().viewerRole() == TripViewerRole.DRIVER && arrivedPickups > 1) {
+        if (!terminalAbort && snapshot.header().viewerRole() == TripViewerRole.DRIVER && arrivedPickups > 1)
             throw outsideCurrentScope();
-        }
+    }
 
-        for (var participant : snapshot.participants()) {
-            var pickup = snapshot.stops().stream()
-                    .filter(stop -> participant.pickupStopId().equals(stop.stopId()))
-                    .findFirst()
+    private static void validateParticipantStopConsistency(TripDetailSnapshot snapshot, boolean terminalAbort) {
+        for (var p : snapshot.participants()) {
+            var pickup = snapshot.stops().stream().filter(s -> p.pickupStopId().equals(s.stopId())).findFirst()
                     .orElseThrow(TripDetailSnapshotValidator::invalidStoredPlan);
-            if (participant.status() == TrangThaiYeuCau.ON_BOARD) {
-                if (pickup.status() != TrangThaiDiemDung.COMPLETED
-                        || pickup.completedAt() == null
-                        || !pickup.completedAt().equals(participant.boardedAt())) {
+            var dropoff = snapshot.stops().stream().filter(s -> p.dropoffStopId().equals(s.stopId())).findFirst()
+                    .orElseThrow(TripDetailSnapshotValidator::invalidStoredPlan);
+
+            if (p.status() == TrangThaiYeuCau.ON_BOARD) {
+                if (pickup.status() != TrangThaiDiemDung.COMPLETED || pickup.completedAt() == null
+                        || !pickup.completedAt().equals(p.boardedAt()))
                     throw invalidStoredPlan();
-                }
             }
-            var dropoff = snapshot.stops().stream()
-                    .filter(stop -> participant.dropoffStopId().equals(stop.stopId()))
-                    .findFirst()
-                    .orElseThrow(TripDetailSnapshotValidator::invalidStoredPlan);
-            if (participant.status() == TrangThaiYeuCau.NO_SHOW) {
-                if (pickup.status() != TrangThaiDiemDung.SKIPPED
-                        || pickup.completedAt() != null
+            if (p.status() == TrangThaiYeuCau.NO_SHOW) {
+                if (pickup.status() != TrangThaiDiemDung.SKIPPED || pickup.completedAt() != null
                         || pickup.waitingDeadline() == null
-                        || participant.noShowAt().isBefore(pickup.waitingDeadline())
+                        || p.noShowAt().isBefore(pickup.waitingDeadline())
                         || dropoff.status() != TrangThaiDiemDung.SKIPPED
-                        || dropoff.completedAt() != null) {
+                        || dropoff.completedAt() != null)
                     throw invalidStoredPlan();
-                }
             }
-            if (participant.status() == TrangThaiYeuCau.ACCEPTED
-                    && (pickup.status() == TrangThaiDiemDung.COMPLETED || pickup.status() == TrangThaiDiemDung.SKIPPED)) {
+            if (p.status() == TrangThaiYeuCau.ACCEPTED
+                    && (pickup.status() == TrangThaiDiemDung.COMPLETED || pickup.status() == TrangThaiDiemDung.SKIPPED
+                            || pickup.status() == TrangThaiDiemDung.CANCELLED
+                            || dropoff.status() == TrangThaiDiemDung.CANCELLED))
                 throw invalidStoredPlan();
+            if (p.status() == TrangThaiYeuCau.ABORTED) {
+                if (p.boardedAt() != null && pickup.status() != TrangThaiDiemDung.COMPLETED)
+                    throw invalidStoredPlan();
+                if (!terminalAbort && p.boardedAt() == null && pickup.status() != TrangThaiDiemDung.CANCELLED)
+                    throw invalidStoredPlan();
+                if (dropoff.status() != TrangThaiDiemDung.CANCELLED && dropoff.status() != TrangThaiDiemDung.SKIPPED)
+                    throw invalidStoredPlan();
             }
         }
     }
 
+    private static boolean hasAnyTimingEvidence(
+            com.zanh.route_sharing.repository.sharedroute.tripquery.model.TripDetailStopRow s) {
+        return s.arrivedAt() != null || s.waitingStartedAt() != null || s.waitingDeadline() != null
+                || s.completedAt() != null;
+    }
+
     private static void validateCancelledBeforeStart(TripDetailSnapshot snapshot) {
-        var header = snapshot.header();
-        if (header.routeStatus() != TrangThaiLoTrinh.CANCELLED
-                || header.startedAt() != null
-                || header.cancelledAt() == null
-                || header.cancelledAt().isBefore(header.formedAt())
-                || header.cancellationReason() == null
-                || header.cancellationReason().isBlank()
-                || header.cancellationReason().length() > 2000
-                || header.actualPassengerCount() != 0
-                || header.driverStartStatus() != TrangThaiDiemDung.CANCELLED
-                || header.driverStartCompletedAt() != null) {
+        var h = snapshot.header();
+        if (h.routeStatus() != TrangThaiLoTrinh.CANCELLED || h.startedAt() != null || h.endedAt() != null
+                || h.cancelledAt() == null || h.cancelledAt().isBefore(h.formedAt()) || h.cancellationReason() == null
+                || h.cancellationReason().isBlank() || h.cancellationReason().length() > 2000
+                || h.actualPassengerCount() != 0
+                || h.driverStartStatus() != TrangThaiDiemDung.CANCELLED || h.driverStartCompletedAt() != null)
             throw invalidStoredPlan();
-        }
-        if (snapshot.participants().stream()
-                .anyMatch(p -> p.status() != TrangThaiYeuCau.CANCELLED_BY_DRIVER)) {
+        if (snapshot.participants().stream().anyMatch(p -> p.status() != TrangThaiYeuCau.CANCELLED_BY_DRIVER))
             throw invalidStoredPlan();
-        }
         if (snapshot.stops().stream()
-                .anyMatch(stop -> stop.status() != TrangThaiDiemDung.CANCELLED
-                        || stop.arrivedAt() != null
-                        || stop.waitingStartedAt() != null
-                        || stop.waitingDeadline() != null
-                        || stop.completedAt() != null)) {
+                .anyMatch(s -> s.status() != TrangThaiDiemDung.CANCELLED || hasAnyTimingEvidence(s)))
             throw invalidStoredPlan();
-        }
     }
 
     private static void validateOrder(TripDetailSnapshot snapshot) {
         int previous = 0;
         Set<Integer> seen = new HashSet<>();
-        for (var stop : snapshot.stops()) {
-            if (stop.order() == null || stop.order() <= previous || !seen.add(stop.order())) {
+        for (var s : snapshot.stops()) {
+            if (s.order() == null || s.order() <= previous || !seen.add(s.order()))
                 throw invalidStoredPlan();
-            }
-            previous = stop.order();
+            previous = s.order();
         }
     }
 
     public static BusinessException outsideCurrentScope() {
-        return new BusinessException(
-                HttpStatus.CONFLICT,
-                "TRIP_DETAIL_OUTSIDE_CURRENT_SCOPE",
+        return new BusinessException(HttpStatus.CONFLICT, "TRIP_DETAIL_OUTSIDE_CURRENT_SCOPE",
                 "Trạng thái vận hành hiện tại của chuyến chưa thuộc phạm vi Trip Detail được hỗ trợ.");
     }
 
     public static BusinessException invalidStoredPlan() {
-        return new BusinessException(
-                HttpStatus.INTERNAL_SERVER_ERROR,
-                "INVALID_STORED_TRIP_PLAN",
+        return new BusinessException(HttpStatus.INTERNAL_SERVER_ERROR, "INVALID_STORED_TRIP_PLAN",
                 "Dữ liệu vận hành chuyến đi đang lưu không nhất quán.");
     }
 }

@@ -304,6 +304,133 @@ public class ThongBao extends Base {
                 .build();
     }
 
+    public static ThongBao tripSafetyIncidentReported(
+            SuCoChuyenDi incident,
+            NguoiDung recipient) {
+        if (incident == null || incident.getId() == null
+                || incident.getChuyenDi() == null || incident.getChuyenDi().getId() == null
+                || incident.getLoaiSuCo() == null || incident.getMucDo() == null
+                || incident.getTrangThaiXuLy() != TrangThaiXuLySuCo.OPEN
+                || recipient == null || recipient.getId() == null) {
+            throw new IllegalArgumentException("Không xác định được incident/recipient để tạo Safety notification.");
+        }
+        boolean sos = incident.getLoaiSuCo() == LoaiSuCo.SOS;
+        return ThongBao.builder()
+                .loaiThongBao(LoaiThongBao.TRIP_SAFETY_INCIDENT_REPORTED)
+                .tieuDe(sos ? "Có SOS mới cần xử lý" : "Có báo cáo sự cố chuyến đi mới")
+                .noiDung(sos
+                        ? "Một SOS mức CRITICAL đã được ghi nhận cho chuyến đi cần Safety xử lý."
+                        : "Một sự cố chuyến đi mới đã được ghi nhận và cần Safety xem xét.")
+                .kenhGui(KenhThongBao.IN_APP)
+                .trangThaiThongBao(TrangThaiThongBao.PENDING)
+                .loaiDoiTuongLienQuan("SU_CO_CHUYEN_DI")
+                .doiTuongLienQuanId(incident.getId())
+                .deduplicationKey("E6-04:INCIDENT:" + incident.getId()
+                        + ":RECIPIENT:" + recipient.getId() + ":REPORTED")
+                .nguoiNhan(recipient)
+                .build();
+    }
+
+
+    public static ThongBao tripSafetyIncidentAcknowledged(SuCoChuyenDi incident) {
+        if (incident == null || incident.getId() == null || incident.getNguoiBaoCao() == null
+                || incident.getNguoiBaoCao().getId() == null
+                || (incident.getTrangThaiXuLy() != TrangThaiXuLySuCo.ACKNOWLEDGED
+                    && incident.getTrangThaiXuLy() != TrangThaiXuLySuCo.INVESTIGATING)) {
+            throw new IllegalArgumentException("Không xác định được incident/reporter đã được Safety tiếp nhận.");
+        }
+        return ThongBao.builder()
+                .loaiThongBao(LoaiThongBao.TRIP_SAFETY_INCIDENT_ACKNOWLEDGED)
+                .tieuDe("Safety đã tiếp nhận báo cáo")
+                .noiDung("Báo cáo sự cố/SOS của chuyến đi đã được nhân sự Safety tiếp nhận xử lý.")
+                .kenhGui(KenhThongBao.IN_APP)
+                .trangThaiThongBao(TrangThaiThongBao.PENDING)
+                .loaiDoiTuongLienQuan("SU_CO_CHUYEN_DI")
+                .doiTuongLienQuanId(incident.getId())
+                .deduplicationKey("E6-05:INCIDENT:" + incident.getId() + ":REPORTER:"
+                        + incident.getNguoiBaoCao().getId() + ":ACKNOWLEDGED")
+                .nguoiNhan(incident.getNguoiBaoCao())
+                .build();
+    }
+
+    public static ThongBao tripSafetyIncidentFinalized(SuCoChuyenDi incident) {
+        if (incident == null || incident.getId() == null || incident.getNguoiBaoCao() == null
+                || incident.getNguoiBaoCao().getId() == null
+                || (incident.getTrangThaiXuLy() != TrangThaiXuLySuCo.RESOLVED
+                    && incident.getTrangThaiXuLy() != TrangThaiXuLySuCo.FALSE_ALARM)
+                || incident.getGiaiQuyetLuc() == null || incident.getKetLuan() == null || incident.getKetLuan().isBlank()) {
+            throw new IllegalArgumentException("Không xác định được incident/reporter đã hoàn tất xử lý.");
+        }
+        return ThongBao.builder()
+                .loaiThongBao(LoaiThongBao.TRIP_SAFETY_INCIDENT_FINALIZED)
+                .tieuDe("Báo cáo sự cố đã được xử lý")
+                .noiDung("Safety đã hoàn tất xử lý báo cáo. Mở chi tiết báo cáo để xem trạng thái và kết luận được phép hiển thị.")
+                .kenhGui(KenhThongBao.IN_APP)
+                .trangThaiThongBao(TrangThaiThongBao.PENDING)
+                .loaiDoiTuongLienQuan("SU_CO_CHUYEN_DI")
+                .doiTuongLienQuanId(incident.getId())
+                .deduplicationKey("E6-05:INCIDENT:" + incident.getId() + ":REPORTER:"
+                        + incident.getNguoiBaoCao().getId() + ":FINALIZED")
+                .nguoiNhan(incident.getNguoiBaoCao())
+                .build();
+    }
+
+    public static ThongBao passengerSafetyParticipationAborted(CanThiepAnToanChuyenDi intervention, YeuCauDiChung booking) {
+        requireSafetyNotification(intervention, booking == null ? null : booking.getHanhKhach());
+        if (booking == null || booking.getId() == null || booking.getTrangThaiYeuCau() != TrangThaiYeuCau.ABORTED) {
+            throw new IllegalArgumentException("Booking target phải ABORTED để tạo Safety participation notification.");
+        }
+        NguoiDung recipient = booking.getHanhKhach();
+        return ThongBao.builder()
+                .loaiThongBao(LoaiThongBao.PASSENGER_SAFETY_PARTICIPATION_ABORTED)
+                .tieuDe("Bạn không còn tham gia chuyến đi")
+                .noiDung("Việc tham gia chuyến đi của bạn đã được kết thúc vì lý do an toàn. Bạn vẫn có thể xem lịch sử chuyến theo quyền được phép.")
+                .kenhGui(KenhThongBao.IN_APP).trangThaiThongBao(TrangThaiThongBao.PENDING)
+                .loaiDoiTuongLienQuan("CHUYEN_DI").doiTuongLienQuanId(intervention.getChuyenDi().getId())
+                .deduplicationKey("E6-06:INTERVENTION:" + intervention.getId() + ":RECIPIENT:" + recipient.getId() + ":PASSENGER_ABORTED")
+                .nguoiNhan(recipient).build();
+    }
+
+    public static ThongBao tripSafetyHoldStarted(CanThiepAnToanChuyenDi intervention, NguoiDung recipient) {
+        requireSafetyNotification(intervention, recipient);
+        return safetyTripNotification(intervention, recipient, LoaiThongBao.TRIP_SAFETY_HOLD_STARTED,
+                "Chuyến đi đang tạm dừng vì an toàn",
+                "Chuyến đang tạm dừng để xử lý một tình huống an toàn. Các thao tác vận hành sẽ tiếp tục khi tình huống được xử lý hoặc chuyến sẽ kết thúc nếu không thể tiếp tục an toàn.",
+                "HOLD_STARTED");
+    }
+
+    public static ThongBao tripSafetyHoldResumed(CanThiepAnToanChuyenDi intervention, NguoiDung recipient) {
+        requireSafetyNotification(intervention, recipient);
+        return safetyTripNotification(intervention, recipient, LoaiThongBao.TRIP_SAFETY_HOLD_RESUMED,
+                "Chuyến đi có thể tiếp tục",
+                "Tình huống an toàn tạm thời đã được xử lý và chuyến đi có thể tiếp tục.",
+                "HOLD_RESUMED");
+    }
+
+    public static ThongBao tripEmergencyAborted(CanThiepAnToanChuyenDi intervention, NguoiDung recipient) {
+        requireSafetyNotification(intervention, recipient);
+        return safetyTripNotification(intervention, recipient, LoaiThongBao.TRIP_EMERGENCY_ABORTED,
+                "Chuyến đi đã kết thúc khẩn cấp",
+                "Chuyến đi đã được kết thúc vì lý do an toàn và không thể tiếp tục. Thông tin chuyến được giữ lại để đối chiếu/xử lý theo quy định của hệ thống.",
+                "TRIP_ABORTED");
+    }
+
+    private static ThongBao safetyTripNotification(CanThiepAnToanChuyenDi intervention, NguoiDung recipient,
+                                                    LoaiThongBao type, String title, String content, String outcome) {
+        return ThongBao.builder().loaiThongBao(type).tieuDe(title).noiDung(content)
+                .kenhGui(KenhThongBao.IN_APP).trangThaiThongBao(TrangThaiThongBao.PENDING)
+                .loaiDoiTuongLienQuan("CHUYEN_DI").doiTuongLienQuanId(intervention.getChuyenDi().getId())
+                .deduplicationKey("E6-06:INTERVENTION:" + intervention.getId() + ":RECIPIENT:" + recipient.getId() + ":" + outcome)
+                .nguoiNhan(recipient).build();
+    }
+
+    private static void requireSafetyNotification(CanThiepAnToanChuyenDi intervention, NguoiDung recipient) {
+        if (intervention == null || intervention.getId() == null || intervention.getChuyenDi() == null
+                || intervention.getChuyenDi().getId() == null || recipient == null || recipient.getId() == null) {
+            throw new IllegalArgumentException("Không xác định được intervention/recipient để tạo Safety notification.");
+        }
+    }
+
     private static ThongBao bookingCancellation(
             YeuCauDiChung rideRequest,
             NguoiDung recipient,

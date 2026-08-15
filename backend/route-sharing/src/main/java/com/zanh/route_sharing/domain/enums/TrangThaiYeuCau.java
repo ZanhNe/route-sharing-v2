@@ -17,9 +17,19 @@ public enum TrangThaiYeuCau {
 
     private static final Set<TrangThaiYeuCau> BLOCKING_NEW_REQUEST_STATES = Set.of(
             PENDING, ACCEPTED, ON_BOARD, DISPUTED);
+    private static final Set<TrangThaiYeuCau> ACTIVE_TRIP_PARTICIPANT_STATES = Set.of(
+            ACCEPTED, ON_BOARD);
 
     public static Set<TrangThaiYeuCau> blockingNewRequestStates() {
         return BLOCKING_NEW_REQUEST_STATES;
+    }
+
+    public static Set<TrangThaiYeuCau> activeTripParticipantStates() {
+        return ACTIVE_TRIP_PARTICIPANT_STATES;
+    }
+
+    public boolean isActiveTripParticipant() {
+        return ACTIVE_TRIP_PARTICIPANT_STATES.contains(this);
     }
 
     public boolean blocksNewRequest() {
