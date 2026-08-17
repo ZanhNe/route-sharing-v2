@@ -139,6 +139,41 @@ public class DiemDungHanhTrinh extends Base {
                 this.trangThaiDiemDung = TrangThaiDiemDung.COMPLETED;
         }
 
+        public void completeDriverEnd(Point actualPoint, Instant completedAt) {
+                if (this.loaiDiemDung != LoaiDiemDung.DRIVER_END) {
+                        throw new IllegalStateException(
+                                        "Chỉ DRIVER_END mới được hoàn thành bởi thao tác kết thúc chuyến.");
+                }
+                if (this.trangThaiDiemDung != TrangThaiDiemDung.PENDING) {
+                        throw new IllegalStateException("DRIVER_END phải đang PENDING trước khi kết thúc chuyến.");
+                }
+                if (this.yeuCauDiChung != null) {
+                        throw new IllegalStateException("DRIVER_END không được gắn booking.");
+                }
+                if (this.toaDoKeHoach == null || this.toaDoKeHoach.isEmpty()
+                                || this.toaDoKeHoach.getSRID() != Wgs84Coordinates.SRID
+                                || this.banKinhXacDinhDaDenMet == null
+                                || this.banKinhXacDinhDaDenMet.signum() <= 0) {
+                        throw new IllegalStateException("DRIVER_END thiếu planned point/radius hợp lệ.");
+                }
+                if (this.toaDoThucTe != null || this.denGanLuc != null || this.denLuc != null
+                                || this.batDauChoLuc != null || this.hanChoLuc != null || this.hoanThanhLuc != null) {
+                        throw new IllegalStateException("DRIVER_END đã có bằng chứng vận hành trước đó.");
+                }
+                if (actualPoint == null || actualPoint.isEmpty() || actualPoint.getSRID() != Wgs84Coordinates.SRID
+                                || !Wgs84Coordinates.isValidLongitudeLatitude(actualPoint.getX(), actualPoint.getY())) {
+                        throw new IllegalArgumentException("Vị trí thực tế phải là Point WGS84 SRID 4326 hợp lệ.");
+                }
+                if (completedAt == null) {
+                        throw new IllegalArgumentException("completedAt không được trống.");
+                }
+                Point pointCopy = (Point) actualPoint.copy();
+                pointCopy.setSRID(Wgs84Coordinates.SRID);
+                this.toaDoThucTe = pointCopy;
+                this.hoanThanhLuc = completedAt;
+                this.trangThaiDiemDung = TrangThaiDiemDung.COMPLETED;
+        }
+
         public void arrivePickup(Point actualPoint, Instant arrivedAt, Instant waitingDeadline) {
                 if (this.loaiDiemDung != LoaiDiemDung.PICKUP) {
                         throw new IllegalStateException("Chỉ PICKUP mới được ghi nhận đã đến bởi E5-02.");
@@ -170,6 +205,61 @@ public class DiemDungHanhTrinh extends Base {
                 this.batDauChoLuc = arrivedAt;
                 this.hanChoLuc = waitingDeadline;
                 this.trangThaiDiemDung = TrangThaiDiemDung.ARRIVED;
+        }
+
+        public void arriveDropoff(Point actualPoint, Instant arrivedAt) {
+                if (this.loaiDiemDung != LoaiDiemDung.DROPOFF) {
+                        throw new IllegalStateException("Chỉ DROPOFF mới được ghi nhận đã đến bởi E7-01.");
+                }
+                if (this.trangThaiDiemDung != TrangThaiDiemDung.PENDING) {
+                        throw new IllegalStateException("DROPOFF phải đang PENDING trước khi ghi nhận ARRIVED.");
+                }
+                if (this.yeuCauDiChung == null) {
+                        throw new IllegalStateException("DROPOFF phải gắn booking.");
+                }
+                if (actualPoint == null || actualPoint.isEmpty() || actualPoint.getSRID() != Wgs84Coordinates.SRID) {
+                        throw new IllegalArgumentException("Vị trí thực tế phải là Point WGS84 SRID 4326 hợp lệ.");
+                }
+                if (arrivedAt == null) {
+                        throw new IllegalArgumentException("arrivedAt không được trống.");
+                }
+                if (this.toaDoThucTe != null
+                                || this.denGanLuc != null
+                                || this.denLuc != null
+                                || this.batDauChoLuc != null
+                                || this.hanChoLuc != null
+                                || this.hoanThanhLuc != null) {
+                        throw new IllegalStateException("DROPOFF đã có bằng chứng vận hành trước đó.");
+                }
+                Point pointCopy = (Point) actualPoint.copy();
+                pointCopy.setSRID(Wgs84Coordinates.SRID);
+                this.toaDoThucTe = pointCopy;
+                this.denLuc = arrivedAt;
+                this.trangThaiDiemDung = TrangThaiDiemDung.ARRIVED;
+        }
+
+        public void completeArrivedDropoff(Instant completedAt) {
+                if (this.loaiDiemDung != LoaiDiemDung.DROPOFF) {
+                        throw new IllegalStateException("Chỉ DROPOFF mới được hoàn thành bởi E7-02.");
+                }
+                if (this.trangThaiDiemDung != TrangThaiDiemDung.ARRIVED) {
+                        throw new IllegalStateException("DROPOFF phải ARRIVED trước khi xác nhận trả khách.");
+                }
+                if (this.yeuCauDiChung == null) {
+                        throw new IllegalStateException("DROPOFF phải gắn booking.");
+                }
+                if (this.toaDoThucTe == null || this.denLuc == null
+                                || this.batDauChoLuc != null || this.hanChoLuc != null) {
+                        throw new IllegalStateException("DROPOFF ARRIVED thiếu arrival evidence hợp lệ.");
+                }
+                if (completedAt == null || completedAt.isBefore(this.denLuc)) {
+                        throw new IllegalArgumentException("completedAt không hợp lệ.");
+                }
+                if (this.hoanThanhLuc != null) {
+                        throw new IllegalStateException("DROPOFF đã được hoàn thành trước đó.");
+                }
+                this.hoanThanhLuc = completedAt;
+                this.trangThaiDiemDung = TrangThaiDiemDung.COMPLETED;
         }
 
         public void completeArrivedPickup(Instant completedAt) {
@@ -224,7 +314,8 @@ public class DiemDungHanhTrinh extends Base {
                 }
                 if (this.toaDoThucTe != null || this.denGanLuc != null || this.denLuc != null
                                 || this.batDauChoLuc != null || this.hanChoLuc != null || this.hoanThanhLuc != null) {
-                        throw new IllegalStateException("DROPOFF PENDING không được có operational evidence trước No-show.");
+                        throw new IllegalStateException(
+                                        "DROPOFF PENDING không được có operational evidence trước No-show.");
                 }
                 this.trangThaiDiemDung = TrangThaiDiemDung.SKIPPED;
         }
@@ -249,8 +340,9 @@ public class DiemDungHanhTrinh extends Base {
                         throw new IllegalArgumentException("holdDuration phải dương.");
                 }
                 Instant previous = this.hanChoLuc;
-                try { this.hanChoLuc = this.hanChoLuc.plus(holdDuration); }
-                catch (java.time.DateTimeException | ArithmeticException ex) {
+                try {
+                        this.hanChoLuc = this.hanChoLuc.plus(holdDuration);
+                } catch (java.time.DateTimeException | ArithmeticException ex) {
                         throw new IllegalArgumentException("Không thể gia hạn waiting deadline.", ex);
                 }
                 return previous;
@@ -266,7 +358,8 @@ public class DiemDungHanhTrinh extends Base {
                                 || this.batDauChoLuc != null
                                 || this.hanChoLuc != null
                                 || this.hoanThanhLuc != null) {
-                        throw new IllegalStateException("Điểm dừng PREPARING không được có bằng chứng vận hành trước khi hủy.");
+                        throw new IllegalStateException(
+                                        "Điểm dừng PREPARING không được có bằng chứng vận hành trước khi hủy.");
                 }
                 this.trangThaiDiemDung = TrangThaiDiemDung.CANCELLED;
         }

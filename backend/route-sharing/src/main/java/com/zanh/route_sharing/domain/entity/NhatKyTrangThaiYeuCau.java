@@ -74,13 +74,21 @@ public class NhatKyTrangThaiYeuCau {
             YeuCauDiChung booking, NguoiDung actor, Instant occurredAt, long sequence,
             TrangThaiYeuCau previous, CanThiepAnToanChuyenDi intervention) {
         if (booking == null || booking.getId() == null || actor == null || occurredAt == null || sequence <= 0
-                || (previous != TrangThaiYeuCau.ACCEPTED && previous != TrangThaiYeuCau.ON_BOARD) || intervention == null) {
+                || (previous != TrangThaiYeuCau.ACCEPTED && previous != TrangThaiYeuCau.ON_BOARD)
+                || intervention == null) {
             throw new IllegalArgumentException("Safety booking history data không hợp lệ.");
         }
-        if (booking.getTrangThaiYeuCau() != TrangThaiYeuCau.ABORTED) throw new IllegalArgumentException("Booking current state phải ABORTED.");
+        if (booking.getTrangThaiYeuCau() != TrangThaiYeuCau.ABORTED)
+            throw new IllegalArgumentException("Booking current state phải ABORTED.");
         NhatKyTrangThaiYeuCau event = new NhatKyTrangThaiYeuCau();
-        event.yeuCauDiChung = booking; event.sequence = sequence; event.trangThaiTruoc = previous; event.trangThaiSau = TrangThaiYeuCau.ABORTED;
-        event.actor = actor; event.occurredAt = occurredAt; event.reasonCode = "SAFETY_ABORTED"; event.canThiepAnToanChuyenDi = intervention;
+        event.yeuCauDiChung = booking;
+        event.sequence = sequence;
+        event.trangThaiTruoc = previous;
+        event.trangThaiSau = TrangThaiYeuCau.ABORTED;
+        event.actor = actor;
+        event.occurredAt = occurredAt;
+        event.reasonCode = "SAFETY_ABORTED";
+        event.canThiepAnToanChuyenDi = intervention;
         return event;
     }
 
@@ -180,6 +188,22 @@ public class NhatKyTrangThaiYeuCau {
                 TrangThaiYeuCau.ACCEPTED,
                 TrangThaiYeuCau.ON_BOARD,
                 "BOARDING_CREDENTIAL_VERIFIED",
+                sequence);
+    }
+
+    public static NhatKyTrangThaiYeuCau droppedOff(
+            YeuCauDiChung rideRequest,
+            NguoiDung actor,
+            Instant occurredAt,
+            long sequence) {
+        if (sequence <= 0) {
+            throw new IllegalArgumentException("sequence phải là số dương.");
+        }
+        return transitionWithSequence(
+                rideRequest, actor, occurredAt,
+                TrangThaiYeuCau.ON_BOARD,
+                TrangThaiYeuCau.COMPLETED,
+                "DROPOFF_CREDENTIAL_VERIFIED",
                 sequence);
     }
 

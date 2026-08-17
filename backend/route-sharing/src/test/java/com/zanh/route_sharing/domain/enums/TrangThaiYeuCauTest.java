@@ -1,11 +1,21 @@
 package com.zanh.route_sharing.domain.enums;
 
+import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.EnumSource;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
 class TrangThaiYeuCauTest {
+
+    @Test
+    void completedPassengerIsNeitherActiveTripParticipantNorNewRequestBlocker() {
+        assertThat(TrangThaiYeuCau.COMPLETED.isActiveTripParticipant()).isFalse();
+        assertThat(TrangThaiYeuCau.activeTripParticipantStates())
+                .containsExactlyInAnyOrder(TrangThaiYeuCau.ACCEPTED, TrangThaiYeuCau.ON_BOARD);
+        assertThat(TrangThaiYeuCau.COMPLETED.blocksNewRequest()).isFalse();
+        assertThat(TrangThaiYeuCau.blockingNewRequestStates()).doesNotContain(TrangThaiYeuCau.COMPLETED);
+    }
 
     @ParameterizedTest
     @EnumSource(value = TrangThaiYeuCau.class, names = {

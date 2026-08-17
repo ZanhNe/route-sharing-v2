@@ -9,7 +9,9 @@ import com.zanh.route_sharing.service.realtime.model.BookingCancelledByPassenger
 import com.zanh.route_sharing.service.realtime.model.BookingRejectedRealtimeData;
 import com.zanh.route_sharing.service.realtime.model.BookingRequestRealtimeData;
 import com.zanh.route_sharing.service.realtime.model.DriverArrivedPickupRealtimeData;
+import com.zanh.route_sharing.service.realtime.model.DriverArrivedDropoffRealtimeData;
 import com.zanh.route_sharing.service.realtime.model.PassengerBoardedRealtimeData;
+import com.zanh.route_sharing.service.realtime.model.PassengerDroppedOffRealtimeData;
 import com.zanh.route_sharing.service.realtime.model.PassengerNoShowRealtimeData;
 import com.zanh.route_sharing.service.realtime.model.RealtimeEventEnvelope;
 import com.zanh.route_sharing.service.realtime.model.RealtimeResource;
@@ -192,6 +194,28 @@ public final class RealtimeNotificationEventFactory {
                                                 waitingDeadline));
         }
 
+        public static RealtimeEventEnvelope<DriverArrivedDropoffRealtimeData> driverArrivedDropoff(
+                        Long tripId,
+                        Long routeId,
+                        Long rideRequestId,
+                        Long dropoffStopId,
+                        Integer dropoffStopOrder,
+                        Instant arrivedAt) {
+                return new RealtimeEventEnvelope<>(
+                                "DRIVER_ARRIVED_DROPOFF",
+                                EVENT_VERSION,
+                                arrivedAt,
+                                new RealtimeResource(TRIP_RESOURCE, tripId),
+                                new DriverArrivedDropoffRealtimeData(
+                                                tripId,
+                                                routeId,
+                                                rideRequestId,
+                                                dropoffStopId,
+                                                dropoffStopOrder,
+                                                com.zanh.route_sharing.domain.enums.TrangThaiDiemDung.ARRIVED.name(),
+                                                arrivedAt));
+        }
+
         public static RealtimeEventEnvelope<PassengerBoardedRealtimeData> passengerBoarded(
                         Long tripId,
                         Long routeId,
@@ -213,6 +237,21 @@ public final class RealtimeNotificationEventFactory {
                                                 TrangThaiYeuCau.ON_BOARD.name(),
                                                 com.zanh.route_sharing.domain.enums.TrangThaiDiemDung.COMPLETED.name(),
                                                 boardedAt));
+        }
+
+        public static RealtimeEventEnvelope<PassengerDroppedOffRealtimeData> passengerDroppedOff(
+                        Long tripId, Long routeId, Long rideRequestId, Long dropoffStopId, Integer dropoffStopOrder,
+                        Instant droppedOffAt) {
+                return new RealtimeEventEnvelope<>(
+                                "PASSENGER_DROPPED_OFF",
+                                EVENT_VERSION,
+                                droppedOffAt,
+                                new RealtimeResource(TRIP_RESOURCE, tripId),
+                                new PassengerDroppedOffRealtimeData(
+                                                tripId, routeId, rideRequestId, dropoffStopId, dropoffStopOrder,
+                                                TrangThaiYeuCau.COMPLETED.name(),
+                                                com.zanh.route_sharing.domain.enums.TrangThaiDiemDung.COMPLETED.name(),
+                                                droppedOffAt));
         }
 
         public static RealtimeEventEnvelope<PassengerNoShowRealtimeData> passengerNoShow(

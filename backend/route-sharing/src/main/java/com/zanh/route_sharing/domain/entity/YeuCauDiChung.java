@@ -78,7 +78,11 @@ import java.util.Objects;
                 + "AND length(trim(ly_do_huy)) BETWEEN 1 AND 2000 "
                 + "AND trang_thai_yeu_cau IN ('CANCELLED_BY_PASSENGER', 'CANCELLED_BY_DRIVER'))"),
         @CheckConstraint(name = "ck_yeu_cau_no_show", constraint = "(trang_thai_yeu_cau <> 'NO_SHOW' OR khong_den_luc IS NOT NULL) "
-                + "AND (khong_den_luc IS NULL OR (chap_nhan_luc IS NOT NULL AND len_xe_luc IS NULL AND khong_den_luc >= chap_nhan_luc))")
+                + "AND (khong_den_luc IS NULL OR (chap_nhan_luc IS NOT NULL AND len_xe_luc IS NULL AND khong_den_luc >= chap_nhan_luc))"),
+        @CheckConstraint(name = "ck_yeu_cau_dropoff_completion", constraint = "trang_thai_yeu_cau <> 'COMPLETED' OR "
+                + "(len_xe_luc IS NOT NULL AND xuong_xe_luc IS NOT NULL AND xuong_xe_luc >= len_xe_luc "
+                + "AND khong_den_luc IS NULL AND tai_xe_xac_nhan_tra_luc IS NULL "
+                + "AND hanh_khach_xac_nhan_tra_luc IS NULL AND ly_do_xac_nhan_that_bai IS NULL)")
 })
 @Getter
 @Setter
@@ -326,6 +330,31 @@ public class YeuCauDiChung extends Base {
         }
         this.trangThaiYeuCau = TrangThaiYeuCau.ON_BOARD;
         this.lenXeLuc = boardedAt;
+    }
+
+    public void completeNormalDropoff(ChuyenDi trip, Instant droppedOffAt) {
+        Objects.requireNonNull(trip, "trip không được trống");
+        Objects.requireNonNull(droppedOffAt, "droppedOffAt không được trống");
+        if (this.trangThaiYeuCau != TrangThaiYeuCau.ON_BOARD) {
+            throw new IllegalStateException("Chỉ booking ON_BOARD mới có thể hoàn thành trả khách bình thường.");
+        }
+        if (this.chuyenDi == null || this.chuyenDi.getId() == null || trip.getId() == null
+                || !Objects.equals(this.chuyenDi.getId(), trip.getId())) {
+            throw new IllegalStateException("Booking phải thuộc chính chuyến đang xác nhận trả khách.");
+        }
+        if (trip.getTrangThaiVanHanh() != TrangThaiVanHanhChuyenDi.IN_PROGRESS) {
+            throw new IllegalStateException("Chuyến phải IN_PROGRESS khi xác nhận trả khách bình thường.");
+        }
+        if (this.lenXeLuc == null || droppedOffAt.isBefore(this.lenXeLuc)) {
+            throw new IllegalArgumentException("droppedOffAt không hợp lệ so với boardedAt.");
+        }
+        if (this.xuongXeLuc != null || this.khongDenLuc != null
+                || this.taiXeXacNhanTraLuc != null || this.hanhKhachXacNhanTraLuc != null
+                || this.lyDoXacNhanThatBai != null) {
+            throw new IllegalStateException("Booking đã có bằng chứng resolve trả khách không tương thích.");
+        }
+        this.trangThaiYeuCau = TrangThaiYeuCau.COMPLETED;
+        this.xuongXeLuc = droppedOffAt;
     }
 
     public void markNoShow(ChuyenDi trip, Instant noShowAt) {

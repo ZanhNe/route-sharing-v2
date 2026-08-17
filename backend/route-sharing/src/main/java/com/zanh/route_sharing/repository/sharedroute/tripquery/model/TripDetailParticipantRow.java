@@ -17,6 +17,7 @@ public record TripDetailParticipantRow(
         Instant acceptedAt,
         Instant boardedAt,
         Instant noShowAt,
+        Instant droppedOffAt,
         LoaiGhepTuyen matchType,
         LoaiDiemTha dropoffType,
         BigDecimal agreedSupportAmount,
@@ -24,6 +25,15 @@ public record TripDetailParticipantRow(
         Long pickupStopId,
         Integer pickupStopOrder,
         Long dropoffStopId) {
+    public TripDetailParticipantRow(
+            Long rideRequestId, Long passengerId, String passengerFullName, String passengerAvatarUrl,
+            TrangThaiYeuCau status, Instant acceptedAt, Instant boardedAt, Instant noShowAt,
+            LoaiGhepTuyen matchType, LoaiDiemTha dropoffType, BigDecimal agreedSupportAmount, String note,
+            Long pickupStopId, Integer pickupStopOrder, Long dropoffStopId) {
+        this(rideRequestId, passengerId, passengerFullName, passengerAvatarUrl, status, acceptedAt, boardedAt, noShowAt,
+                null, matchType, dropoffType, agreedSupportAmount, note, pickupStopId, pickupStopOrder, dropoffStopId);
+    }
+
     public TripDetailParticipantRow {
         Objects.requireNonNull(rideRequestId);
         Objects.requireNonNull(passengerId);

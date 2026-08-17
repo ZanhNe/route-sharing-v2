@@ -45,6 +45,14 @@ app:
       - ${APPLICATION_ORIGIN:http://localhost:8080}
   internal-portal:
     required-authority: ${INTERNAL_PORTAL_AUTHORITY:ACCESS_INTERNAL_PORTAL}
+  boarding-code:
+    active-key-version: ${BOARDING_CODE_ACTIVE_KEY_VERSION:v1}
+    keys:
+      v1: ${BOARDING_CODE_KEY_BASE64:}
+  dropoff-code:
+    active-key-version: ${DROPOFF_CODE_ACTIVE_KEY_VERSION:v1}
+    keys:
+      v1: ${DROPOFF_CODE_KEY_BASE64:}
   jwt:
     base64-secret: ${JWT_BASE64_SECRET}
     issuer: route-sharing

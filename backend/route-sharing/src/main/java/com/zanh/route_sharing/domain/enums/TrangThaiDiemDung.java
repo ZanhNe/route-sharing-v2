@@ -6,5 +6,13 @@ public enum TrangThaiDiemDung {
     ARRIVED,
     COMPLETED,
     SKIPPED,
-    CANCELLED
+    CANCELLED;
+
+    public boolean isResolvedForTripProgression() {
+        return this == COMPLETED || this == SKIPPED || this == CANCELLED;
+    }
+
+    public boolean isUnresolvedForTripProgression() {
+        return !isResolvedForTripProgression();
+    }
 }

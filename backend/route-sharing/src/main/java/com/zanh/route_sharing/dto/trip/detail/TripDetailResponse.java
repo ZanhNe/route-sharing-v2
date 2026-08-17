@@ -37,6 +37,20 @@ public record TripDetailResponse(
         Objects.requireNonNull(operationalRoute, "operationalRoute không được trống.");
         participants = participants == null ? List.of() : List.copyOf(participants);
         stops = stops == null ? List.of() : List.copyOf(stops);
+        boolean completedPassengerView = viewerRole == ViewerRole.PASSENGER
+                && participants.size() == 1
+                && participants.get(0).booking().status() == TrangThaiYeuCau.COMPLETED;
+        if (completedPassengerView) {
+            if (trip.status() != null || trip.monitoringStatus() != null || trip.signalReferenceAt() != null
+                    || trip.endedAt() != null || trip.safetyHoldStartedAt() != null || trip.safetyMessage() != null
+                    || trip.actualPassengerCount() != null || activeSafetyHold != null
+                    || currentDriverLocation != null) {
+                throw new IllegalArgumentException("Completed Passenger Trip Detail phải redaction operational truth.");
+            }
+        } else if (trip.status() == null || trip.monitoringStatus() == null || trip.actualPassengerCount() == null) {
+            throw new IllegalArgumentException(
+                    "Operational Trip Detail phải có status/monitoring/actualPassengerCount.");
+        }
         Objects.requireNonNull(readAt, "readAt không được trống.");
     }
 
@@ -61,11 +75,8 @@ public record TripDetailResponse(
             Integer actualPassengerCount) {
         public Trip {
             Objects.requireNonNull(tripId, "tripId không được trống.");
-            Objects.requireNonNull(status, "trip status không được trống.");
-            Objects.requireNonNull(monitoringStatus, "monitoringStatus không được trống.");
             Objects.requireNonNull(formedAt, "formedAt không được trống.");
             Objects.requireNonNull(plannedPassengerCount, "plannedPassengerCount không được trống.");
-            Objects.requireNonNull(actualPassengerCount, "actualPassengerCount không được trống.");
         }
     }
 
@@ -146,10 +157,16 @@ public record TripDetailResponse(
             Instant acceptedAt,
             Instant boardedAt,
             Instant noShowAt,
+            Instant droppedOffAt,
             LoaiGhepTuyen matchType,
             LoaiDiemTha dropoffType,
             BigDecimal agreedSupportAmount,
             String note) {
+        public Booking(TrangThaiYeuCau status, Instant acceptedAt, Instant boardedAt, Instant noShowAt,
+                LoaiGhepTuyen matchType, LoaiDiemTha dropoffType, BigDecimal agreedSupportAmount, String note) {
+            this(status, acceptedAt, boardedAt, noShowAt, null, matchType, dropoffType, agreedSupportAmount, note);
+        }
+
         public Booking {
             Objects.requireNonNull(status, "booking status không được trống.");
             Objects.requireNonNull(acceptedAt, "acceptedAt không được trống.");

@@ -78,8 +78,12 @@ public class DevSeedDataService {
         private static final String LOCK_OWN_SHARED_ROUTE_PERMISSION = "LOCK_OWN_SHARED_ROUTE";
         private static final String VIEW_OWN_TRIP_PERMISSION = "VIEW_OWN_TRIP";
         private static final String START_OWN_TRIP_PERMISSION = "START_OWN_TRIP";
+        private static final String COMPLETE_OWN_TRIP_PERMISSION = "COMPLETE_OWN_TRIP";
         private static final String CANCEL_OWN_TRIP_PERMISSION = "CANCEL_OWN_TRIP";
         private static final String CONFIRM_OWN_TRIP_PICKUP_ARRIVAL_PERMISSION = "CONFIRM_OWN_TRIP_PICKUP_ARRIVAL";
+        private static final String CONFIRM_OWN_TRIP_DROPOFF_ARRIVAL_PERMISSION = "CONFIRM_OWN_TRIP_DROPOFF_ARRIVAL";
+        private static final String VIEW_OWN_DROPOFF_CODE_PERMISSION = "VIEW_OWN_DROPOFF_CODE";
+        private static final String CONFIRM_OWN_TRIP_DROPOFF_PERMISSION = "CONFIRM_OWN_TRIP_DROPOFF";
         private static final String VIEW_OWN_BOARDING_CODE_PERMISSION = "VIEW_OWN_BOARDING_CODE";
         private static final String CONFIRM_OWN_TRIP_BOARDING_PERMISSION = "CONFIRM_OWN_TRIP_BOARDING";
         private static final String CONFIRM_OWN_TRIP_NO_SHOW_PERMISSION = "CONFIRM_OWN_TRIP_NO_SHOW";
@@ -166,6 +170,10 @@ public class DevSeedDataService {
                                 START_OWN_TRIP_PERMISSION,
                                 "Bắt đầu chuyến đi của mình",
                                 "Cho phép tài xế bắt đầu chuyến PREPARING do chính mình sở hữu khi ở đúng điểm DRIVER_START.");
+                QuyenHan completeOwnTripPermission = ensurePermission(
+                                COMPLETE_OWN_TRIP_PERMISSION,
+                                "Kết thúc chuyến đi của mình",
+                                "Cho phép tài xế kết thúc Trip IN_PROGRESS do chính mình sở hữu tại DRIVER_END sau khi mọi Passenger đã được resolve.");
                 QuyenHan cancelOwnTripPermission = ensurePermission(
                                 CANCEL_OWN_TRIP_PERMISSION,
                                 "Hủy chuyến đã hình thành trước khi bắt đầu",
@@ -174,6 +182,18 @@ public class DevSeedDataService {
                                 CONFIRM_OWN_TRIP_PICKUP_ARRIVAL_PERMISSION,
                                 "Xác nhận đã đến điểm đón",
                                 "Cho phép tài xế của chuyến IN_PROGRESS xác nhận đã đến pickup kế tiếp hợp lệ.");
+                QuyenHan confirmOwnTripDropoffArrivalPermission = ensurePermission(
+                                CONFIRM_OWN_TRIP_DROPOFF_ARRIVAL_PERMISSION,
+                                "Xác nhận đã đến điểm trả khách",
+                                "Cho phép tài xế của chuyến IN_PROGRESS xác nhận đã đến dropoff kế tiếp hợp lệ.");
+                QuyenHan viewOwnDropoffCodePermission = ensurePermission(
+                                VIEW_OWN_DROPOFF_CODE_PERMISSION,
+                                "Xem mã xác nhận trả khách của booking mình",
+                                "Cho phép Passenger xem cùng Dropoff code active của dropoff hiện tại thuộc chính mình.");
+                QuyenHan confirmOwnTripDropoffPermission = ensurePermission(
+                                CONFIRM_OWN_TRIP_DROPOFF_PERMISSION,
+                                "Xác nhận Passenger đã được trả khách",
+                                "Cho phép Driver của chuyến xác nhận Dropoff bằng code cho dropoff hiện tại.");
                 QuyenHan viewOwnBoardingCodePermission = ensurePermission(
                                 VIEW_OWN_BOARDING_CODE_PERMISSION,
                                 "Xem boarding code của booking mình",
@@ -224,8 +244,11 @@ public class DevSeedDataService {
                                 lockOwnSharedRoutePermission,
                                 viewOwnTripPermission,
                                 startOwnTripPermission,
+                                completeOwnTripPermission,
                                 cancelOwnTripPermission,
                                 confirmOwnTripPickupArrivalPermission,
+                                confirmOwnTripDropoffArrivalPermission,
+                                confirmOwnTripDropoffPermission,
                                 confirmOwnTripBoardingPermission,
                                 confirmOwnTripNoShowPermission,
                                 submitOwnTripLocationPermission,
@@ -269,6 +292,9 @@ public class DevSeedDataService {
                                 viewOwnTripPermission,
                                 viewOwnBoardingCodePermission,
                                 now);
+                grantDirectPermission(passenger, viewOwnDropoffCodePermission);
+                grantDirectPermission(passenger2, viewOwnDropoffCodePermission);
+                grantDirectPermission(passenger3, viewOwnDropoffCodePermission);
                 grantDirectPermission(passenger, reportOwnTripIncidentPermission);
                 grantDirectPermission(passenger2, reportOwnTripIncidentPermission);
                 grantDirectPermission(passenger3, reportOwnTripIncidentPermission);

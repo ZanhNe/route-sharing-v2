@@ -50,6 +50,7 @@ public class JpaTripSafetyIncidentRepository implements TripSafetyIncidentReposi
 
     private final EntityManager entityManager;
     private final SafetyStaffScopeJpaSupport safetyStaffScope;
+
     public JpaTripSafetyIncidentRepository(EntityManager entityManager, SafetyStaffScopeJpaSupport safetyStaffScope) {
         this.entityManager = entityManager;
         this.safetyStaffScope = safetyStaffScope;
@@ -63,10 +64,12 @@ public class JpaTripSafetyIncidentRepository implements TripSafetyIncidentReposi
             ChuyenDi trip = lockTrip(command.tripId());
             ReporterContext reporter = resolveReporterIdentity(trip, command.actorId());
 
-            // E6-06 exact SOS retry must be resolved before checking current target/Trip activity,
+            // E6-06 exact SOS retry must be resolved before checking current target/Trip
+            // activity,
             // because the first committed SOS may itself have ABORTED the target/Trip.
             if (command.type() == LoaiSuCo.SOS) {
-                SuCoChuyenDi existing = findUnresolvedSos(trip.getId(), command.actorId(), command.reportedParticipantId());
+                SuCoChuyenDi existing = findUnresolvedSos(trip.getId(), command.actorId(),
+                        command.reportedParticipantId());
                 if (existing != null) {
                     return result(existing, false, List.of(), null, false, List.of(), List.of());
                 }
@@ -92,13 +95,16 @@ public class JpaTripSafetyIncidentRepository implements TripSafetyIncidentReposi
 
             LocalDate businessDate = command.reportedAt()
                     .atZone(com.zanh.route_sharing.utils.time.TimePolicy.BUSINESS_ZONE).toLocalDate();
-            List<Long> recipientIds = safetyStaffScope.findEligibleUserIds(schoolId, businessDate, HANDLE_INCIDENT_PERMISSION);
+            List<Long> recipientIds = safetyStaffScope.findEligibleUserIds(schoolId, businessDate,
+                    HANDLE_INCIDENT_PERMISSION);
             if (!recipientIds.isEmpty()) {
                 List<NguoiDung> recipients = entityManager.createQuery(
-                                "select user from NguoiDung user where user.id in :ids order by user.id", NguoiDung.class)
+                        "select user from NguoiDung user where user.id in :ids order by user.id", NguoiDung.class)
                         .setParameter("ids", recipientIds).getResultList();
-                if (recipients.size() != recipientIds.size()) throw invariantViolation();
-                for (NguoiDung recipient : recipients) entityManager.persist(ThongBao.tripSafetyIncidentReported(incident, recipient));
+                if (recipients.size() != recipientIds.size())
+                    throw invariantViolation();
+                for (NguoiDung recipient : recipients)
+                    entityManager.persist(ThongBao.tripSafetyIncidentReported(incident, recipient));
             }
 
             entityManager.flush();
@@ -123,10 +129,10 @@ public class JpaTripSafetyIncidentRepository implements TripSafetyIncidentReposi
             throw new IllegalArgumentException("Safety incident query không hợp lệ.");
         }
         SuCoChuyenDi incident = entityManager.createQuery(
-                        "select incident from SuCoChuyenDi incident "
-                                + "join fetch incident.chuyenDi trip "
-                                + "where incident.id = :incidentId",
-                        SuCoChuyenDi.class)
+                "select incident from SuCoChuyenDi incident "
+                        + "join fetch incident.chuyenDi trip "
+                        + "where incident.id = :incidentId",
+                SuCoChuyenDi.class)
                 .setParameter("incidentId", incidentId)
                 .setMaxResults(1)
                 .getResultList().stream().findFirst()
@@ -148,11 +154,11 @@ public class JpaTripSafetyIncidentRepository implements TripSafetyIncidentReposi
     private ChuyenDi lockTrip(Long tripId) {
         try {
             return entityManager.createQuery(
-                            "select trip from ChuyenDi trip "
-                                    + "join fetch trip.loTrinhChiaSe route "
-                                    + "join fetch route.taiXe driver "
-                                    + "where trip.id = :tripId",
-                            ChuyenDi.class)
+                    "select trip from ChuyenDi trip "
+                            + "join fetch trip.loTrinhChiaSe route "
+                            + "join fetch route.taiXe driver "
+                            + "where trip.id = :tripId",
+                    ChuyenDi.class)
                     .setParameter("tripId", tripId)
                     .setLockMode(LockModeType.PESSIMISTIC_WRITE)
                     .setMaxResults(1)
@@ -170,10 +176,10 @@ public class JpaTripSafetyIncidentRepository implements TripSafetyIncidentReposi
         }
 
         List<YeuCauDiChung> bookings = entityManager.createQuery(
-                        "select booking from YeuCauDiChung booking "
-                                + "join fetch booking.hanhKhach passenger "
-                                + "where booking.chuyenDi.id = :tripId and passenger.id = :actorId",
-                        YeuCauDiChung.class)
+                "select booking from YeuCauDiChung booking "
+                        + "join fetch booking.hanhKhach passenger "
+                        + "where booking.chuyenDi.id = :tripId and passenger.id = :actorId",
+                YeuCauDiChung.class)
                 .setParameter("tripId", trip.getId())
                 .setParameter("actorId", actorId)
                 .getResultList();
@@ -213,11 +219,11 @@ public class JpaTripSafetyIncidentRepository implements TripSafetyIncidentReposi
         }
 
         List<NguoiDung> passengers = entityManager.createQuery(
-                        "select booking.hanhKhach from YeuCauDiChung booking "
-                                + "where booking.chuyenDi.id = :tripId "
-                                + "and booking.hanhKhach.id = :reportedParticipantId "
-                                + "and booking.trangThaiYeuCau in :activeStates",
-                        NguoiDung.class)
+                "select booking.hanhKhach from YeuCauDiChung booking "
+                        + "where booking.chuyenDi.id = :tripId "
+                        + "and booking.hanhKhach.id = :reportedParticipantId "
+                        + "and booking.trangThaiYeuCau in :activeStates",
+                NguoiDung.class)
                 .setParameter("tripId", trip.getId())
                 .setParameter("reportedParticipantId", reportedParticipantId)
                 .setParameter("activeStates", TrangThaiYeuCau.activeTripParticipantStates())
@@ -233,18 +239,21 @@ public class JpaTripSafetyIncidentRepository implements TripSafetyIncidentReposi
                 ? "and incident.nguoiBiBaoCao is null "
                 : "and incident.nguoiBiBaoCao.id = :targetId ";
         var query = entityManager.createQuery(
-                        "select incident from SuCoChuyenDi incident "
-                                + "where incident.chuyenDi.id = :tripId "
-                                + "and incident.nguoiBaoCao.id = :reporterId "
-                                + targetPredicate
-                                + "and incident.loaiSuCo = :type "
-                                + "and incident.trangThaiXuLy in :states "
-                                + "order by incident.baoCaoLuc asc, incident.id asc", SuCoChuyenDi.class)
+                "select incident from SuCoChuyenDi incident "
+                        + "where incident.chuyenDi.id = :tripId "
+                        + "and incident.nguoiBaoCao.id = :reporterId "
+                        + targetPredicate
+                        + "and incident.loaiSuCo = :type "
+                        + "and incident.trangThaiXuLy in :states "
+                        + "order by incident.baoCaoLuc asc, incident.id asc",
+                SuCoChuyenDi.class)
                 .setParameter("tripId", tripId).setParameter("reporterId", reporterId)
                 .setParameter("type", LoaiSuCo.SOS).setParameter("states", UNRESOLVED_INCIDENT_STATES);
-        if (reportedParticipantId != null) query.setParameter("targetId", reportedParticipantId);
+        if (reportedParticipantId != null)
+            query.setParameter("targetId", reportedParticipantId);
         List<SuCoChuyenDi> incidents = query.getResultList();
-        if (incidents.size() > 1) throw invariantViolation();
+        if (incidents.size() > 1)
+            throw invariantViolation();
         return incidents.isEmpty() ? null : incidents.get(0);
     }
 

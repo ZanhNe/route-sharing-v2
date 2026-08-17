@@ -68,6 +68,7 @@ public class TripSignalMonitoringServiceImpl implements TripSignalMonitoringServ
             return null;
         }
 
+        // Canonical time is intentionally captured after acquiring the Trip lock.
         Instant evaluationAt = TimePolicy.now(clock);
         Instant signalReferenceAt = trip.getNhanTinHieuCuoiLuc() != null
                 ? trip.getNhanTinHieuCuoiLuc()

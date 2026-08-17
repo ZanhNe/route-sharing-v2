@@ -14,7 +14,7 @@ import java.util.Objects;
 
 @Entity
 @Table(name = "nhat_ky_xu_ly_su_co", uniqueConstraints = {
-        @UniqueConstraint(name = "uk_nhat_ky_xu_ly_su_co_sequence", columnNames = {"su_co_chuyen_di_id", "sequence"})
+        @UniqueConstraint(name = "uk_nhat_ky_xu_ly_su_co_sequence", columnNames = { "su_co_chuyen_di_id", "sequence" })
 }, check = {
         @CheckConstraint(name = "ck_nhat_ky_xu_ly_su_co_sequence", constraint = "sequence > 0")
 })
@@ -105,10 +105,13 @@ public class NhatKyXuLySuCo {
     }
 
     private static String normalize(String value, int max, String field) {
-        if (value == null) return null;
+        if (value == null)
+            return null;
         String normalized = value.trim();
-        if (normalized.isEmpty()) return null;
-        if (normalized.length() > max) throw new IllegalArgumentException(field + " vượt quá " + max + " ký tự.");
+        if (normalized.isEmpty())
+            return null;
+        if (normalized.length() > max)
+            throw new IllegalArgumentException(field + " vượt quá " + max + " ký tự.");
         return normalized;
     }
 }

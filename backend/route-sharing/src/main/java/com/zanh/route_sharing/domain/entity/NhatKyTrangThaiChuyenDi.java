@@ -78,10 +78,17 @@ public class NhatKyTrangThaiChuyenDi {
                 || previous == null || next == null || previous == next || intervention == null) {
             throw new IllegalArgumentException("Safety Trip history data không hợp lệ.");
         }
-        if (trip.getTrangThaiVanHanh() != next) throw new IllegalArgumentException("Trip current state không khớp history result.");
+        if (trip.getTrangThaiVanHanh() != next)
+            throw new IllegalArgumentException("Trip current state không khớp history result.");
         NhatKyTrangThaiChuyenDi event = new NhatKyTrangThaiChuyenDi();
-        event.chuyenDi = trip; event.sequence = sequence; event.trangThaiTruoc = previous; event.trangThaiSau = next;
-        event.actor = actor; event.occurredAt = occurredAt; event.reasonCode = reasonCode; event.canThiepAnToanChuyenDi = intervention;
+        event.chuyenDi = trip;
+        event.sequence = sequence;
+        event.trangThaiTruoc = previous;
+        event.trangThaiSau = next;
+        event.actor = actor;
+        event.occurredAt = occurredAt;
+        event.reasonCode = reasonCode;
+        event.canThiepAnToanChuyenDi = intervention;
         return event;
     }
 
@@ -116,6 +123,41 @@ public class NhatKyTrangThaiChuyenDi {
             throw new IllegalArgumentException("occurredAt phải khớp thời điểm bắt đầu chuyến.");
         }
         event.reasonCode = "DRIVER_STARTED_TRIP";
+        return event;
+    }
+
+    public static NhatKyTrangThaiChuyenDi driverCompleted(
+            ChuyenDi trip,
+            NguoiDung driver,
+            Instant occurredAt,
+            long sequence) {
+        if (trip == null || trip.getId() == null) {
+            throw new IllegalArgumentException("Chuyến đi phải được lưu trước khi tạo nhật ký.");
+        }
+        if (trip.getTrangThaiVanHanh() != TrangThaiVanHanhChuyenDi.COMPLETED
+                || trip.getKetThucLuc() == null) {
+            throw new IllegalArgumentException("Trạng thái chuyến không khớp sự kiện kết thúc bình thường.");
+        }
+        if (sequence <= 0) {
+            throw new IllegalArgumentException("sequence phải là số dương.");
+        }
+        if (driver == null || trip.getLoTrinhChiaSe() == null
+                || trip.getLoTrinhChiaSe().getTaiXe() == null
+                || !Objects.equals(driver.getId(), trip.getLoTrinhChiaSe().getTaiXe().getId())) {
+            throw new IllegalArgumentException("Actor phải là tài xế sở hữu chuyến đi.");
+        }
+        Instant normalizedOccurredAt = Objects.requireNonNull(occurredAt, "occurredAt không được trống");
+        if (!normalizedOccurredAt.equals(trip.getKetThucLuc())) {
+            throw new IllegalArgumentException("occurredAt phải khớp thời điểm kết thúc chuyến.");
+        }
+        NhatKyTrangThaiChuyenDi event = new NhatKyTrangThaiChuyenDi();
+        event.chuyenDi = trip;
+        event.sequence = sequence;
+        event.trangThaiTruoc = TrangThaiVanHanhChuyenDi.IN_PROGRESS;
+        event.trangThaiSau = TrangThaiVanHanhChuyenDi.COMPLETED;
+        event.actor = driver;
+        event.occurredAt = normalizedOccurredAt;
+        event.reasonCode = "DRIVER_COMPLETED_TRIP";
         return event;
     }
 

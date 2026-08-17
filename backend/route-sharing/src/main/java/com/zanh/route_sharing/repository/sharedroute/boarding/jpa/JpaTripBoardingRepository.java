@@ -96,11 +96,11 @@ public class JpaTripBoardingRepository implements TripBoardingRepository {
     private ChuyenDi lockOwnedTrip(Long actorId, Long tripId) {
         try {
             return entityManager.createQuery(
-                            "select trip from ChuyenDi trip "
-                                    + "join fetch trip.loTrinhChiaSe route "
-                                    + "join fetch route.taiXe driver "
-                                    + "where trip.id = :tripId and driver.id = :actorId",
-                            ChuyenDi.class)
+                    "select trip from ChuyenDi trip "
+                            + "join fetch trip.loTrinhChiaSe route "
+                            + "join fetch route.taiXe driver "
+                            + "where trip.id = :tripId and driver.id = :actorId",
+                    ChuyenDi.class)
                     .setParameter("tripId", tripId)
                     .setParameter("actorId", actorId)
                     .setLockMode(LockModeType.PESSIMISTIC_WRITE)
@@ -115,10 +115,10 @@ public class JpaTripBoardingRepository implements TripBoardingRepository {
     private List<DiemDungHanhTrinh> lockTripStops(Long tripId) {
         try {
             return entityManager.createQuery(
-                            "select stop from DiemDungHanhTrinh stop "
-                                    + "where stop.chuyenDi.id = :tripId "
-                                    + "order by stop.thuTu asc, stop.id asc",
-                            DiemDungHanhTrinh.class)
+                    "select stop from DiemDungHanhTrinh stop "
+                            + "where stop.chuyenDi.id = :tripId "
+                            + "order by stop.thuTu asc, stop.id asc",
+                    DiemDungHanhTrinh.class)
                     .setParameter("tripId", tripId)
                     .setLockMode(LockModeType.PESSIMISTIC_WRITE)
                     .getResultList();
@@ -133,10 +133,10 @@ public class JpaTripBoardingRepository implements TripBoardingRepository {
         }
         try {
             return entityManager.createQuery(
-                            "select booking from YeuCauDiChung booking "
-                                    + "join fetch booking.hanhKhach passenger "
-                                    + "where booking.id = :bookingId and booking.chuyenDi.id = :tripId",
-                            YeuCauDiChung.class)
+                    "select booking from YeuCauDiChung booking "
+                            + "join fetch booking.hanhKhach passenger "
+                            + "where booking.id = :bookingId and booking.chuyenDi.id = :tripId",
+                    YeuCauDiChung.class)
                     .setParameter("bookingId", pickup.getYeuCauDiChung().getId())
                     .setParameter("tripId", tripId)
                     .setLockMode(LockModeType.PESSIMISTIC_WRITE)
@@ -152,9 +152,9 @@ public class JpaTripBoardingRepository implements TripBoardingRepository {
             ChuyenDi trip, YeuCauDiChung booking, DiemDungHanhTrinh pickup) {
         try {
             List<ThongTinXacThucLenXe> rows = entityManager.createQuery(
-                            "select credential from ThongTinXacThucLenXe credential "
-                                    + "where credential.diemDungHanhTrinh.id = :pickupStopId",
-                            ThongTinXacThucLenXe.class)
+                    "select credential from ThongTinXacThucLenXe credential "
+                            + "where credential.diemDungHanhTrinh.id = :pickupStopId",
+                    ThongTinXacThucLenXe.class)
                     .setParameter("pickupStopId", pickup.getId())
                     .setLockMode(LockModeType.PESSIMISTIC_WRITE)
                     .getResultList();
@@ -177,10 +177,10 @@ public class JpaTripBoardingRepository implements TripBoardingRepository {
 
     private long nextRequestHistorySequence(Long rideRequestId) {
         Long next = entityManager.createQuery(
-                        "select coalesce(max(event.sequence), 0) + 1 "
-                                + "from NhatKyTrangThaiYeuCau event "
-                                + "where event.yeuCauDiChung.id = :rideRequestId",
-                        Long.class)
+                "select coalesce(max(event.sequence), 0) + 1 "
+                        + "from NhatKyTrangThaiYeuCau event "
+                        + "where event.yeuCauDiChung.id = :rideRequestId",
+                Long.class)
                 .setParameter("rideRequestId", rideRequestId)
                 .getSingleResult();
         return next == null ? 1L : next;
@@ -188,9 +188,7 @@ public class JpaTripBoardingRepository implements TripBoardingRepository {
 
     private static DiemDungHanhTrinh firstUnresolved(List<DiemDungHanhTrinh> stops) {
         return stops.stream()
-                .filter(stop -> stop.getTrangThaiDiemDung() != TrangThaiDiemDung.COMPLETED
-                        && stop.getTrangThaiDiemDung() != TrangThaiDiemDung.SKIPPED
-                        && stop.getTrangThaiDiemDung() != TrangThaiDiemDung.CANCELLED)
+                .filter(stop -> stop.getTrangThaiDiemDung().isUnresolvedForTripProgression())
                 .findFirst()
                 .orElseThrow(JpaTripBoardingRepository::noUnresolvedStop);
     }
@@ -266,31 +264,38 @@ public class JpaTripBoardingRepository implements TripBoardingRepository {
     }
 
     private static BusinessException tripNotInProgress() {
-        return new BusinessException(HttpStatus.CONFLICT, "TRIP_NOT_IN_PROGRESS", "Chuyến đi chưa ở trạng thái đang vận hành.");
+        return new BusinessException(HttpStatus.CONFLICT, "TRIP_NOT_IN_PROGRESS",
+                "Chuyến đi chưa ở trạng thái đang vận hành.");
     }
 
     private static BusinessException driverStartNotCompleted() {
-        return new BusinessException(HttpStatus.CONFLICT, "DRIVER_START_NOT_COMPLETED", "Điểm DRIVER_START chưa được hoàn thành.");
+        return new BusinessException(HttpStatus.CONFLICT, "DRIVER_START_NOT_COMPLETED",
+                "Điểm DRIVER_START chưa được hoàn thành.");
     }
 
     private static BusinessException noUnresolvedStop() {
-        return new BusinessException(HttpStatus.CONFLICT, "NO_UNRESOLVED_TRIP_STOP", "Không còn điểm dừng chưa giải quyết.");
+        return new BusinessException(HttpStatus.CONFLICT, "NO_UNRESOLVED_TRIP_STOP",
+                "Không còn điểm dừng chưa giải quyết.");
     }
 
     private static BusinessException nextStopNotPickup() {
-        return new BusinessException(HttpStatus.CONFLICT, "NEXT_TRIP_STOP_NOT_PICKUP", "Điểm dừng chưa giải quyết kế tiếp không phải pickup.");
+        return new BusinessException(HttpStatus.CONFLICT, "NEXT_TRIP_STOP_NOT_PICKUP",
+                "Điểm dừng chưa giải quyết kế tiếp không phải pickup.");
     }
 
     private static BusinessException pickupNotArrived() {
-        return new BusinessException(HttpStatus.CONFLICT, "PICKUP_NOT_ARRIVED", "Pickup hiện tại chưa ở trạng thái ARRIVED.");
+        return new BusinessException(HttpStatus.CONFLICT, "PICKUP_NOT_ARRIVED",
+                "Pickup hiện tại chưa ở trạng thái ARRIVED.");
     }
 
     private static BusinessException bookingNotAccepted() {
-        return new BusinessException(HttpStatus.CONFLICT, "BOOKING_NOT_ACCEPTED", "Booking gắn với pickup không còn ACCEPTED.");
+        return new BusinessException(HttpStatus.CONFLICT, "BOOKING_NOT_ACCEPTED",
+                "Booking gắn với pickup không còn ACCEPTED.");
     }
 
     private static BusinessException credentialNotActive() {
-        return new BusinessException(HttpStatus.CONFLICT, "BOARDING_CREDENTIAL_NOT_ACTIVE", "Boarding credential hiện không active.");
+        return new BusinessException(HttpStatus.CONFLICT, "BOARDING_CREDENTIAL_NOT_ACTIVE",
+                "Boarding credential hiện không active.");
     }
 
     private static BusinessException invalidBoardingCode() {
@@ -298,14 +303,17 @@ public class JpaTripBoardingRepository implements TripBoardingRepository {
     }
 
     private static BusinessException concurrentModification() {
-        return new BusinessException(HttpStatus.CONFLICT, "CONCURRENT_MODIFICATION", "Chuyến đi vừa được thay đổi đồng thời. Vui lòng tải lại dữ liệu.");
+        return new BusinessException(HttpStatus.CONFLICT, "CONCURRENT_MODIFICATION",
+                "Chuyến đi vừa được thay đổi đồng thời. Vui lòng tải lại dữ liệu.");
     }
 
     private static BusinessException invariantViolation() {
-        return new BusinessException(HttpStatus.INTERNAL_SERVER_ERROR, "TRIP_BOARDING_INVARIANT_VIOLATION", "Dữ liệu chuyến không nhất quán để xác nhận Boarding.");
+        return new BusinessException(HttpStatus.INTERNAL_SERVER_ERROR, "TRIP_BOARDING_INVARIANT_VIOLATION",
+                "Dữ liệu chuyến không nhất quán để xác nhận Boarding.");
     }
 
     private static BusinessException credentialInvariant() {
-        return new BusinessException(HttpStatus.INTERNAL_SERVER_ERROR, "BOARDING_CREDENTIAL_INVARIANT_VIOLATION", "Boarding credential đang lưu không nhất quán.");
+        return new BusinessException(HttpStatus.INTERNAL_SERVER_ERROR, "BOARDING_CREDENTIAL_INVARIANT_VIOLATION",
+                "Boarding credential đang lưu không nhất quán.");
     }
 }

@@ -23,6 +23,7 @@ public class TripDetailSnapshotValidator {
         if (header.tripStatus() != TrangThaiVanHanhChuyenDi.PREPARING
                 && header.tripStatus() != TrangThaiVanHanhChuyenDi.IN_PROGRESS
                 && header.tripStatus() != TrangThaiVanHanhChuyenDi.SECURITY_FROZEN
+                && header.tripStatus() != TrangThaiVanHanhChuyenDi.COMPLETED
                 && header.tripStatus() != TrangThaiVanHanhChuyenDi.CANCELLED_BEFORE_START
                 && header.tripStatus() != TrangThaiVanHanhChuyenDi.EMERGENCY_ABORTED) {
             throw outsideCurrentScope();
@@ -39,6 +40,7 @@ public class TripDetailSnapshotValidator {
             case PREPARING -> validatePreparing(snapshot);
             case CANCELLED_BEFORE_START -> validateCancelledBeforeStart(snapshot);
             case IN_PROGRESS, SECURITY_FROZEN -> validateOperationalAfterStart(snapshot);
+            case COMPLETED -> validateCompleted(snapshot);
             case EMERGENCY_ABORTED -> validateEmergencyAborted(snapshot);
             default -> throw outsideCurrentScope();
         }
@@ -53,7 +55,9 @@ public class TripDetailSnapshotValidator {
         if (h.plannedPassengerCount() == null || h.plannedPassengerCount() <= 0
                 || h.actualPassengerCount() == null || h.actualPassengerCount() < 0
                 || h.actualPassengerCount() > h.plannedPassengerCount()
-                || h.driverStartStatus() == null) {
+                || h.driverStartStatus() == null
+                || h.driverEndStatus() == null
+                || h.driverEndHasActualPoint() == null) {
             throw invalidStoredPlan();
         }
         boolean activeHoldProjection = h.safetyHoldStartedAt() != null || h.safetyMessage() != null
@@ -126,25 +130,32 @@ public class TripDetailSnapshotValidator {
             throw invalidStoredPlan();
         if (p.noShowAt() != null && p.noShowAt().isBefore(p.acceptedAt()))
             throw invalidStoredPlan();
+        if (p.droppedOffAt() != null && (p.boardedAt() == null || p.droppedOffAt().isBefore(p.boardedAt())))
+            throw invalidStoredPlan();
         switch (p.status()) {
             case ON_BOARD -> {
-                if (p.boardedAt() == null || p.noShowAt() != null)
+                if (p.boardedAt() == null || p.noShowAt() != null || p.droppedOffAt() != null)
+                    throw invalidStoredPlan();
+            }
+            case COMPLETED -> {
+                if (p.boardedAt() == null || p.noShowAt() != null || p.droppedOffAt() == null)
                     throw invalidStoredPlan();
             }
             case NO_SHOW -> {
-                if (p.noShowAt() == null || p.boardedAt() != null)
+                if (p.noShowAt() == null || p.boardedAt() != null || p.droppedOffAt() != null)
                     throw invalidStoredPlan();
             }
             case ABORTED -> {
-                if (p.noShowAt() != null)
+                if (p.noShowAt() != null || p.droppedOffAt() != null)
                     throw invalidStoredPlan();
+
             }
             case ACCEPTED, CANCELLED_BY_DRIVER -> {
-                if (p.boardedAt() != null || p.noShowAt() != null)
+                if (p.boardedAt() != null || p.noShowAt() != null || p.droppedOffAt() != null)
                     throw invalidStoredPlan();
             }
             default -> {
-                if (p.boardedAt() != null || p.noShowAt() != null)
+                if (p.boardedAt() != null || p.noShowAt() != null || p.droppedOffAt() != null)
                     throw outsideCurrentScope();
             }
         }
@@ -168,7 +179,9 @@ public class TripDetailSnapshotValidator {
         var h = snapshot.header();
         if (h.routeStatus() != TrangThaiLoTrinh.LOCKED || h.startedAt() != null || h.endedAt() != null
                 || h.cancelledAt() != null || h.cancellationReason() != null || h.actualPassengerCount() != 0
-                || h.driverStartStatus() != TrangThaiDiemDung.PENDING || h.driverStartCompletedAt() != null)
+                || h.driverStartStatus() != TrangThaiDiemDung.PENDING || h.driverStartCompletedAt() != null
+                || h.driverEndStatus() != TrangThaiDiemDung.PENDING || h.driverEndCompletedAt() != null
+                || Boolean.TRUE.equals(h.driverEndHasActualPoint()))
             throw invalidStoredPlan();
         if (snapshot.participants().stream().anyMatch(p -> p.status() != TrangThaiYeuCau.ACCEPTED))
             throw invalidStoredPlan();
@@ -179,7 +192,10 @@ public class TripDetailSnapshotValidator {
     private static void validateOperationalAfterStart(TripDetailSnapshot snapshot) {
         var h = snapshot.header();
         validateStartedHeader(h);
-        if (h.endedAt() != null)
+        if (h.endedAt() != null
+                || h.driverEndStatus() != TrangThaiDiemDung.PENDING
+                || h.driverEndCompletedAt() != null
+                || Boolean.TRUE.equals(h.driverEndHasActualPoint()))
             throw invalidStoredPlan();
 
         int onBoard = 0;
@@ -193,9 +209,10 @@ public class TripDetailSnapshotValidator {
                 onBoard++;
                 continue;
             }
-            if (p.status() == TrangThaiYeuCau.PICKUP_FAILED
-                    || p.status() == TrangThaiYeuCau.COMPLETED
-                    || p.status() == TrangThaiYeuCau.DISPUTED) {
+            if (p.status() == TrangThaiYeuCau.COMPLETED) {
+                continue;
+            }
+            if (p.status() == TrangThaiYeuCau.PICKUP_FAILED || p.status() == TrangThaiYeuCau.DISPUTED) {
                 throw outsideCurrentScope();
             }
             throw invalidStoredPlan();
@@ -213,11 +230,46 @@ public class TripDetailSnapshotValidator {
         validateParticipantStopConsistency(snapshot, false);
     }
 
+    private static void validateCompleted(TripDetailSnapshot snapshot) {
+        var h = snapshot.header();
+        validateStartedHeader(h);
+        if (h.endedAt() == null || h.endedAt().isBefore(h.startedAt()) || h.actualPassengerCount() != 0
+                || snapshot.currentDriverLocation() != null
+                || h.driverEndStatus() != TrangThaiDiemDung.COMPLETED
+                || h.driverEndCompletedAt() == null
+                || !h.driverEndCompletedAt().equals(h.endedAt())
+                || !Boolean.TRUE.equals(h.driverEndHasActualPoint())) {
+            throw invalidStoredPlan();
+        }
+        if (snapshot.participants().stream().anyMatch(p -> p.status() != TrangThaiYeuCau.COMPLETED
+                && p.status() != TrangThaiYeuCau.NO_SHOW
+                && p.status() != TrangThaiYeuCau.ABORTED)) {
+            throw invalidStoredPlan();
+        }
+        if (h.viewerRole() == TripViewerRole.DRIVER) {
+            validateOperationalStops(snapshot, false);
+            var end = snapshot.stops().stream().filter(s -> s.type() == LoaiDiemDung.DRIVER_END)
+                    .findFirst().orElseThrow(TripDetailSnapshotValidator::invalidStoredPlan);
+            if (end.status() != TrangThaiDiemDung.COMPLETED || end.arrivedAt() != null
+                    || end.waitingStartedAt() != null || end.waitingDeadline() != null
+                    || end.completedAt() == null || !end.completedAt().equals(h.endedAt())) {
+                throw invalidStoredPlan();
+            }
+        } else {
+
+            validateOperationalStops(snapshot, false);
+        }
+        validateParticipantStopConsistency(snapshot, false);
+    }
+
     private static void validateEmergencyAborted(TripDetailSnapshot snapshot) {
         var h = snapshot.header();
         validateStartedHeader(h);
         if (h.endedAt() == null || h.endedAt().isBefore(h.startedAt()) || h.actualPassengerCount() != 0
-                || snapshot.currentDriverLocation() != null)
+                || snapshot.currentDriverLocation() != null
+                || h.driverEndStatus() != TrangThaiDiemDung.CANCELLED
+                || h.driverEndCompletedAt() != null
+                || Boolean.TRUE.equals(h.driverEndHasActualPoint()))
             throw invalidStoredPlan();
         for (var p : snapshot.participants()) {
             if (p.status() != TrangThaiYeuCau.ABORTED && p.status() != TrangThaiYeuCau.NO_SHOW)
@@ -238,10 +290,24 @@ public class TripDetailSnapshotValidator {
 
     private static void validateOperationalStops(TripDetailSnapshot snapshot, boolean terminalAbort) {
         int arrivedPickups = 0;
+        int arrivedDropoffs = 0;
+        Long firstUnresolvedStopId = snapshot.header().viewerRole() == TripViewerRole.DRIVER
+                ? snapshot.stops().stream()
+                        .filter(stop -> stop.status().isUnresolvedForTripProgression())
+                        .map(com.zanh.route_sharing.repository.sharedroute.tripquery.model.TripDetailStopRow::stopId)
+                        .findFirst().orElse(null)
+                : null;
         for (var s : snapshot.stops()) {
             if (s.type() == LoaiDiemDung.DRIVER_START) {
                 if (s.status() != TrangThaiDiemDung.COMPLETED || s.arrivedAt() != null || s.waitingStartedAt() != null
                         || s.waitingDeadline() != null || s.completedAt() == null)
+                    throw invalidStoredPlan();
+                continue;
+            }
+            if (s.type() == LoaiDiemDung.DRIVER_END && s.status() == TrangThaiDiemDung.COMPLETED) {
+                if (snapshot.header().tripStatus() != TrangThaiVanHanhChuyenDi.COMPLETED
+                        || s.arrivedAt() != null || s.waitingStartedAt() != null || s.waitingDeadline() != null
+                        || s.completedAt() == null)
                     throw invalidStoredPlan();
                 continue;
             }
@@ -253,7 +319,8 @@ public class TripDetailSnapshotValidator {
             if (s.status() == TrangThaiDiemDung.CANCELLED) {
                 if (!terminalAbort && s.type() == LoaiDiemDung.DRIVER_END)
                     throw invalidStoredPlan();
-
+                // Safety cancellation preserves any real arrival/wait evidence already
+                // recorded, but never fabricates completion.
                 if (s.completedAt() != null)
                     throw invalidStoredPlan();
                 continue;
@@ -274,8 +341,24 @@ public class TripDetailSnapshotValidator {
                     throw invalidStoredPlan();
                 continue;
             }
+            if (s.type() == LoaiDiemDung.DROPOFF && s.status() == TrangThaiDiemDung.ARRIVED) {
+                if (terminalAbort || s.arrivedAt() == null || s.waitingStartedAt() != null
+                        || s.waitingDeadline() != null || s.completedAt() != null
+                        || (snapshot.header().viewerRole() == TripViewerRole.DRIVER
+                                && !java.util.Objects.equals(firstUnresolvedStopId, s.stopId())))
+                    throw invalidStoredPlan();
+                arrivedDropoffs++;
+                continue;
+            }
             if (s.type() == LoaiDiemDung.DROPOFF && s.status() == TrangThaiDiemDung.SKIPPED) {
                 if (hasAnyTimingEvidence(s))
+                    throw invalidStoredPlan();
+                continue;
+            }
+            if (s.type() == LoaiDiemDung.DROPOFF && s.status() == TrangThaiDiemDung.COMPLETED) {
+                if (terminalAbort || s.arrivedAt() == null || s.waitingStartedAt() != null
+                        || s.waitingDeadline() != null
+                        || s.completedAt() == null || s.completedAt().isBefore(s.arrivedAt()))
                     throw invalidStoredPlan();
                 continue;
             }
@@ -291,6 +374,8 @@ public class TripDetailSnapshotValidator {
         }
         if (!terminalAbort && snapshot.header().viewerRole() == TripViewerRole.DRIVER && arrivedPickups > 1)
             throw outsideCurrentScope();
+        if (!terminalAbort && snapshot.header().viewerRole() == TripViewerRole.DRIVER && arrivedDropoffs > 1)
+            throw invalidStoredPlan();
     }
 
     private static void validateParticipantStopConsistency(TripDetailSnapshot snapshot, boolean terminalAbort) {
@@ -302,7 +387,19 @@ public class TripDetailSnapshotValidator {
 
             if (p.status() == TrangThaiYeuCau.ON_BOARD) {
                 if (pickup.status() != TrangThaiDiemDung.COMPLETED || pickup.completedAt() == null
-                        || !pickup.completedAt().equals(p.boardedAt()))
+                        || !pickup.completedAt().equals(p.boardedAt())
+                        || (dropoff.status() != TrangThaiDiemDung.PENDING
+                                && dropoff.status() != TrangThaiDiemDung.ARRIVED))
+                    throw invalidStoredPlan();
+            }
+            if (p.status() == TrangThaiYeuCau.COMPLETED) {
+                if (pickup.status() != TrangThaiDiemDung.COMPLETED || pickup.completedAt() == null
+                        || !pickup.completedAt().equals(p.boardedAt())
+                        || dropoff.status() != TrangThaiDiemDung.COMPLETED || dropoff.arrivedAt() == null
+                        || dropoff.completedAt() == null || p.droppedOffAt() == null
+                        || !dropoff.completedAt().equals(p.droppedOffAt())
+                        || dropoff.arrivedAt().isBefore(p.boardedAt())
+                        || p.droppedOffAt().isBefore(dropoff.arrivedAt()))
                     throw invalidStoredPlan();
             }
             if (p.status() == TrangThaiYeuCau.NO_SHOW) {
@@ -341,7 +438,9 @@ public class TripDetailSnapshotValidator {
                 || h.cancelledAt() == null || h.cancelledAt().isBefore(h.formedAt()) || h.cancellationReason() == null
                 || h.cancellationReason().isBlank() || h.cancellationReason().length() > 2000
                 || h.actualPassengerCount() != 0
-                || h.driverStartStatus() != TrangThaiDiemDung.CANCELLED || h.driverStartCompletedAt() != null)
+                || h.driverStartStatus() != TrangThaiDiemDung.CANCELLED || h.driverStartCompletedAt() != null
+                || h.driverEndStatus() != TrangThaiDiemDung.CANCELLED || h.driverEndCompletedAt() != null
+                || Boolean.TRUE.equals(h.driverEndHasActualPoint()))
             throw invalidStoredPlan();
         if (snapshot.participants().stream().anyMatch(p -> p.status() != TrangThaiYeuCau.CANCELLED_BY_DRIVER))
             throw invalidStoredPlan();

@@ -34,6 +34,9 @@ final class PostgisTripDetailQuerySql {
           trip.so_khach_thuc_te AS actual_passenger_count,
           driver_start.trang_thai_diem_dung AS driver_start_status,
           driver_start.hoan_thanh_luc AS driver_start_completed_at,
+          driver_end.trang_thai_diem_dung AS driver_end_status,
+          driver_end.hoan_thanh_luc AS driver_end_completed_at,
+          (driver_end.toa_do_thuc_te IS NOT NULL) AS driver_end_has_actual_point,
           ST_AsGeoJSON(trip.tuyen_duong_van_hanh) AS operational_route_geo_json,
           route.id AS route_id,
           route.trang_thai_lo_trinh AS route_status,
@@ -64,6 +67,9 @@ final class PostgisTripDetailQuerySql {
       LEFT JOIN diem_dung_hanh_trinh driver_start
         ON driver_start.chuyen_di_id = trip.id
        AND driver_start.loai_diem_dung = 'DRIVER_START'
+      LEFT JOIN diem_dung_hanh_trinh driver_end
+        ON driver_end.chuyen_di_id = trip.id
+       AND driver_end.loai_diem_dung = 'DRIVER_END'
       WHERE trip.id = :tripId
         AND (
               route.tai_xe_id = :actorUserId
@@ -86,6 +92,7 @@ final class PostgisTripDetailQuerySql {
           request.chap_nhan_luc AS accepted_at,
           request.len_xe_luc AS boarded_at,
           request.khong_den_luc AS no_show_at,
+          request.xuong_xe_luc AS dropped_off_at,
           request.loai_ghep_tuyen AS match_type,
           request.loai_diem_tha AS dropoff_type,
           request.muc_ho_tro_da_thoa_thuan AS agreed_support_amount,

@@ -23,6 +23,10 @@ public class TripDetailResponseMapper {
 
         public TripDetailResponse toResponse(TripDetailSnapshot snapshot, Instant readAt) {
                 var h = snapshot.header();
+                boolean completedPassengerView = h.viewerRole() == TripViewerRole.PASSENGER
+                                && snapshot.participants().size() == 1
+                                && snapshot.participants().get(0)
+                                                .status() == com.zanh.route_sharing.domain.enums.TrangThaiYeuCau.COMPLETED;
                 var participants = snapshot.participants().stream()
                                 .map(p -> new TripDetailResponse.Participant(
                                                 p.rideRequestId(),
@@ -30,7 +34,7 @@ public class TripDetailResponseMapper {
                                                                 p.passengerAvatarUrl()),
                                                 new TripDetailResponse.Booking(
                                                                 p.status(), p.acceptedAt(), p.boardedAt(), p.noShowAt(),
-                                                                p.matchType(),
+                                                                p.droppedOffAt(), p.matchType(),
                                                                 p.dropoffType(), p.agreedSupportAmount(), p.note()),
                                                 p.pickupStopId(),
                                                 p.dropoffStopId()))
@@ -48,11 +52,16 @@ public class TripDetailResponseMapper {
                                                 ? TripDetailResponse.ViewerRole.DRIVER
                                                 : TripDetailResponse.ViewerRole.PASSENGER,
                                 new TripDetailResponse.Trip(
-                                                h.tripId(), h.tripStatus(), h.monitoringStatus(), h.signalReferenceAt(),
-                                                h.formedAt(), h.startedAt(), h.endedAt(),
+                                                h.tripId(), completedPassengerView ? null : h.tripStatus(),
+                                                completedPassengerView ? null : h.monitoringStatus(),
+                                                completedPassengerView ? null : h.signalReferenceAt(),
+                                                h.formedAt(), h.startedAt(),
+                                                completedPassengerView ? null : h.endedAt(),
                                                 h.cancelledAt(), h.cancellationReason(),
-                                                h.safetyHoldStartedAt(), h.safetyMessage(),
-                                                h.plannedPassengerCount(), h.actualPassengerCount()),
+                                                completedPassengerView ? null : h.safetyHoldStartedAt(),
+                                                completedPassengerView ? null : h.safetyMessage(),
+                                                h.plannedPassengerCount(),
+                                                completedPassengerView ? null : h.actualPassengerCount()),
                                 new TripDetailResponse.Route(
                                                 h.routeId(), h.routeStatus(), h.lockedAt(), h.expectedDepartureTime(),
                                                 h.offeredSeats(), h.remainingSeats(),
@@ -68,8 +77,8 @@ public class TripDetailResponseMapper {
                                                 readOperationalRoute(h.operationalRouteGeoJson())),
                                 participants,
                                 stops,
-                                activeSafetyHold(snapshot),
-                                currentDriverLocation(snapshot),
+                                completedPassengerView ? null : activeSafetyHold(snapshot),
+                                completedPassengerView ? null : currentDriverLocation(snapshot),
                                 readAt);
         }
 
