@@ -148,7 +148,8 @@ public class TripDetailSnapshotValidator {
             case ABORTED -> {
                 if (p.noShowAt() != null || p.droppedOffAt() != null)
                     throw invalidStoredPlan();
-
+                // boardedAt may be null (aborted before boarding) or non-null (formerly
+                // ON_BOARD).
             }
             case ACCEPTED, CANCELLED_BY_DRIVER -> {
                 if (p.boardedAt() != null || p.noShowAt() != null || p.droppedOffAt() != null)
@@ -256,7 +257,8 @@ public class TripDetailSnapshotValidator {
                 throw invalidStoredPlan();
             }
         } else {
-
+            // Passenger projection intentionally omits DRIVER_END, so the header projection
+            // is authoritative for terminal integrity.
             validateOperationalStops(snapshot, false);
         }
         validateParticipantStopConsistency(snapshot, false);

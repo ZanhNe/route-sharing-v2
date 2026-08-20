@@ -86,6 +86,8 @@ public final class SharedRouteSearchDatabaseFixture {
                                 .soNgayLuuNhatKy(90)
                                 .bookingCutoffSeconds(900L)
                                 .rejectionCooldownSeconds(3600L)
+                                .thoiHanNopKhieuNaiGio(168L)
+                .thoiHanPhanHoiKhieuNaiGio(72L)
                                 .batBuocTepXacNhanChuXeKhiKhongChinhChu(false)
                                 .build();
                 entityManager.persist(configuration);

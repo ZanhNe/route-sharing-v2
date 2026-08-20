@@ -5,10 +5,12 @@ import com.zanh.route_sharing.config.properties.InternalPortalProperties;
 import com.zanh.route_sharing.security.CustomUserDetailsService;
 import com.zanh.route_sharing.security.InternalSessionSecurityFilter;
 import com.zanh.route_sharing.security.JwtAuthenticationFilter;
+import com.zanh.route_sharing.security.OnboardingAuthenticationFilter;
 import com.zanh.route_sharing.security.RestAccessDeniedHandler;
 import com.zanh.route_sharing.security.RestAuthenticationEntryPoint;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
+import org.springframework.boot.web.servlet.FilterRegistrationBean;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.annotation.Order;
@@ -37,12 +39,39 @@ import java.util.List;
 @RequiredArgsConstructor
 public class SecurityConfig {
         private final JwtAuthenticationFilter jwtAuthenticationFilter;
+        private final OnboardingAuthenticationFilter onboardingAuthenticationFilter;
         private final InternalSessionSecurityFilter internalSessionSecurityFilter;
         private final CustomUserDetailsService userDetailsService;
         private final RestAuthenticationEntryPoint authenticationEntryPoint;
         private final RestAccessDeniedHandler accessDeniedHandler;
         private final CorsProperties corsProperties;
         private final InternalPortalProperties internalPortalProperties;
+
+        @Bean
+        FilterRegistrationBean<JwtAuthenticationFilter> jwtAuthenticationFilterRegistration(
+                        JwtAuthenticationFilter filter) {
+                FilterRegistrationBean<JwtAuthenticationFilter> registration = new FilterRegistrationBean<>(filter);
+                registration.setEnabled(false);
+                return registration;
+        }
+
+        @Bean
+        FilterRegistrationBean<OnboardingAuthenticationFilter> onboardingAuthenticationFilterRegistration(
+                        OnboardingAuthenticationFilter filter) {
+                FilterRegistrationBean<OnboardingAuthenticationFilter> registration = new FilterRegistrationBean<>(
+                                filter);
+                registration.setEnabled(false);
+                return registration;
+        }
+
+        @Bean
+        FilterRegistrationBean<InternalSessionSecurityFilter> internalSessionSecurityFilterRegistration(
+                        InternalSessionSecurityFilter filter) {
+                FilterRegistrationBean<InternalSessionSecurityFilter> registration = new FilterRegistrationBean<>(
+                                filter);
+                registration.setEnabled(false);
+                return registration;
+        }
 
         @Bean
         PasswordEncoder passwordEncoder() {
@@ -100,9 +129,12 @@ public class SecurityConfig {
                                                 .accessDeniedHandler(accessDeniedHandler))
                                 .authorizeHttpRequests(authorize -> authorize
                                                 .requestMatchers("/api/v1/auth/**").permitAll()
+                                                .requestMatchers("/api/v1/onboarding/**")
+                                                .hasAuthority(OnboardingAuthenticationFilter.ONBOARDING_ACCESS)
                                                 .anyRequest().authenticated())
                                 .authenticationProvider(authenticationProvider)
-                                .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
+                                .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)
+                                .addFilterBefore(onboardingAuthenticationFilter, JwtAuthenticationFilter.class);
                 return http.build();
         }
 

@@ -32,6 +32,8 @@ import org.springframework.web.servlet.resource.NoResourceFoundException;
 import org.springframework.web.method.annotation.HandlerMethodValidationException;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 import org.springframework.web.multipart.MaxUploadSizeExceededException;
+import org.springframework.web.multipart.MultipartException;
+import org.springframework.web.multipart.support.MissingServletRequestPartException;
 
 import java.time.Clock;
 import java.util.LinkedHashMap;
@@ -171,6 +173,19 @@ public class GlobalExceptionHandler {
         log.warn("Database constraint violation: {}", ex.getMostSpecificCause().getClass().getSimpleName());
         return response(HttpStatus.CONFLICT, "DATA_INTEGRITY_VIOLATION",
                 "Dữ liệu xung đột với ràng buộc hệ thống.", request, null, null);
+    }
+
+    @ExceptionHandler(MissingServletRequestPartException.class)
+    ResponseEntity<ApiErrorResponse> missingMultipartPart(MissingServletRequestPartException ex,
+            HttpServletRequest request) {
+        return response(HttpStatus.BAD_REQUEST, "MALFORMED_REQUEST",
+                "Thiếu phần multipart bắt buộc: " + ex.getRequestPartName() + ".", request, null, null);
+    }
+
+    @ExceptionHandler(MultipartException.class)
+    ResponseEntity<ApiErrorResponse> malformedMultipart(MultipartException ex, HttpServletRequest request) {
+        return response(HttpStatus.BAD_REQUEST, "MALFORMED_REQUEST", "Dữ liệu multipart không đúng định dạng.", request,
+                null, null);
     }
 
     @ExceptionHandler(MaxUploadSizeExceededException.class)

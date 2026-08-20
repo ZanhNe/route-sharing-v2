@@ -21,3 +21,6 @@ Thumbs.db
 /backups/
 
 test/
+
+# Private local evidence storage (E8-02)
+.routeshare-data/

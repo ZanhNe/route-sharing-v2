@@ -71,7 +71,7 @@ public class WebSocketJwtAuthenticationInterceptor implements ChannelInterceptor
             return;
         }
 
-        String token = bearerToken(accessor);
+        String token = bearerTokenAndRedact(accessor);
         try {
             JwtAccessClaims claims = jwtUtil.parseAccessToken(token);
             SecurityState current = securityStateService.requireCurrent(claims.userId());
@@ -110,9 +110,19 @@ public class WebSocketJwtAuthenticationInterceptor implements ChannelInterceptor
         }
     }
 
-    private static String bearerToken(StompHeaderAccessor accessor) {
+    private static String bearerTokenAndRedact(StompHeaderAccessor accessor) {
         List<String> headers = accessor.getNativeHeader("Authorization");
-        if (headers == null || headers.size() != 1) {
+        if (headers == null) {
+            throw new BadCredentialsException("Thiếu Bearer token trong STOMP CONNECT");
+        }
+
+        // The inbound channel is configured with preserveReceiveOrder=true. Spring's
+        // OrderedMessageChannelDecorator logs the whole Message if a downstream
+        // ChannelInterceptor throws. Remove credential material before any validation
+        // can fail so rejected CONNECT frames never place bearer tokens in server logs.
+        accessor.removeNativeHeader("Authorization");
+
+        if (headers.size() != 1) {
             throw new BadCredentialsException("Thiếu hoặc không rõ ràng Bearer token trong STOMP CONNECT");
         }
         String header = headers.get(0);

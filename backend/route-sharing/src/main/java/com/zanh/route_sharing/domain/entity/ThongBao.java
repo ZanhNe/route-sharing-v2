@@ -522,6 +522,61 @@ public class ThongBao extends Base {
                 }
         }
 
+        public static ThongBao complaintReviewStarted(KhieuNai complaint, NguoiDung recipient) {
+                requireComplaintNotification(complaint, recipient);
+                String content = "Khiếu nại đã được tiếp nhận xử lý. Vui lòng mở chi tiết khiếu nại để xem trạng thái và thời hạn phản hồi.";
+                return complaintNotification(complaint, recipient, "Khiếu nại đã được tiếp nhận", content,
+                                "E8-03:COMPLAINT:" + complaint.getId() + ":RECIPIENT:" + recipient.getId()
+                                                + ":REVIEW_STARTED");
+        }
+
+        public static ThongBao complaintMoreEvidenceRequested(KhieuNai complaint, NguoiDung recipient,
+                        long historySequence) {
+                requireComplaintNotification(complaint, recipient);
+                if (historySequence <= 0 || complaint.getTrangThaiKhieuNai() != TrangThaiKhieuNai.NEED_MORE_EVIDENCE) {
+                        throw new IllegalArgumentException("Complaint evidence request notification không hợp lệ.");
+                }
+                String content = "Bạn được yêu cầu bổ sung bằng chứng cho khiếu nại. Vui lòng mở chi tiết để xem nội dung yêu cầu và thời hạn.";
+                return complaintNotification(complaint, recipient, "Yêu cầu bổ sung bằng chứng", content,
+                                "E8-03:COMPLAINT:" + complaint.getId() + ":REQUEST_SEQ:" + historySequence
+                                                + ":RECIPIENT:" + recipient.getId() + ":MORE_EVIDENCE_REQUESTED");
+        }
+
+        public static ThongBao complaintReviewFinalized(KhieuNai complaint, NguoiDung recipient) {
+                requireComplaintNotification(complaint, recipient);
+                if (complaint.getTrangThaiKhieuNai() != TrangThaiKhieuNai.ACCEPTED
+                                && complaint.getTrangThaiKhieuNai() != TrangThaiKhieuNai.REJECTED) {
+                        throw new IllegalArgumentException("Complaint chưa có kết quả review cuối.");
+                }
+                String content = "Khiếu nại đã có kết quả " + complaint.getTrangThaiKhieuNai().name()
+                                + ". Vui lòng mở chi tiết để xem kết luận phù hợp với quyền của bạn.";
+                return complaintNotification(complaint, recipient, "Khiếu nại đã có kết quả", content,
+                                "E8-03:COMPLAINT:" + complaint.getId() + ":RECIPIENT:" + recipient.getId()
+                                                + ":REVIEW_FINALIZED:" + complaint.getTrangThaiKhieuNai().name());
+        }
+
+        private static ThongBao complaintNotification(KhieuNai complaint, NguoiDung recipient,
+                        String title, String content, String deduplicationKey) {
+                return ThongBao.builder()
+                                .loaiThongBao(LoaiThongBao.COMPLAINT_UPDATE)
+                                .tieuDe(title)
+                                .noiDung(content)
+                                .kenhGui(KenhThongBao.IN_APP)
+                                .trangThaiThongBao(TrangThaiThongBao.PENDING)
+                                .loaiDoiTuongLienQuan("KHIEU_NAI")
+                                .doiTuongLienQuanId(complaint.getId())
+                                .deduplicationKey(deduplicationKey)
+                                .nguoiNhan(recipient)
+                                .build();
+        }
+
+        private static void requireComplaintNotification(KhieuNai complaint, NguoiDung recipient) {
+                if (complaint == null || complaint.getId() == null || recipient == null || recipient.getId() == null
+                                || !complaint.isParticipant(recipient.getId())) {
+                        throw new IllegalArgumentException("Complaint/recipient notification không hợp lệ.");
+                }
+        }
+
         private static ThongBao bookingCancellation(
                         YeuCauDiChung rideRequest,
                         NguoiDung recipient,

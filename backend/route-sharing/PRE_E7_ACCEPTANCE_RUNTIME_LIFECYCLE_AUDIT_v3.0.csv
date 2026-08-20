@@ -1,0 +1,23 @@
+Phase,Step,RuntimeOwner,Topology,HistoricalShutdown,V3Isolation
+E1,E1-Core,accept-e1-core.ps1,DIRECT_SERVER,taskkill-no-wait,OUTER_PROCESS_AND_PORT_BARRIER
+E2,E2-01,accept-e2-01-cooldown-route-api.ps1 -> accept-e2-e3-business-correction-api-core.ps1,NESTED_CORE_SERVER,taskkill-no-wait,OUTER_PROCESS_AND_PORT_BARRIER
+E2,E2-02,pre-e7-accept-e2-02-current.ps1 -> accept-e2-02-api-core.ps1,TWO_INTERNAL_SERVERS,taskkill-no-wait,INNER_AND_OUTER_PROCESS_AND_PORT_BARRIER
+E2,E2-03,pre-e7-accept-e2-03-current.ps1 -> accept-e2-03-api-core.ps1,TWO_INTERNAL_SERVERS,taskkill-no-wait,INNER_AND_OUTER_PROCESS_AND_PORT_BARRIER
+RT,RT-E2-E3,accept-realtime-e2-e3.ps1,DIRECT_SERVER,taskkill-no-wait,OUTER_PROCESS_AND_PORT_BARRIER
+E3,E3-01,pre-e7-accept-e3-01-current.ps1 -> accept-e2-e3-business-correction-api-core.ps1,TWO_INTERNAL_SERVERS,taskkill-no-wait,INNER_AND_OUTER_PROCESS_AND_PORT_BARRIER
+E3,E3-S01,accept-e3-s01-api.ps1,DIRECT_SERVER,taskkill-no-wait,OUTER_PROCESS_AND_PORT_BARRIER
+E3,E3-03,pre-e7-accept-e3-03-current-v3.ps1 -> accept-e3-03-api.ps1/core,FOUR_CHILD_SCENARIO_SERVERS,taskkill-no-wait,INNER_CHILD_AND_OUTER_PROCESS_AND_PORT_BARRIER
+E3,E3-S02,accept-e3-s02-api.ps1,DIRECT_SERVER,taskkill-no-wait,OUTER_PROCESS_AND_PORT_BARRIER
+E4,E4-01,accept-e4-01.ps1,DIRECT_SERVER,taskkill-no-wait,OUTER_PROCESS_AND_PORT_BARRIER
+E4,E4-S01,accept-e4-s01.ps1,DIRECT_SERVER,taskkill-no-wait,OUTER_PROCESS_AND_PORT_BARRIER
+E5,E5-05,accept-e5-05.ps1,DIRECT_SERVER,taskkill-no-wait,OUTER_PROCESS_AND_PORT_BARRIER
+E5,E5-01,accept-e5-01.ps1,DIRECT_SERVER,taskkill-no-wait,OUTER_PROCESS_AND_PORT_BARRIER
+E5,E5-S01,accept-e5-s01.ps1,DIRECT_SERVER,taskkill-no-wait,OUTER_PROCESS_AND_PORT_BARRIER
+E5,E5-02,accept-e5-02.ps1,DIRECT_SERVER,taskkill-no-wait,OUTER_PROCESS_AND_PORT_BARRIER
+E5,E5-03,accept-e5-03.ps1,DIRECT_SERVER,taskkill-no-wait,OUTER_PROCESS_AND_PORT_BARRIER
+E5,E5-04,accept-e5-04.ps1,DIRECT_SERVER,taskkill-no-wait,OUTER_PROCESS_AND_PORT_BARRIER
+E6,E6-01,accept-e6-01.ps1,DIRECT_SERVER,taskkill-no-wait,OUTER_PROCESS_AND_PORT_BARRIER
+E6,E6-02,accept-e6-02.ps1,DIRECT_SERVER,taskkill-plus-wait-process,OUTER_PROCESS_AND_PORT_BARRIER
+E6,E6-03,accept-e6-03.ps1,DIRECT_SERVER,taskkill-no-wait,OUTER_PROCESS_AND_PORT_BARRIER
+E6,E6-05,accept-e6-05.ps1,DIRECT_SERVER,taskkill-plus-wait-process,OUTER_PROCESS_AND_PORT_BARRIER
+E6,E6-06,accept-e6-06.ps1,SIX_INTERNAL_SERVERS,taskkill-wait-port-check,NATIVE_INNER_ISOLATION_PLUS_OUTER_BARRIER

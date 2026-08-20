@@ -98,12 +98,12 @@ public class JpaPassengerBoardingCodeRepository implements PassengerBoardingCode
     private ChuyenDi lockTrip(Long actorId, Long tripId) {
         try {
             return entityManager.createQuery(
-                    "select trip from ChuyenDi trip "
-                            + "join fetch trip.loTrinhChiaSe route "
-                            + "where trip.id = :tripId "
-                            + "and exists (select 1 from YeuCauDiChung ownRequest "
-                            + "where ownRequest.chuyenDi = trip and ownRequest.hanhKhach.id = :actorId)",
-                    ChuyenDi.class)
+                            "select trip from ChuyenDi trip "
+                                    + "join fetch trip.loTrinhChiaSe route "
+                                    + "where trip.id = :tripId "
+                                    + "and exists (select 1 from YeuCauDiChung ownRequest "
+                                    + "where ownRequest.chuyenDi = trip and ownRequest.hanhKhach.id = :actorId)",
+                            ChuyenDi.class)
                     .setParameter("tripId", tripId)
                     .setParameter("actorId", actorId)
                     .setLockMode(LockModeType.PESSIMISTIC_WRITE)
@@ -118,12 +118,12 @@ public class JpaPassengerBoardingCodeRepository implements PassengerBoardingCode
     private List<DiemDungHanhTrinh> lockTripStops(Long tripId) {
         try {
             return entityManager.createQuery(
-                    "select stop from DiemDungHanhTrinh stop "
-                            + "left join fetch stop.yeuCauDiChung booking "
-                            + "left join fetch booking.hanhKhach passenger "
-                            + "where stop.chuyenDi.id = :tripId "
-                            + "order by stop.thuTu asc, stop.id asc",
-                    DiemDungHanhTrinh.class)
+                            "select stop from DiemDungHanhTrinh stop "
+                                    + "left join fetch stop.yeuCauDiChung booking "
+                                    + "left join fetch booking.hanhKhach passenger "
+                                    + "where stop.chuyenDi.id = :tripId "
+                                    + "order by stop.thuTu asc, stop.id asc",
+                            DiemDungHanhTrinh.class)
                     .setParameter("tripId", tripId)
                     .setLockMode(LockModeType.PESSIMISTIC_WRITE)
                     .getResultList();
@@ -135,9 +135,9 @@ public class JpaPassengerBoardingCodeRepository implements PassengerBoardingCode
     private List<ThongTinXacThucLenXe> lockCredential(Long pickupStopId) {
         try {
             return entityManager.createQuery(
-                    "select credential from ThongTinXacThucLenXe credential "
-                            + "where credential.diemDungHanhTrinh.id = :pickupStopId",
-                    ThongTinXacThucLenXe.class)
+                            "select credential from ThongTinXacThucLenXe credential "
+                                    + "where credential.diemDungHanhTrinh.id = :pickupStopId",
+                            ThongTinXacThucLenXe.class)
                     .setParameter("pickupStopId", pickupStopId)
                     .setLockMode(LockModeType.PESSIMISTIC_WRITE)
                     .getResultList();
@@ -212,8 +212,7 @@ public class JpaPassengerBoardingCodeRepository implements PassengerBoardingCode
     }
 
     private static BusinessException noUnresolvedStop() {
-        return new BusinessException(HttpStatus.CONFLICT, "NO_UNRESOLVED_TRIP_STOP",
-                "Không còn điểm dừng chưa giải quyết.");
+        return new BusinessException(HttpStatus.CONFLICT, "NO_UNRESOLVED_TRIP_STOP", "Không còn điểm dừng chưa giải quyết.");
     }
 
     private static BusinessException codeNotAvailable() {

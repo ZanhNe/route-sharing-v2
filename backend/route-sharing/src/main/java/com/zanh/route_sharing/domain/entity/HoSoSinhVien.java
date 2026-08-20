@@ -16,10 +16,12 @@ import java.time.LocalDate;
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @SuperBuilder
 public class HoSoSinhVien extends HoSoThanhVien {
+    @Column(name = "ma_so_sinh_vien", length = 100)
+    private String maSoSinhVien;
     @Column(name = "ngay_nhap_hoc")
     private LocalDate ngayNhapHoc;
     @Enumerated(EnumType.STRING)
-    @Column(name = "trang_thai_hoc_tap", nullable = false, length = 30)
+    @Column(name = "trang_thai_hoc_tap", length = 30)
     private TrangThaiHocTap trangThaiHocTap;
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "lop_id")

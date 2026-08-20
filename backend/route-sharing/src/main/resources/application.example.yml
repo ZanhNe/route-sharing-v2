@@ -45,6 +45,8 @@ app:
       - ${APPLICATION_ORIGIN:http://localhost:8080}
   internal-portal:
     required-authority: ${INTERNAL_PORTAL_AUTHORITY:ACCESS_INTERNAL_PORTAL}
+  evidence-storage:
+    root: ${EVIDENCE_STORAGE_ROOT:./.routeshare-data/evidence}
   boarding-code:
     active-key-version: ${BOARDING_CODE_ACTIVE_KEY_VERSION:v1}
     keys:
@@ -60,6 +62,15 @@ app:
     access-token-ttl: 20m
     refresh-token-ttl: 7d
     clock-skew: 30s
+
+  onboarding-auth:
+    access-token-ttl: ${ONBOARDING_ACCESS_TOKEN_TTL:30m}
+
+  registration-abuse:
+    window: ${REGISTRATION_ABUSE_WINDOW:10m}
+    per-ip-attempts: ${REGISTRATION_ABUSE_PER_IP_ATTEMPTS:30}
+    per-email-attempts: ${REGISTRATION_ABUSE_PER_EMAIL_ATTEMPTS:5}
+    max-tracked-keys: ${REGISTRATION_ABUSE_MAX_TRACKED_KEYS:10000}
 
 goong:
   api-key: ${GOONG_API_KEY}

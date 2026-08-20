@@ -12,10 +12,12 @@ import com.zanh.route_sharing.domain.entity.LoTrinhChiaSe;
 import com.zanh.route_sharing.domain.entity.NguoiDung;
 import com.zanh.route_sharing.domain.entity.NhaTruong;
 import com.zanh.route_sharing.domain.entity.NhomQuyen;
+import com.zanh.route_sharing.domain.entity.VanBanPhapLy;
 import com.zanh.route_sharing.domain.entity.PhuongTien;
 import com.zanh.route_sharing.domain.entity.QuyenHan;
 import com.zanh.route_sharing.domain.enums.CoSoSuDungPhuongTien;
 import com.zanh.route_sharing.domain.enums.LoaiPhuongTien;
+import com.zanh.route_sharing.domain.enums.LoaiVanBanPhapLy;
 import com.zanh.route_sharing.domain.enums.TrangThaiHoSoThanhVien;
 import com.zanh.route_sharing.domain.enums.TrangThaiCongTac;
 import com.zanh.route_sharing.domain.enums.TrangThaiHocTap;
@@ -90,6 +92,13 @@ public class DevSeedDataService {
         private static final String SUBMIT_OWN_TRIP_LOCATION_PERMISSION = "SUBMIT_OWN_TRIP_LOCATION";
         private static final String REPORT_OWN_TRIP_INCIDENT_PERMISSION = "REPORT_OWN_TRIP_INCIDENT";
         private static final String MANAGE_OWN_TRIP_SAFETY_INTERVENTION_PERMISSION = "MANAGE_OWN_TRIP_SAFETY_INTERVENTION";
+        private static final String SUBMIT_OWN_COMPLAINT_PERMISSION = "SUBMIT_OWN_COMPLAINT";
+        private static final String ADD_OWN_COMPLAINT_EVIDENCE_PERMISSION = "ADD_OWN_COMPLAINT_EVIDENCE";
+        private static final String VIEW_OWN_COMPLAINT_EVIDENCE_PERMISSION = "VIEW_OWN_COMPLAINT_EVIDENCE";
+        private static final String HANDLE_COMPLAINT_PERMISSION = "HANDLE_COMPLAINT";
+        private static final String REASSIGN_COMPLAINT_PERMISSION = "REASSIGN_COMPLAINT";
+        private static final String VIEW_COMPLAINT_SENSITIVE_EVIDENCE_PERMISSION = "VIEW_COMPLAINT_SENSITIVE_EVIDENCE";
+        private static final String PARTICIPATE_IN_OWN_COMPLAINT_REVIEW_PERMISSION = "PARTICIPATE_IN_OWN_COMPLAINT_REVIEW";
         private static final String HANDLE_INCIDENT_PERMISSION = "HANDLE_INCIDENT";
         private static final String INTERVENE_TRIP_SAFETY_PERMISSION = "INTERVENE_TRIP_SAFETY";
         private static final String VIEW_SAFETY_INVESTIGATION_EVIDENCE_PERMISSION = "VIEW_SAFETY_INVESTIGATION_EVIDENCE";
@@ -110,6 +119,7 @@ public class DevSeedDataService {
         private final DongXeSeedRepository modelRepository;
         private final PhuongTienRepository vehicleRepository;
         private final NhaTruongSeedRepository schoolRepository;
+        private final VanBanPhapLySeedRepository legalDocumentRepository;
         private final CauHinhNghiepVuSeedRepository configurationRepository;
         private final HoSoSinhVienSeedRepository membershipRepository;
         private final HoSoNhanSuSeedRepository staffMembershipRepository;
@@ -218,6 +228,35 @@ public class DevSeedDataService {
                                 MANAGE_OWN_TRIP_SAFETY_INTERVENTION_PERMISSION,
                                 "Xử lý can thiệp an toàn chuyến của mình",
                                 "Cho phép Driver xác nhận safe-exit hoặc escalates active Safety hold của chính Trip mình.");
+                QuyenHan submitOwnComplaintPermission = ensurePermission(
+                                SUBMIT_OWN_COMPLAINT_PERMISSION,
+                                "Nộp khiếu nại của mình",
+                                "Cho phép Driver hoặc Passenger nộp một khiếu nại hậu sự kiện cho exact booking mình tham gia.");
+                QuyenHan addOwnComplaintEvidencePermission = ensurePermission(
+                                ADD_OWN_COMPLAINT_EVIDENCE_PERMISSION,
+                                "Bổ sung bằng chứng khiếu nại của mình",
+                                "Cho phép complainant tải bằng chứng bất biến vào complaint SUBMITTED của chính mình.");
+                QuyenHan viewOwnComplaintEvidencePermission = ensurePermission(
+                                VIEW_OWN_COMPLAINT_EVIDENCE_PERMISSION,
+                                "Xem bằng chứng khiếu nại của mình",
+                                "Cho phép complainant liệt kê và tải xuống bằng chứng do chính mình cung cấp.");
+                QuyenHan handleComplaintPermission = ensurePermission(
+                                HANDLE_COMPLAINT_PERMISSION,
+                                "Xử lý khiếu nại",
+                                "Cho phép reviewer đủ điều kiện trong đúng trường tiếp nhận và xử lý complaint.");
+                QuyenHan reassignComplaintPermission = ensurePermission(
+                                REASSIGN_COMPLAINT_PERMISSION,
+                                "Chuyển reviewer khiếu nại",
+                                "Cho phép nhân sự được ủy quyền chuyển reviewer của complaint trong đúng trường.");
+                QuyenHan viewComplaintSensitiveEvidencePermission = ensurePermission(
+                                VIEW_COMPLAINT_SENSITIVE_EVIDENCE_PERMISSION,
+                                "Xem dữ liệu nhạy cảm phục vụ xử lý khiếu nại",
+                                "Cho phép current reviewer đọc raw evidence/location/Safety-sensitive context có audit.");
+                QuyenHan participateComplaintReviewPermission = ensurePermission(
+                                PARTICIPATE_IN_OWN_COMPLAINT_REVIEW_PERMISSION,
+                                "Tham gia xử lý khiếu nại của mình",
+                                "Cho phép exact complainant/respondent xem review, phản hồi và cung cấp review-phase evidence.");
+
                 QuyenHan handleIncidentPermission = ensurePermission(
                                 HANDLE_INCIDENT_PERMISSION,
                                 "Tiếp nhận safety incident",
@@ -253,7 +292,11 @@ public class DevSeedDataService {
                                 confirmOwnTripNoShowPermission,
                                 submitOwnTripLocationPermission,
                                 reportOwnTripIncidentPermission,
-                                manageOwnTripSafetyInterventionPermission);
+                                manageOwnTripSafetyInterventionPermission,
+                                submitOwnComplaintPermission,
+                                addOwnComplaintEvidencePermission,
+                                viewOwnComplaintEvidencePermission,
+                                participateComplaintReviewPermission);
                 retireLegacyPermission(driverGroup, LEGACY_CANCEL_ROUTE_RIDE_REQUEST_PERMISSION);
                 NguoiDung driver = ensureDriverUser(driverGroup, now);
                 HoSoTaiXe driverProfile = ensureDriverProfile(driver, now);
@@ -261,6 +304,7 @@ public class DevSeedDataService {
                 PhuongTien vehicle = ensureVehicle(driver, vehicleModel, now);
 
                 NhaTruong school = ensureSchool();
+                ensureRegistrationLegalDocuments(school, now);
                 CauHinhNghiepVu configuration = ensureBusinessConfiguration(school);
                 NguoiDung passenger = ensurePassengerUser(
                                 searchPermission,
@@ -298,16 +342,31 @@ public class DevSeedDataService {
                 grantDirectPermission(passenger, reportOwnTripIncidentPermission);
                 grantDirectPermission(passenger2, reportOwnTripIncidentPermission);
                 grantDirectPermission(passenger3, reportOwnTripIncidentPermission);
+                grantDirectPermission(passenger, submitOwnComplaintPermission);
+                grantDirectPermission(passenger2, submitOwnComplaintPermission);
+                grantDirectPermission(passenger3, submitOwnComplaintPermission);
+                grantDirectPermission(passenger, addOwnComplaintEvidencePermission);
+                grantDirectPermission(passenger2, addOwnComplaintEvidencePermission);
+                grantDirectPermission(passenger3, addOwnComplaintEvidencePermission);
+                grantDirectPermission(passenger, viewOwnComplaintEvidencePermission);
+                grantDirectPermission(passenger2, viewOwnComplaintEvidencePermission);
+                grantDirectPermission(passenger3, viewOwnComplaintEvidencePermission);
+                grantDirectPermission(passenger, participateComplaintReviewPermission);
+                grantDirectPermission(passenger2, participateComplaintReviewPermission);
+                grantDirectPermission(passenger3, participateComplaintReviewPermission);
                 passenger = userRepository.save(passenger);
                 passenger2 = userRepository.save(passenger2);
                 passenger3 = userRepository.save(passenger3);
                 NguoiDung safety = ensureSafetyUser(
                                 SAFETY_EMAIL, SAFETY_PASSWORD, "Nhân sự Safety Seed E6-05 Lead", now,
                                 handleIncidentPermission, viewSafetyEvidencePermission, reassignIncidentPermission,
-                                interveneTripSafetyPermission);
+                                interveneTripSafetyPermission,
+                                handleComplaintPermission, viewComplaintSensitiveEvidencePermission,
+                                reassignComplaintPermission);
                 NguoiDung safety2 = ensureSafetyUser(
                                 SAFETY2_EMAIL, SAFETY2_PASSWORD, "Nhân sự Safety Seed E6-05 Handler", now,
-                                handleIncidentPermission, viewSafetyEvidencePermission, interveneTripSafetyPermission);
+                                handleIncidentPermission, viewSafetyEvidencePermission, interveneTripSafetyPermission,
+                                handleComplaintPermission, viewComplaintSensitiveEvidencePermission);
                 ensureLoginOnlyUser(
                                 NO_TRIP_VIEW_EMAIL,
                                 NO_TRIP_VIEW_PASSWORD,
@@ -669,6 +728,40 @@ public class DevSeedDataService {
                 return schoolRepository.save(school);
         }
 
+        private void ensureRegistrationLegalDocuments(NhaTruong school, Instant now) {
+                ensureRegistrationLegalDocument(school, "TERMS", LoaiVanBanPhapLy.DIEU_KHOAN_SU_DUNG,
+                                "Điều khoản sử dụng RouteShare", "1.0",
+                                "https://legal.routeshare.local/seed/terms-v1.0", now);
+                ensureRegistrationLegalDocument(school, "RESPONSIBILITY", LoaiVanBanPhapLy.CAM_KET_TRACH_NHIEM,
+                                "Cam kết trách nhiệm khi sử dụng RouteShare", "1.0",
+                                "https://legal.routeshare.local/seed/responsibility-v1.0", now);
+                ensureRegistrationLegalDocument(school, "PRIVACY", LoaiVanBanPhapLy.CHINH_SACH_BAO_MAT,
+                                "Chính sách bảo mật RouteShare", "1.0",
+                                "https://legal.routeshare.local/seed/privacy-v1.0", now);
+        }
+
+        private VanBanPhapLy ensureRegistrationLegalDocument(
+                        NhaTruong school, String code, LoaiVanBanPhapLy type, String title,
+                        String version, String contentUrl, Instant now) {
+                VanBanPhapLy document = legalDocumentRepository
+                                .findByNhaTruong_IdAndMaVanBanAndPhienBan(school.getId(), code, version)
+                                .orElseGet(() -> VanBanPhapLy.builder()
+                                                .nhaTruong(school)
+                                                .maVanBan(code)
+                                                .phienBan(version)
+                                                .build());
+                document.setNhaTruong(school);
+                document.setLoaiVanBan(type);
+                document.setTenVanBan(title);
+                document.setNoiDungUrl(contentUrl);
+                if (document.getHieuLucTu() == null) {
+                        document.setHieuLucTu(now.minusSeconds(1));
+                }
+                document.setHieuLucDen(null);
+                document.setBatBuoc(true);
+                return legalDocumentRepository.save(document);
+        }
+
         private CauHinhNghiepVu ensureBusinessConfiguration(NhaTruong school) {
                 CauHinhNghiepVu configuration = configurationRepository
                                 .findByNhaTruong_Id(school.getId())
@@ -692,6 +785,8 @@ public class DevSeedDataService {
                 configuration.setSoNgayLuuNhatKy(90);
                 configuration.setBookingCutoffSeconds(900L);
                 configuration.setRejectionCooldownSeconds(3600L);
+                configuration.setThoiHanNopKhieuNaiGio(168L);
+                configuration.setThoiHanPhanHoiKhieuNaiGio(72L);
                 configuration.setBatBuocTepXacNhanChuXeKhiKhongChinhChu(false);
                 return configurationRepository.save(configuration);
         }

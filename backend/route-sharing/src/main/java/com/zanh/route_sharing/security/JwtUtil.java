@@ -28,6 +28,7 @@ public class JwtUtil {
     private static final String ACCOUNT_STATUS = "account_status";
     private static final String SECURITY_VERSION = "security_version";
     private static final String AUTHORITIES = "authorities";
+    private static final String ONBOARDING_STEP = "onboarding_step";
 
     private final JwtProperties properties;
     private final SecretKey key;
@@ -77,6 +78,26 @@ public class JwtUtil {
                 properties.getRefreshTokenTtl(), builder -> builder);
     }
 
+    public IssuedToken issueOnboardingToken(Long userId,
+            String email,
+            TrangThaiTaiKhoan accountStatus,
+            long securityVersion,
+            OnboardingStep step,
+            Duration ttl) {
+        if (accountStatus == null || step == null || ttl == null || ttl.isZero() || ttl.isNegative()) {
+            throw new IllegalArgumentException("Onboarding token input không hợp lệ");
+        }
+        return issue(
+                userId,
+                email,
+                JwtTokenType.ONBOARDING,
+                ttl,
+                builder -> builder
+                        .claim(ACCOUNT_STATUS, accountStatus.name())
+                        .claim(SECURITY_VERSION, securityVersion)
+                        .claim(ONBOARDING_STEP, step.name()));
+    }
+
     public JwtAccessClaims parseAccessToken(String token) {
         Claims claims = parse(token, JwtTokenType.ACCESS);
         TrangThaiTaiKhoan status;
@@ -104,6 +125,30 @@ public class JwtUtil {
         return new JwtRefreshClaims(
                 parseUserId(claims),
                 requiredString(claims, EMAIL),
+                requiredJwtId(claims),
+                requiredExpiration(claims));
+    }
+
+    public JwtOnboardingClaims parseOnboardingToken(String token) {
+        Claims claims = parse(token, JwtTokenType.ONBOARDING);
+        TrangThaiTaiKhoan status;
+        OnboardingStep step;
+        try {
+            status = TrangThaiTaiKhoan.valueOf(requiredString(claims, ACCOUNT_STATUS));
+            step = OnboardingStep.valueOf(requiredString(claims, ONBOARDING_STEP));
+        } catch (IllegalArgumentException exception) {
+            throw new JwtException("Onboarding claim không hợp lệ", exception);
+        }
+        Number version = claims.get(SECURITY_VERSION, Number.class);
+        if (version == null) {
+            throw new JwtException("security_version không hợp lệ");
+        }
+        return new JwtOnboardingClaims(
+                parseUserId(claims),
+                requiredString(claims, EMAIL),
+                status,
+                version.longValue(),
+                step,
                 requiredJwtId(claims),
                 requiredExpiration(claims));
     }

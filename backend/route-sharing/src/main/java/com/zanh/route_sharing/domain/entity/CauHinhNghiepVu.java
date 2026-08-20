@@ -24,7 +24,9 @@ import java.math.BigDecimal;
                                 + "AND thoi_gian_tre_tin_hieu_giay > chu_ky_gui_vi_tri_giay "
                                 + "AND thoi_gian_mat_tin_hieu_giay > thoi_gian_tre_tin_hieu_giay"),
                 @CheckConstraint(name = "ck_cau_hinh_yeu_cau_di_chung", constraint = "booking_cutoff_seconds >= 0 "
-                                + "AND rejection_cooldown_seconds >= 0")
+                                + "AND rejection_cooldown_seconds >= 0"),
+                @CheckConstraint(name = "ck_cau_hinh_khieu_nai", constraint = "thoi_han_nop_khieu_nai_gio > 0"),
+                @CheckConstraint(name = "ck_cau_hinh_xu_ly_khieu_nai", constraint = "thoi_han_phan_hoi_khieu_nai_gio > 0")
 })
 @Getter
 @Setter
@@ -61,6 +63,10 @@ public class CauHinhNghiepVu extends Base {
         private Long bookingCutoffSeconds;
         @Column(name = "rejection_cooldown_seconds", nullable = false)
         private Long rejectionCooldownSeconds;
+        @Column(name = "thoi_han_nop_khieu_nai_gio", nullable = false)
+        private Long thoiHanNopKhieuNaiGio;
+        @Column(name = "thoi_han_phan_hoi_khieu_nai_gio", nullable = false)
+        private Long thoiHanPhanHoiKhieuNaiGio;
         @Builder.Default
         @Column(name = "bat_buoc_tep_xac_nhan_chu_xe", nullable = false)
         private Boolean batBuocTepXacNhanChuXeKhiKhongChinhChu = false;

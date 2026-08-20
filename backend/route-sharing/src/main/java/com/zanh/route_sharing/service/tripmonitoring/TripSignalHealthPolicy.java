@@ -48,6 +48,9 @@ public class TripSignalHealthPolicy {
                             : TripSignalMonitoringReason.SIGNAL_DELAY_THRESHOLD_EXCEEDED);
         }
 
+        // A healthier state requires evidence that a new authoritative CURRENT signal
+        // advanced the reference. Merely relaxing configuration must never recover
+        // state.
         if (latestTransitionSignalReferenceAt == null
                 || !signalReferenceAt.isAfter(latestTransitionSignalReferenceAt)) {
             return TripSignalMonitoringDecision.unchanged(currentState);

@@ -51,4 +51,25 @@ class JwtUtilTest {
         assertThatThrownBy(() -> jwt.parseAccessToken(refresh.value()))
                 .isInstanceOf(io.jsonwebtoken.JwtException.class);
     }
+    @Test
+    void onboardingTokenRoundTripPreservesStateAndCannotBeParsedAsFullAccessToken() {
+        JwtUtil jwt = new JwtUtil(properties(), java.time.Clock.systemUTC());
+        IssuedToken onboarding = jwt.issueOnboardingToken(
+                10L,
+                "user@school.edu.vn",
+                TrangThaiTaiKhoan.CHO_XAC_THUC_EMAIL,
+                5L,
+                OnboardingStep.VERIFY_EMAIL,
+                Duration.ofMinutes(30));
+
+        JwtOnboardingClaims claims = jwt.parseOnboardingToken(onboarding.value());
+        assertThat(claims.userId()).isEqualTo(10L);
+        assertThat(claims.accountStatus()).isEqualTo(TrangThaiTaiKhoan.CHO_XAC_THUC_EMAIL);
+        assertThat(claims.securityVersion()).isEqualTo(5L);
+        assertThat(claims.step()).isEqualTo(OnboardingStep.VERIFY_EMAIL);
+
+        assertThatThrownBy(() -> jwt.parseAccessToken(onboarding.value()))
+                .isInstanceOf(io.jsonwebtoken.JwtException.class);
+    }
+
 }

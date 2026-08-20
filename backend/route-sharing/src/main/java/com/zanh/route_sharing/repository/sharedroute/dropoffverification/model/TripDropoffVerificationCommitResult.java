@@ -5,7 +5,6 @@ import com.zanh.route_sharing.domain.enums.TrangThaiYeuCau;
 import java.time.Instant;
 
 public record TripDropoffVerificationCommitResult(
-                Long tripId, Long routeId, Long rideRequestId, Long dropoffStopId, Integer dropoffStopOrder,
-                TrangThaiYeuCau bookingStatus, TrangThaiDiemDung dropoffStatus, Instant droppedOffAt,
-                Integer actualPassengerCount, Long realtimeRecipientUserId) {
-}
+        Long tripId, Long routeId, Long rideRequestId, Long dropoffStopId, Integer dropoffStopOrder,
+        TrangThaiYeuCau bookingStatus, TrangThaiDiemDung dropoffStatus, Instant droppedOffAt,
+        Integer actualPassengerCount, Long realtimeRecipientUserId) {}

@@ -21,7 +21,9 @@ class EntitySchemaMetadataTest {
                                 Map.entry(CauHinhNghiepVu.class, Set.of(
                                                 "ck_cau_hinh_ty_le_tien_duong",
                                                 "ck_cau_hinh_gia_tri_duong",
-                                                "ck_cau_hinh_yeu_cau_di_chung")),
+                                                "ck_cau_hinh_yeu_cau_di_chung",
+                                                "ck_cau_hinh_khieu_nai",
+                                                "ck_cau_hinh_xu_ly_khieu_nai")),
                                 Map.entry(PhuongTien.class, Set.of(
                                                 "ck_phuong_tien_so_cho",
                                                 "ck_phuong_tien_co_so_su_dung")),
@@ -57,7 +59,24 @@ class EntitySchemaMetadataTest {
                                                 "ck_ban_ghi_do_chinh_xac",
                                                 "ck_ban_ghi_toc_do",
                                                 "ck_ban_ghi_huong")),
-                                Map.entry(TepMinhChung.class, Set.of("ck_tep_minh_chung_xor")),
+                                Map.entry(KhieuNai.class, Set.of(
+                                                "ck_khieu_nai_noi_dung",
+                                                "ck_khieu_nai_deadline",
+                                                "ck_khieu_nai_pairwise",
+                                                "ck_khieu_nai_submitted_shape",
+                                                "ck_khieu_nai_review_shape",
+                                                "ck_khieu_nai_request_shape",
+                                                "ck_khieu_nai_non_request_shape",
+                                                "ck_khieu_nai_open_review_conclusion_shape",
+                                                "ck_khieu_nai_terminal_shape")),
+                                Map.entry(TepMinhChung.class, Set.of(
+                                                "ck_tep_minh_chung_xor",
+                                                "ck_tep_minh_chung_size",
+                                                "ck_tep_minh_chung_hash",
+                                                "ck_tep_minh_chung_storage_key",
+                                                "ck_tep_minh_chung_filename",
+                                                "ck_tep_minh_chung_media_type",
+                                                "ck_tep_minh_chung_complaint_category")),
                                 Map.entry(QuyetDinhKyLuat.class, Set.of(
                                                 "ck_quyet_dinh_can_cu",
                                                 "ck_quyet_dinh_hieu_luc")),
@@ -134,6 +153,35 @@ class EntitySchemaMetadataTest {
                 assertThat(column.nullable()).isFalse();
                 assertThat(column.precision()).isEqualTo(12);
                 assertThat(column.scale()).isEqualTo(2);
+        }
+
+        @Test
+        void complaintSubmissionSchemaMetadataMatchesE801Design() throws Exception {
+                Table complaint = KhieuNai.class.getAnnotation(Table.class);
+                assertThat(complaint.name()).isEqualTo("khieu_nai");
+                assertThat(Arrays.stream(complaint.uniqueConstraints())
+                                .filter(unique -> "uk_khieu_nai_nguoi_booking".equals(unique.name()))
+                                .flatMap(unique -> Arrays.stream(unique.columnNames())))
+                                .containsExactlyInAnyOrder("nguoi_khieu_nai_id", "yeu_cau_di_chung_id");
+
+                for (String fieldName : Set.of(
+                                "chuyenDi", "yeuCauDiChung", "nguoiKhieuNai", "nguoiBiKhieuNai",
+                                "tieuDe", "noiDung", "trangThaiKhieuNai", "nopLuc", "hanNopKhieuNaiApDungLuc")) {
+                        Field field = KhieuNai.class.getDeclaredField(fieldName);
+                        Column column = field.getAnnotation(Column.class);
+                        if (column != null) {
+                                assertThat(column.nullable()).as(fieldName).isFalse();
+                        } else {
+                                jakarta.persistence.JoinColumn join = field.getAnnotation(jakarta.persistence.JoinColumn.class);
+                                assertThat(join).as(fieldName).isNotNull();
+                                assertThat(join.nullable()).as(fieldName).isFalse();
+                        }
+                }
+
+                Field filingHours = CauHinhNghiepVu.class.getDeclaredField("thoiHanNopKhieuNaiGio");
+                Column filingHoursColumn = filingHours.getAnnotation(Column.class);
+                assertThat(filingHoursColumn.name()).isEqualTo("thoi_han_nop_khieu_nai_gio");
+                assertThat(filingHoursColumn.nullable()).isFalse();
         }
 
 }
